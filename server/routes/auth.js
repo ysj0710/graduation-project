@@ -1,24 +1,14 @@
 const Router = require('koa-router');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../middleware/jwt');
+const User = require('../models/User');
+const { jwtMiddleware, JWT_SECRET } = require('../middleware/jwt');
 
-const router = new Router({ prefix: '/auth' });
-
-// 模拟用户数据（实际项目中应该从数据库读取）
-const users = [
-  {
-    id: 1,
-    username: 'admin',
-    // 密码是 '123456'
-    password: '$2a$10$rXnLzFKCp6pV7KzQN5Y3OeXQqhVxZ5QN5Y3OeXQqhVxZ5QN5Y3Oe', 
-    email: 'admin@example.com'
-  }
-];
+const router = new Router();
 
 // 注册
 router.post('/register', async (ctx) => {
-  const { username, password, email } = ctx.request.body;
+  const { username, password, email, nickname } = ctx.request.body;
   
   if (!username || !password || !email) {
     ctx.status = 400;
@@ -26,8 +16,11 @@ router.post('/register', async (ctx) => {
     return;
   }
 
-  // 检查用户是否已存在
-  const existingUser = users.find(u => u.username === username || u.email === email);
+  // 检查用户名或邮箱是否已存在
+  const existingUser = await User.findOne({ 
+    $or: [{ username }, { email }] 
+  });
+  
   if (existingUser) {
     ctx.status = 400;
     ctx.body = { message: '用户名或邮箱已存在' };
@@ -37,17 +30,19 @@ router.post('/register', async (ctx) => {
   // 加密密码
   const hashedPassword = await bcrypt.hash(password, 10);
   
-  // 添加用户
-  const newUser = {
-    id: users.length + 1,
+  // 创建用户（默认 role 为 'user'）
+  const newUser = new User({
     username,
     password: hashedPassword,
-    email
-  };
-  users.push(newUser);
+    email,
+    nickname: nickname || username,
+    role: 'user'
+  });
+  
+  await newUser.save();
 
   ctx.status = 201;
-  ctx.body = { message: '注册成功', userId: newUser.id };
+  ctx.body = { message: '注册成功', userId: newUser._id };
 });
 
 // 登录
@@ -61,7 +56,7 @@ router.post('/login', async (ctx) => {
   }
 
   // 查找用户
-  const user = users.find(u => u.username === username);
+  const user = await User.findOne({ username });
   if (!user) {
     ctx.status = 401;
     ctx.body = { message: '用户名或密码错误' };
@@ -78,7 +73,12 @@ router.post('/login', async (ctx) => {
 
   // 生成 JWT token
   const token = jwt.sign(
-    { id: user.id, username: user.username, email: user.email },
+    { 
+      id: user._id, 
+      username: user.username, 
+      email: user.email,
+      role: user.role 
+    },
     JWT_SECRET,
     { expiresIn: '24h' }
   );
@@ -87,19 +87,69 @@ router.post('/login', async (ctx) => {
     message: '登录成功',
     token,
     user: {
-      id: user.id,
+      id: user._id,
       username: user.username,
-      email: user.email
+      email: user.email,
+      nickname: user.nickname,
+      role: user.role
     }
   };
 });
 
+// 创建超级管理员（首次运行使用）
+router.post('/init-admin', async (ctx) => {
+  const { username, password, email, secretKey } = ctx.request.body;
+  
+  // 秘钥验证（只有知道秘钥才能创建管理员）
+  if (secretKey !== 'admin-secret-key-2024') {
+    ctx.status = 403;
+    ctx.body = { message: '秘钥错误' };
+    return;
+  }
+
+  // 检查是否已存在管理员
+  const existingAdmin = await User.findOne({ role: 'admin' });
+  if (existingAdmin) {
+    ctx.status = 400;
+    ctx.body = { message: '管理员已存在' };
+    return;
+  }
+
+  // 加密密码
+  const hashedPassword = await bcrypt.hash(password, 10);
+  
+  // 创建管理员
+  const admin = new User({
+    username,
+    password: hashedPassword,
+    email,
+    nickname: nickname || '管理员',
+    role: 'admin'
+  });
+  
+  await admin.save();
+
+  ctx.status = 201;
+  ctx.body = { message: '管理员创建成功' };
+});
+
 // 验证 token（受保护路由示例）
-router.get('/verify', require('../middleware/jwt').jwtMiddleware, async (ctx) => {
+router.get('/verify', jwtMiddleware, async (ctx) => {
   ctx.body = {
     message: 'Token 验证成功',
     user: ctx.state.user
   };
+});
+
+// 获取当前用户信息
+router.get('/me', jwtMiddleware, async (ctx) => {
+  const user = await User.findById(ctx.state.user.id).select('-password');
+  if (!user) {
+    ctx.status = 404;
+    ctx.body = { message: '用户不存在' };
+    return;
+  }
+  ctx.body = { user };
 });
 
 module.exports = router;
