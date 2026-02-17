@@ -21,7 +21,7 @@ mongoose.connect(MONGO_URI)
 
 // 中间件
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: '*',
   credentials: true
 }));
 app.use(bodyParser());

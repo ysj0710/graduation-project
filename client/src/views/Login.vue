@@ -12,6 +12,7 @@
             type="text" 
             placeholder="请输入用户名"
             required
+            autocomplete="username"
           />
         </div>
         
@@ -22,6 +23,7 @@
             type="password" 
             placeholder="请输入密码"
             required
+            autocomplete="current-password"
           />
         </div>
         
@@ -42,49 +44,7 @@
       <div class="register-box">
         <h2>注册</h2>
         
-        <!-- 步骤1: 输入邮箱获取验证码 -->
-        <div v-if="registerStep === 1" class="step-container">
-          <div class="form-group">
-            <label>邮箱</label>
-            <input 
-              v-model="registerForm.email" 
-              type="email" 
-              placeholder="请输入邮箱"
-              required
-            />
-          </div>
-          <div class="error-message" v-if="registerError">{{ registerError }}</div>
-          <div class="modal-buttons">
-            <button type="button" class="cancel-btn" @click="closeRegister">取消</button>
-            <button 
-              type="button" 
-              class="register-btn" 
-              @click="sendCode"
-              :disabled="sendingCode"
-            >
-              {{ sendingCode ? '发送中...' : '获取验证码' }}
-            </button>
-          </div>
-        </div>
-        
-        <!-- 步骤2: 输入验证码和密码 -->
-        <div v-else-if="registerStep === 2" class="step-container">
-          <div class="form-group">
-            <label>验证码</label>
-            <div class="code-input-group">
-              <input 
-                v-model="registerForm.code" 
-                type="text" 
-                placeholder="请输入6位验证码"
-                maxlength="6"
-                required
-              />
-              <button type="button" class="resend-btn" @click="sendCode" :disabled="countdown > 0">
-                {{ countdown > 0 ? `${countdown}s` : '重新获取' }}
-              </button>
-            </div>
-          </div>
-          
+        <form @submit.prevent="handleRegister">
           <div class="form-group">
             <label>用户名</label>
             <input 
@@ -92,6 +52,7 @@
               type="text" 
               placeholder="请输入用户名（3-20个字符）"
               required
+              autocomplete="new-username"
             />
           </div>
           
@@ -102,25 +63,71 @@
               type="password" 
               placeholder="请输入密码（至少6位）"
               required
+              autocomplete="new-password"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>确认密码</label>
+            <input 
+              v-model="registerForm.confirmPassword" 
+              type="password" 
+              placeholder="请再次输入密码"
+              required
+              autocomplete="new-password"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>邮箱</label>
+            <div class="email-input-group">
+              <input 
+                v-model="registerForm.email" 
+                type="email" 
+                placeholder="请输入邮箱"
+                required
+                autocomplete="new-email"
+              />
+              <button 
+                type="button" 
+                class="send-code-btn" 
+                @click="sendCode"
+                :disabled="sendingCode || countdown > 0 || !registerForm.email"
+              >
+                {{ sendingCode ? '发送中...' : countdown > 0 ? `${countdown}s` : '发送验证码' }}
+              </button>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>验证码</label>
+            <input 
+              v-model="registerForm.code" 
+              type="text" 
+              placeholder="请输入6位验证码"
+              maxlength="6"
+              required
+              autocomplete="one-time-code"
             />
           </div>
           
           <div class="error-message" v-if="registerError">{{ registerError }}</div>
+          <div class="success-message" v-if="codeSent">验证码已发送到您的邮箱</div>
           
           <div class="modal-buttons">
-            <button type="button" class="cancel-btn" @click="registerStep = 1">上一步</button>
-            <button type="button" class="register-btn" @click="handleRegister" :disabled="registering">
+            <button type="button" class="cancel-btn" @click="closeRegister">取消</button>
+            <button type="submit" class="register-btn" :disabled="registering || !canRegister">
               {{ registering ? '注册中...' : '注 册' }}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
@@ -132,21 +139,31 @@ const loginForm = reactive({
 })
 
 const registerForm = reactive({
-  email: '',
-  code: '',
   username: '',
-  password: ''
+  password: '',
+  confirmPassword: '',
+  email: '',
+  code: ''
 })
 
 const loading = ref(false)
 const error = ref('')
 const showRegister = ref(false)
-const registerStep = ref(1) // 1: 输入邮箱, 2: 输入验证码和密码
 const sendingCode = ref(false)
 const registering = ref(false)
 const registerError = ref('')
+const codeSent = ref(false)
 const countdown = ref(0)
 let countdownTimer = null
+
+// 能否注册
+const canRegister = computed(() => {
+  return registerForm.username.length >= 3 &&
+         registerForm.password.length >= 6 &&
+         registerForm.password === registerForm.confirmPassword &&
+         registerForm.email.includes('@') &&
+         registerForm.code.length === 6
+})
 
 // 登录处理
 const handleLogin = async () => {
@@ -177,20 +194,21 @@ const sendCode = async () => {
     return
   }
   
+  if (!registerForm.email.includes('@')) {
+    registerError.value = '邮箱格式不正确'
+    return
+  }
+  
   sendingCode.value = true
   registerError.value = ''
+  codeSent.value = false
   
   try {
-    const response = await axios.post('/api/auth/send-code', {
+    await axios.post('/api/auth/send-code', {
       email: registerForm.email
     })
     
-    // 开发环境显示验证码
-    if (response.data.devCode) {
-      alert(`验证码: ${response.data.devCode}`)
-    }
-    
-    registerStep.value = 2
+    codeSent.value = true
     
     // 开始倒计时
     countdown.value = 60
@@ -211,6 +229,17 @@ const sendCode = async () => {
 
 // 注册处理
 const handleRegister = async () => {
+  // 验证密码
+  if (registerForm.password !== registerForm.confirmPassword) {
+    registerError.value = '两次输入的密码不一致'
+    return
+  }
+  
+  if (registerForm.password.length < 6) {
+    registerError.value = '密码至少6位'
+    return
+  }
+  
   registerError.value = ''
   registering.value = true
   
@@ -236,12 +265,13 @@ const handleRegister = async () => {
 
 const closeRegister = () => {
   showRegister.value = false
-  registerStep.value = 1
-  registerForm.email = ''
-  registerForm.code = ''
   registerForm.username = ''
   registerForm.password = ''
+  registerForm.confirmPassword = ''
+  registerForm.email = ''
+  registerForm.code = ''
   registerError.value = ''
+  codeSent.value = false
   countdown.value = 0
   if (countdownTimer) clearInterval(countdownTimer)
 }
@@ -306,29 +336,42 @@ const closeRegister = () => {
   border-color: #667eea;
 }
 
-.code-input-group {
+.email-input-group {
   display: flex;
   gap: 10px;
 }
 
-.code-input-group input {
+.email-input-group input {
   flex: 1;
 }
 
-.resend-btn {
+.send-code-btn {
   padding: 10px 15px;
-  background: #e0e0e0;
-  color: #333;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
   border: none;
   border-radius: 10px;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 0.3s ease;
 }
 
-.resend-btn:disabled {
-  cursor: not-allowed;
+.send-code-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.send-code-btn:disabled {
   opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.success-message {
+  color: #27ae60;
+  font-size: 14px;
+  margin-bottom: 15px;
+  text-align: center;
 }
 
 .error-message {
@@ -396,7 +439,7 @@ const closeRegister = () => {
   padding: 30px;
   border-radius: 20px;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   margin: 20px;
 }
 
@@ -404,10 +447,6 @@ const closeRegister = () => {
   text-align: center;
   color: #333;
   margin-bottom: 24px;
-}
-
-.step-container {
-  margin-bottom: 10px;
 }
 
 .modal-buttons {
