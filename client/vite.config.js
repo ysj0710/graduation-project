@@ -8,7 +8,7 @@ export default defineConfig({
     allowedHosts: ['.loca.lt', '.trycloudflare.com', 'ysj0710.xyz', 'api.ysj0710.xyz'],
     proxy: {
       '/api': {
-        target: 'https://api.ysj0710.xyz',
+        target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false
       }

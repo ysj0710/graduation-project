@@ -1,235 +1,157 @@
 <template>
-  <div class="login-container">
-    <div class="login-box">
-      <h1>个人财务记账系统</h1>
-      <h2>登录</h2>
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+    <div class="absolute top-0 left-0 w-full h-full bg-white/10 backdrop-blur-sm"></div>
+    
+    <el-card class="w-full max-w-md relative overflow-hidden" :body-style="{ padding: '40px' }">
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 mb-4">
+          <el-icon :size="32" class="text-white"><Wallet /></el-icon>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800">个人财务记账系统</h1>
+        <p class="text-gray-500 mt-2">登录您的账户</p>
+      </div>
       
-      <form @submit.prevent="handleLogin">
-        <div class="form-group">
-          <label>用户名</label>
-          <input 
+      <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" @submit.prevent="handleLogin">
+        <el-form-item prop="username">
+          <el-input 
             v-model="loginForm.username" 
-            type="text" 
-            placeholder="请输入用户名"
-            required
-            autocomplete="username"
+            placeholder="用户名"
+            size="large"
+            :prefix-icon="User"
           />
-        </div>
+        </el-form-item>
         
-        <div class="form-group">
-          <label>密码</label>
-          <input 
+        <el-form-item prop="password">
+          <el-input 
             v-model="loginForm.password" 
-            type="password" 
-            placeholder="请输入密码"
-            required
-            autocomplete="current-password"
+            type="password"
+            placeholder="密码"
+            size="large"
+            :prefix-icon="Lock"
+            show-password
+            @keyup.enter="handleLogin"
           />
-        </div>
+        </el-form-item>
         
-        <div class="error-message" v-if="error">{{ error }}</div>
+        <el-alert v-if="error" :title="error" type="error" show-icon :closable="false" class="mb-4" />
         
-        <button type="submit" class="login-btn" :disabled="loading">
+        <el-button 
+          type="primary" 
+          size="large" 
+          class="w-full h-12 text-base font-semibold" 
+          :loading="loading"
+          @click="handleLogin"
+        >
           {{ loading ? '登录中...' : '登 录' }}
-        </button>
-      </form>
+        </el-button>
+      </el-form>
       
-      <div class="register-link">
-        还没有账户？ <a href="#" @click.prevent="showRegister = true">立即注册</a>
+      <div class="flex justify-between items-center mt-6 pt-6 border-t border-gray-100">
+        <el-link type="primary" @click="openRegister">立即注册</el-link>
+        <el-link type="info" @click="openForgotPassword">忘记密码？</el-link>
       </div>
-      
-      <div class="forgot-password-link">
-        <a href="#" @click.prevent="showForgotPassword = true">忘记密码？</a>
-      </div>
-    </div>
+    </el-card>
 
     <!-- 注册弹窗 -->
-    <div class="modal" v-if="showRegister">
-      <div class="register-box">
-        <button class="close-btn" @click="closeRegister">×</button>
-        <h2>注册</h2>
+    <el-dialog v-model="showRegister" title="用户注册" width="480px" :close-on-click-modal="false" class="register-dialog">
+      <el-form ref="registerFormRef" :model="registerForm" :rules="registerRules">
+        <el-form-item prop="username">
+          <el-input v-model="registerForm.username" placeholder="用户名（3-20个字符）" :prefix-icon="User" autocomplete="off" />
+        </el-form-item>
         
-        <form @submit.prevent="handleRegister">
-          <div class="form-group">
-            <label>用户名</label>
-            <input 
-              v-model="registerForm.username" 
-              type="text" 
-              placeholder="请输入用户名（3-20个字符）"
-              required
-              autocomplete="new-username"
-            />
-            <div class="field-hint" v-if="registerForm.username && registerForm.username.length < 3">
-              用户名至少需要3个字符
-            </div>
+        <el-form-item prop="password">
+          <el-input v-model="registerForm.password" type="password" placeholder="密码（至少6位）" :prefix-icon="Lock" show-password autocomplete="off" />
+        </el-form-item>
+        
+        <el-form-item prop="confirmPassword">
+          <el-input v-model="registerForm.confirmPassword" type="password" placeholder="确认密码" :prefix-icon="Lock" show-password autocomplete="off" />
+        </el-form-item>
+        
+        <el-form-item prop="email">
+          <div class="flex gap-2">
+            <el-input v-model="registerForm.email" placeholder="邮箱地址" :prefix-icon="Message" class="flex-1" autocomplete="off" />
+            <el-button :disabled="!registerForm.email || countdown > 0" @click="sendCode">
+              {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
+            </el-button>
           </div>
-          
-          <div class="form-group">
-            <label>密码</label>
-            <input 
-              v-model="registerForm.password" 
-              type="password" 
-              placeholder="请输入密码（至少6位）"
-              required
-              autocomplete="new-password"
-            />
-          </div>
-          
-          <div class="form-group">
-            <label>确认密码</label>
-            <input 
-              v-model="registerForm.confirmPassword" 
-              type="password" 
-              placeholder="请再次输入密码"
-              required
-              autocomplete="new-password"
-            />
-          </div>
-          
-          <div class="form-group">
-            <label>邮箱</label>
-            <div class="email-input-group">
-              <input 
-                v-model="registerForm.email" 
-                type="email" 
-                placeholder="请输入邮箱"
-                required
-                autocomplete="new-email"
-              />
-              <button 
-                type="button" 
-                class="send-code-btn" 
-                @click="sendCode"
-                :disabled="sendingCode || countdown > 0 || !registerForm.email"
-              >
-                {{ sendingCode ? '发送中...' : countdown > 0 ? `${countdown}s` : '发送验证码' }}
-              </button>
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label>验证码</label>
-            <input 
-              v-model="registerForm.code" 
-              type="text" 
-              placeholder="请输入6位验证码"
-              maxlength="6"
-              required
-              autocomplete="one-time-code"
-            />
-          </div>
-          
-          <div class="error-message" v-if="registerError">{{ registerError }}</div>
-          <div class="success-message" v-if="codeSent">验证码已发送到您的邮箱</div>
-          
-          <div class="modal-buttons">
-            <button type="button" class="cancel-btn" @click="closeRegister">取消</button>
-            <button type="submit" class="register-btn" :disabled="registering || !canRegister">
-              {{ registering ? '注册中...' : '注 册' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </el-form-item>
+        
+        <el-form-item prop="code">
+          <el-input v-model="registerForm.code" placeholder="验证码（6位）" maxlength="6" :prefix-icon="CircleCheck" autocomplete="off" />
+        </el-form-item>
+        
+        <el-alert v-if="registerError" :title="registerError" type="error" show-icon :closable="false" class="mb-4" />
+        <el-alert v-if="codeSent" title="验证码已发送到您的邮箱" type="success" show-icon :closable="false" class="mb-4" />
+      </el-form>
+      
+      <template #footer>
+        <el-button @click="closeRegister">取消</el-button>
+        <el-button type="primary" :loading="registering" @click="handleRegister">注 册</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 忘记密码弹窗 -->
-    <div class="modal" v-if="showForgotPassword">
-      <div class="register-box">
-        <button class="close-btn" @click="closeForgotPassword">×</button>
-        <h2>找回密码</h2>
-        
-        <form @submit.prevent="handleResetPassword" v-if="!passwordResetSuccess">
-          <div class="form-group">
-            <label>邮箱</label>
-            <div class="email-input-group">
-              <input 
-                v-model="forgotPasswordForm.email" 
-                type="email" 
-                placeholder="请输入注册邮箱"
-                required
-                autocomplete="email"
-              />
-              <button 
-                type="button" 
-                class="send-code-btn" 
-                @click="sendForgotPasswordCode"
-                :disabled="sendingCode || countdown > 0 || !forgotPasswordForm.email"
-              >
-                {{ sendingCode ? '发送中...' : countdown > 0 ? `${countdown}s` : '发送验证码' }}
-              </button>
+    <el-dialog v-model="showForgotPassword" title="找回密码" width="480px" :close-on-click-modal="false">
+      <div v-if="!passwordResetSuccess">
+        <el-form ref="forgotFormRef" :model="forgotPasswordForm" :rules="forgotRules">
+          <el-form-item prop="email">
+            <div class="flex gap-2">
+              <el-input v-model="forgotPasswordForm.email" placeholder="注册邮箱" :prefix-icon="Message" class="flex-1" />
+              <el-button :disabled="!forgotPasswordForm.email || countdown > 0" @click="sendForgotCode">
+                {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
+              </el-button>
             </div>
-          </div>
+          </el-form-item>
           
-          <div class="form-group">
-            <label>验证码</label>
-            <input 
-              v-model="forgotPasswordForm.code" 
-              type="text" 
-              placeholder="请输入6位验证码"
-              maxlength="6"
-              required
-            />
-          </div>
-
-          <div class="form-group">
-            <label>新密码</label>
-            <input 
-              v-model="forgotPasswordForm.newPassword" 
-              type="password" 
-              placeholder="请输入新密码（至少6位）"
-              required
-            />
-          </div>
-
-          <div class="form-group">
-            <label>确认新密码</label>
-            <input 
-              v-model="forgotPasswordForm.confirmPassword" 
-              type="password" 
-              placeholder="请再次输入新密码"
-              required
-            />
-          </div>
+          <el-form-item prop="code">
+            <el-input v-model="forgotPasswordForm.code" placeholder="验证码（6位）" maxlength="6" :prefix-icon="CircleCheck" autocomplete="off" />
+          </el-form-item>
           
-          <div class="error-message" v-if="forgotPasswordError">{{ forgotPasswordError }}</div>
+          <el-form-item prop="newPassword">
+            <el-input v-model="forgotPasswordForm.newPassword" type="password" placeholder="新密码（至少6位）" :prefix-icon="Lock" show-password autocomplete="new-password" />
+          </el-form-item>
           
-          <div class="modal-buttons">
-            <button type="button" class="cancel-btn" @click="closeForgotPassword">取消</button>
-            <button type="submit" class="register-btn" :disabled="resettingPassword">
-              {{ resettingPassword ? '重置中...' : '重置密码' }}
-            </button>
-          </div>
-        </form>
-
-        <div v-else class="success-reset">
-          <div class="success-icon">✓</div>
-          <p>密码重置成功！</p>
-          <button class="login-btn" @click="closeForgotPassword">去登录</button>
-        </div>
+          <el-form-item prop="confirmPassword">
+            <el-input v-model="forgotPasswordForm.confirmPassword" type="password" placeholder="确认新密码" :prefix-icon="Lock" show-password autocomplete="new-password" />
+          </el-form-item>
+          
+          <el-alert v-if="forgotPasswordError" :title="forgotPasswordError" type="error" show-icon :closable="false" class="mb-4" />
+        </el-form>
       </div>
-    </div>
+      
+      <div v-else class="text-center py-8">
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-4">
+          <el-icon :size="40" class="text-green-500"><CircleCheckFilled /></el-icon>
+        </div>
+        <p class="text-xl font-semibold text-green-500 mb-2">密码重置成功！</p>
+        <p class="text-gray-500 mb-6">请使用新密码登录</p>
+        <el-button type="primary" size="large" @click="closeForgotPassword">去登录</el-button>
+      </div>
+      
+      <template #footer v-if="!passwordResetSuccess">
+        <el-button @click="closeForgotPassword">取消</el-button>
+        <el-button type="primary" :loading="resettingPassword" @click="handleResetPassword">重置密码</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { User, Lock, Message, CircleCheck, Wallet, CircleCheckFilled } from '@element-plus/icons-vue'
 import axios from 'axios'
 
 const router = useRouter()
 
-const loginForm = reactive({
-  username: '',
-  password: ''
-})
+const loginFormRef = ref(null)
+const registerFormRef = ref(null)
+const forgotFormRef = ref(null)
 
-const registerForm = reactive({
-  username: '',
-  password: '',
-  confirmPassword: '',
-  email: '',
-  code: ''
-})
+const loginForm = reactive({ username: '', password: '' })
+const registerForm = reactive({ username: '', password: '', confirmPassword: '', email: '', code: '' })
+const forgotPasswordForm = reactive({ email: '', code: '', newPassword: '', confirmPassword: '' })
 
 const loading = ref(false)
 const error = ref('')
@@ -240,82 +162,72 @@ const registering = ref(false)
 const registerError = ref('')
 const codeSent = ref(false)
 const countdown = ref(0)
-let countdownTimer = null
-
-// 忘记密码表单
-const forgotPasswordForm = reactive({
-  email: '',
-  code: '',
-  newPassword: '',
-  confirmPassword: ''
-})
 const forgotPasswordError = ref('')
 const resettingPassword = ref(false)
 const passwordResetSuccess = ref(false)
+let countdownTimer = null
 
-// 能否注册（基本条件）
-const canRegister = computed(() => {
-  return registerForm.username.length >= 3 &&
-         registerForm.password.length >= 6 &&
-         registerForm.email.includes('@') &&
-         registerForm.code.length === 6
-})
-
-// 登录处理
-const handleLogin = async () => {
-  error.value = ''
-  loading.value = true
-  
-  try {
-    const response = await axios.post('/api/auth/login', {
-      username: loginForm.username,
-      password: loginForm.password
-    })
-    
-    localStorage.setItem('token', response.data.token)
-    localStorage.setItem('user', JSON.stringify(response.data.user))
-    
-    router.push('/home')
-  } catch (err) {
-    error.value = err.response?.data?.message || '登录失败，请稍后重试'
-  } finally {
-    loading.value = false
-  }
+const loginRules = {
+  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 }
 
-// 发送验证码
+const validateConfirmPassword = (rule, value, callback) => {
+  if (value !== registerForm.password) callback(new Error('两次输入的密码不一致'))
+  else callback()
+}
+
+const registerRules = {
+  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }, { min: 3, message: '用户名至少3个字符', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }, { min: 6, message: '密码至少6位', trigger: 'blur' }],
+  confirmPassword: [{ required: true, message: '请再次输入密码', trigger: 'blur' }, { validator: validateConfirmPassword, trigger: 'blur' }],
+  email: [{ required: true, message: '请输入邮箱', trigger: 'blur' }, { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }],
+  code: [{ required: true, message: '请输入验证码', trigger: 'blur' }, { len: 6, message: '验证码6位', trigger: 'blur' }]
+}
+
+const validateForgotConfirmPassword = (rule, value, callback) => {
+  if (value !== forgotPasswordForm.newPassword) callback(new Error('两次输入的密码不一致'))
+  else callback()
+}
+
+const forgotRules = {
+  email: [{ required: true, message: '请输入邮箱', trigger: 'blur' }, { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }],
+  code: [{ required: true, message: '请输入验证码', trigger: 'blur' }, { len: 6, message: '验证码6位', trigger: 'blur' }],
+  newPassword: [{ required: true, message: '请输入新密码', trigger: 'blur' }, { min: 6, message: '密码至少6位', trigger: 'blur' }],
+  confirmPassword: [{ required: true, message: '请再次输入密码', trigger: 'blur' }, { validator: validateForgotConfirmPassword, trigger: 'blur' }]
+}
+
+const handleLogin = async () => {
+  if (!loginFormRef.value) return
+  await loginFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    error.value = ''
+    loading.value = true
+    try {
+      const response = await axios.post('/api/auth/login', { username: loginForm.username, password: loginForm.password })
+      localStorage.setItem('token', response.data.token)
+      localStorage.setItem('user', JSON.stringify(response.data.user))
+      router.push('/home')
+    } catch (err) {
+      error.value = err.response?.data?.message || '登录失败，请稍后重试'
+    } finally {
+      loading.value = false
+    }
+  })
+}
+
 const sendCode = async () => {
-  if (!registerForm.email) {
-    registerError.value = '请输入邮箱地址'
-    return
-  }
-  
-  if (!registerForm.email.includes('@')) {
-    registerError.value = '邮箱格式不正确'
-    return
-  }
-  
+  if (!registerForm.email) { registerError.value = '请输入邮箱地址'; return }
+  if (!registerForm.email.includes('@')) { registerError.value = '邮箱格式不正确'; return }
   sendingCode.value = true
   registerError.value = ''
   codeSent.value = false
-  
   try {
-    await axios.post('/api/auth/send-code', {
-      email: registerForm.email
-    })
-    
+    await axios.post('/api/auth/send-code', { email: registerForm.email })
     codeSent.value = true
-    
-    // 开始倒计时
     countdown.value = 60
     if (countdownTimer) clearInterval(countdownTimer)
-    countdownTimer = setInterval(() => {
-      countdown.value--
-      if (countdown.value <= 0) {
-        clearInterval(countdownTimer)
-      }
-    }, 1000)
-    
+    countdownTimer = setInterval(() => { countdown.value--; if (countdown.value <= 0) clearInterval(countdownTimer) }, 1000)
   } catch (err) {
     registerError.value = err.response?.data?.message || '发送失败，请稍后重试'
   } finally {
@@ -323,40 +235,46 @@ const sendCode = async () => {
   }
 }
 
-// 注册处理
 const handleRegister = async () => {
-  // 验证确认密码
-  if (registerForm.password !== registerForm.confirmPassword) {
-    registerError.value = '两次输入的密码不一致'
-    return
-  }
-  
-  if (registerForm.password.length < 6) {
-    registerError.value = '密码至少6位'
-    return
-  }
-  
-  registerError.value = ''
-  registering.value = true
-  
-  try {
-    await axios.post('/api/auth/register', {
-      username: registerForm.username,
-      password: registerForm.password,
-      email: registerForm.email,
-      code: registerForm.code
-    })
-    
-    alert('注册成功！请登录')
-    closeRegister()
-    // 自动填入用户名
-    loginForm.username = registerForm.username
-    loginForm.password = ''
-  } catch (err) {
-    registerError.value = err.response?.data?.message || '注册失败，请稍后重试'
-  } finally {
-    registering.value = false
-  }
+  if (!registerFormRef.value) return
+  await registerFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    registerError.value = ''
+    registering.value = true
+    try {
+      await axios.post('/api/auth/register', { username: registerForm.username, password: registerForm.password, email: registerForm.email, code: registerForm.code })
+      ElMessage.success('注册成功！请登录')
+      closeRegister()
+      loginForm.username = registerForm.username
+      loginForm.password = ''
+    } catch (err) {
+      registerError.value = err.response?.data?.message || '注册失败，请稍后重试'
+    } finally {
+      registering.value = false
+    }
+  })
+}
+
+const openRegister = () => {
+  // 先清空表单，防止浏览器自动填充
+  setTimeout(() => {
+    registerForm.username = ''
+    registerForm.password = ''
+    registerForm.confirmPassword = ''
+    registerForm.email = ''
+    registerForm.code = ''
+  }, 10)
+  showRegister.value = true
+}
+
+const openForgotPassword = () => {
+  setTimeout(() => {
+    forgotPasswordForm.email = ''
+    forgotPasswordForm.code = ''
+    forgotPasswordForm.newPassword = ''
+    forgotPasswordForm.confirmPassword = ''
+  }, 10)
+  showForgotPassword.value = true
 }
 
 const closeRegister = () => {
@@ -372,36 +290,16 @@ const closeRegister = () => {
   if (countdownTimer) clearInterval(countdownTimer)
 }
 
-// 发送忘记密码验证码
-const sendForgotPasswordCode = async () => {
-  if (!forgotPasswordForm.email) {
-    forgotPasswordError.value = '请输入邮箱地址'
-    return
-  }
-  
-  if (!forgotPasswordForm.email.includes('@')) {
-    forgotPasswordError.value = '邮箱格式不正确'
-    return
-  }
-  
+const sendForgotCode = async () => {
+  if (!forgotPasswordForm.email) { forgotPasswordError.value = '请输入邮箱地址'; return }
+  if (!forgotPasswordForm.email.includes('@')) { forgotPasswordError.value = '邮箱格式不正确'; return }
   sendingCode.value = true
   forgotPasswordError.value = ''
-  
   try {
-    await axios.post('/api/auth/forgot-password/send-code', {
-      email: forgotPasswordForm.email
-    })
-    
-    // 开始倒计时
+    await axios.post('/api/auth/forgot-password/send-code', { email: forgotPasswordForm.email })
     countdown.value = 60
     if (countdownTimer) clearInterval(countdownTimer)
-    countdownTimer = setInterval(() => {
-      countdown.value--
-      if (countdown.value <= 0) {
-        clearInterval(countdownTimer)
-      }
-    }, 1000)
-    
+    countdownTimer = setInterval(() => { countdown.value--; if (countdown.value <= 0) clearInterval(countdownTimer) }, 1000)
   } catch (err) {
     forgotPasswordError.value = err.response?.data?.message || '发送失败，请稍后重试'
   } finally {
@@ -409,40 +307,21 @@ const sendForgotPasswordCode = async () => {
   }
 }
 
-// 重置密码
 const handleResetPassword = async () => {
-  if (!forgotPasswordForm.code) {
-    forgotPasswordError.value = '请输入验证码'
-    return
-  }
-  
-  if (forgotPasswordForm.newPassword.length < 6) {
-    forgotPasswordError.value = '新密码至少6位'
-    return
-  }
-  
-  if (forgotPasswordForm.newPassword !== forgotPasswordForm.confirmPassword) {
-    forgotPasswordError.value = '两次输入的密码不一致'
-    return
-  }
-  
-  forgotPasswordError.value = ''
-  resettingPassword.value = true
-  
-  try {
-    await axios.post('/api/auth/forgot-password/reset', {
-      email: forgotPasswordForm.email,
-      code: forgotPasswordForm.code,
-      newPassword: forgotPasswordForm.newPassword
-    })
-    
-    passwordResetSuccess.value = true
-    
-  } catch (err) {
-    forgotPasswordError.value = err.response?.data?.message || '重置失败，请稍后重试'
-  } finally {
-    resettingPassword.value = false
-  }
+  if (!forgotFormRef.value) return
+  await forgotFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    forgotPasswordError.value = ''
+    resettingPassword.value = true
+    try {
+      await axios.post('/api/auth/forgot-password/reset', { email: forgotPasswordForm.email, code: forgotPasswordForm.code, newPassword: forgotPasswordForm.newPassword })
+      passwordResetSuccess.value = true
+    } catch (err) {
+      forgotPasswordError.value = err.response?.data?.message || '重置失败，请稍后重试'
+    } finally {
+      resettingPassword.value = false
+    }
+  })
 }
 
 const closeForgotPassword = () => {
@@ -455,286 +334,47 @@ const closeForgotPassword = () => {
   passwordResetSuccess.value = false
   countdown.value = 0
   if (countdownTimer) clearInterval(countdownTimer)
-}</script>
+}
+</script>
 
 <style scoped>
-.login-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.bg-gradient-to-r {
+  background: linear-gradient(to right, #6366f1, #a855f7, #ec4899);
 }
 
-.login-box {
-  background: white;
-  padding: 40px;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  width: 100%;
-  max-width: 400px;
+.from-indigo-500 {
+  --tw-gradient-from: #6366f1;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(99 102 241 / 0));
 }
 
-.login-box h1 {
-  text-align: center;
-  color: #333;
-  font-size: 24px;
-  margin-bottom: 10px;
+.via-purple-500 {
+  --tw-gradient-stops: var(--tw-gradient-from), #a855f7, var(--tw-gradient-to, rgb(168 85 247 / 0));
 }
 
-.login-box h2 {
-  text-align: center;
-  color: #666;
-  font-size: 18px;
-  margin-bottom: 30px;
-  font-weight: normal;
+.to-pink-500 {
+  --tw-gradient-to: #ec4899;
 }
 
-.form-group {
-  margin-bottom: 20px;
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
 }
 
-.form-group label {
-  display: block;
-  color: #333;
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 8px;
+:deep(.el-card) {
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
-.form-group input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e0e0e0;
+:deep(.el-input__wrapper) {
   border-radius: 10px;
-  font-size: 16px;
-  transition: all 0.3s ease;
+  padding: 4px 12px;
 }
 
-.form-group input:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-.field-hint {
-  color: #e74c3c;
-  font-size: 12px;
-  margin-top: 5px;
-}
-
-.email-input-group {
-  display: flex;
-  gap: 10px;
-}
-
-.email-input-group input {
-  flex: 1;
-}
-
-.send-code-btn {
-  padding: 10px 15px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 13px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.3s ease;
-}
-
-.send-code-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-}
-
-.send-code-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.success-message {
-  color: #27ae60;
-  font-size: 14px;
-  margin-bottom: 15px;
-  text-align: center;
-}
-
-.error-message {
-  color: #e74c3c;
-  font-size: 14px;
-  margin-bottom: 15px;
-  text-align: center;
-}
-
-.login-btn {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.login-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-}
-
-.login-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.register-link {
-  text-align: center;
-  margin-top: 24px;
-  color: #666;
-  font-size: 14px;
-}
-
-.register-link a {
-  color: #667eea;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.register-link a:hover {
-  text-decoration: underline;
-}
-
-.forgot-password-link {
-  text-align: center;
-  margin-top: 16px;
-  font-size: 14px;
-}
-
-.forgot-password-link a {
-  color: #999;
-  text-decoration: none;
-}
-
-.forgot-password-link a:hover {
-  color: #667eea;
-  text-decoration: underline;
-}
-
-.success-reset {
-  text-align: center;
-  padding: 20px;
-}
-
-.success-icon {
-  width: 60px;
-  height: 60px;
-  background: #27ae60;
-  color: white;
-  border-radius: 50%;
-  font-size: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 20px;
-}
-
-.success-reset p {
-  color: #27ae60;
-  font-size: 18px;
-  margin-bottom: 20px;
-}
-
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.register-box {
-  background: white;
-  padding: 30px;
-  border-radius: 20px;
-  width: 100%;
-  max-width: 420px;
-  margin: 20px;
-  position: relative;
-}
-
-.close-btn {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: #f0f0f0;
-  border-radius: 50%;
-  font-size: 24px;
-  color: #666;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-  background: #e0e0e0;
-  color: #333;
-}
-
-.register-box h2 {
-  text-align: center;
-  color: #333;
-  margin-bottom: 24px;
-}
-
-.modal-buttons {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.cancel-btn, .register-btn {
-  flex: 1;
-  padding: 12px;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.cancel-btn {
-  background: #e0e0e0;
-  color: #333;
+:deep(.el-button--primary) {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
   border: none;
 }
 
-.register-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-}
-
-.register-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-}
-
-.register-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+:deep(.el-button--primary:hover) {
+  background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
 }
 </style>

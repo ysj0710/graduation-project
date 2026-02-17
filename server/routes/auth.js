@@ -289,7 +289,7 @@ router.post('/forgot-password/send-code', async (ctx) => {
   await VerificationCode.create({
     email,
     code,
-    type: 'forgot-password',
+    type: 'resetPassword',
     expiresAt
   });
 
@@ -332,7 +332,7 @@ router.post('/forgot-password/reset', async (ctx) => {
   }
 
   // 查找验证码
-  const verification = await VerificationCode.findOne({ email, code, type: 'forgot-password' });
+  const verification = await VerificationCode.findOne({ email, code, type: 'resetPassword' });
   
   if (!verification) {
     ctx.status = 400;
