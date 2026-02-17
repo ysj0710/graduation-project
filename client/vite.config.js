@@ -5,10 +5,10 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     port: 5173,
-    allowedHosts: ['.loca.lt'],
+    allowedHosts: ['.loca.lt', '.trycloudflare.com'],
     proxy: {
       '/api': {
-        target: 'https://curvy-games-kneel.loca.lt',
+        target: 'https://flu-admission-incidents-prizes.trycloudflare.com',
         changeOrigin: true,
         secure: false
       }

@@ -40,8 +40,9 @@
     </div>
 
     <!-- 注册弹窗 -->
-    <div class="modal" v-if="showRegister" @click.self="closeRegister">
+    <div class="modal" v-if="showRegister">
       <div class="register-box">
+        <button class="close-btn" @click="closeRegister">×</button>
         <h2>注册</h2>
         
         <form @submit.prevent="handleRegister">
@@ -441,6 +442,31 @@ const closeRegister = () => {
   width: 100%;
   max-width: 420px;
   margin: 20px;
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f0f0f0;
+  border-radius: 50%;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: #e0e0e0;
+  color: #333;
 }
 
 .register-box h2 {
