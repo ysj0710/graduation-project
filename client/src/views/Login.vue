@@ -157,13 +157,17 @@ const codeSent = ref(false)
 const countdown = ref(0)
 let countdownTimer = null
 
-// 能否注册
+// 能否注册（基本条件）
 const canRegister = computed(() => {
   return registerForm.username.length >= 3 &&
          registerForm.password.length >= 6 &&
-         registerForm.password === registerForm.confirmPassword &&
          registerForm.email.includes('@') &&
          registerForm.code.length === 6
+})
+
+// 密码是否匹配
+const passwordsMatch = computed(() => {
+  return registerForm.confirmPassword === registerForm.password
 })
 
 // 登录处理
@@ -230,7 +234,7 @@ const sendCode = async () => {
 
 // 注册处理
 const handleRegister = async () => {
-  // 验证密码
+  // 验证确认密码
   if (registerForm.password !== registerForm.confirmPassword) {
     registerError.value = '两次输入的密码不一致'
     return
