@@ -4,7 +4,7 @@ import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import App from './App.vue'
 import router from './router'
-import './style.css'
+import './tailwind.css'
 
 const app = createApp(App)
 

@@ -56,21 +56,21 @@
     <el-dialog v-model="showRegister" title="用户注册" width="480px" :close-on-click-modal="false" class="register-dialog">
       <el-form ref="registerFormRef" :model="registerForm" :rules="registerRules">
         <el-form-item prop="username">
-          <el-input v-model="registerForm.username" placeholder="用户名（3-20个字符）" :prefix-icon="User" autocomplete="off" />
+          <el-input v-model="registerForm.username" placeholder="用户名（3-20个字符）" autocomplete="new-username" />
         </el-form-item>
         
         <el-form-item prop="password">
-          <el-input v-model="registerForm.password" type="password" placeholder="密码（至少6位）" :prefix-icon="Lock" show-password autocomplete="off" />
+          <el-input v-model="registerForm.password" type="password" placeholder="密码（至少6位）" show-password autocomplete="new-password" class="register-password-input" />
         </el-form-item>
         
         <el-form-item prop="confirmPassword">
-          <el-input v-model="registerForm.confirmPassword" type="password" placeholder="确认密码" :prefix-icon="Lock" show-password autocomplete="off" />
+          <el-input v-model="registerForm.confirmPassword" type="password" placeholder="确认密码" show-password autocomplete="new-password" class="register-password-input" />
         </el-form-item>
         
         <el-form-item prop="email">
           <div class="flex gap-2">
-            <el-input v-model="registerForm.email" placeholder="邮箱地址" :prefix-icon="Message" class="flex-1" autocomplete="off" />
-            <el-button :disabled="!registerForm.email || countdown > 0" @click="sendCode">
+            <el-input v-model="registerForm.email" placeholder="邮箱地址" autocomplete="new-email" class="flex-1" />
+            <el-button :loading="sendingCode" :disabled="!registerForm.email || countdown > 0" @click="sendCode">
               {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
             </el-button>
           </div>
@@ -96,23 +96,23 @@
         <el-form ref="forgotFormRef" :model="forgotPasswordForm" :rules="forgotRules">
           <el-form-item prop="email">
             <div class="flex gap-2">
-              <el-input v-model="forgotPasswordForm.email" placeholder="注册邮箱" :prefix-icon="Message" class="flex-1" />
-              <el-button :disabled="!forgotPasswordForm.email || countdown > 0" @click="sendForgotCode">
+              <el-input v-model="forgotPasswordForm.email" placeholder="注册邮箱" autocomplete="new-email" class="flex-1" />
+              <el-button :loading="sendingCode" :disabled="!forgotPasswordForm.email || countdown > 0" @click="sendForgotCode">
                 {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
               </el-button>
             </div>
           </el-form-item>
           
           <el-form-item prop="code">
-            <el-input v-model="forgotPasswordForm.code" placeholder="验证码（6位）" maxlength="6" :prefix-icon="CircleCheck" autocomplete="off" />
+            <el-input v-model="forgotPasswordForm.code" placeholder="验证码（6位）" maxlength="6" autocomplete="one-time-code" />
           </el-form-item>
           
           <el-form-item prop="newPassword">
-            <el-input v-model="forgotPasswordForm.newPassword" type="password" placeholder="新密码（至少6位）" :prefix-icon="Lock" show-password autocomplete="new-password" />
+            <el-input v-model="forgotPasswordForm.newPassword" type="password" placeholder="新密码（至少6位）" show-password autocomplete="new-password" />
           </el-form-item>
           
           <el-form-item prop="confirmPassword">
-            <el-input v-model="forgotPasswordForm.confirmPassword" type="password" placeholder="确认新密码" :prefix-icon="Lock" show-password autocomplete="new-password" />
+            <el-input v-model="forgotPasswordForm.confirmPassword" type="password" placeholder="确认新密码" show-password autocomplete="new-password" />
           </el-form-item>
           
           <el-alert v-if="forgotPasswordError" :title="forgotPasswordError" type="error" show-icon :closable="false" class="mb-4" />
@@ -256,25 +256,48 @@ const handleRegister = async () => {
 }
 
 const openRegister = () => {
-  // 先清空表单，防止浏览器自动填充
+  // 清空表单
+  registerForm.username = ''
+  registerForm.password = ''
+  registerForm.confirmPassword = ''
+  registerForm.email = ''
+  registerForm.code = ''
+  registerError.value = ''
+  codeSent.value = false
+  countdown.value = 0
+  if (countdownTimer) clearInterval(countdownTimer)
+  
+  // 延迟打开弹窗，让浏览器有机会识别表单已被清空
+  showRegister.value = true
+  
+  // 弹窗打开后再清空一次
   setTimeout(() => {
     registerForm.username = ''
     registerForm.password = ''
     registerForm.confirmPassword = ''
     registerForm.email = ''
     registerForm.code = ''
-  }, 10)
-  showRegister.value = true
+  }, 50)
 }
 
 const openForgotPassword = () => {
+  forgotPasswordForm.email = ''
+  forgotPasswordForm.code = ''
+  forgotPasswordForm.newPassword = ''
+  forgotPasswordForm.confirmPassword = ''
+  forgotPasswordError.value = ''
+  passwordResetSuccess.value = false
+  countdown.value = 0
+  if (countdownTimer) clearInterval(countdownTimer)
+  
+  showForgotPassword.value = true
+  
   setTimeout(() => {
     forgotPasswordForm.email = ''
     forgotPasswordForm.code = ''
     forgotPasswordForm.newPassword = ''
     forgotPasswordForm.confirmPassword = ''
-  }, 10)
-  showForgotPassword.value = true
+  }, 50)
 }
 
 const closeRegister = () => {
