@@ -55,6 +55,9 @@
               required
               autocomplete="new-username"
             />
+            <div class="field-hint" v-if="registerForm.username && registerForm.username.length < 3">
+              用户名至少需要3个字符
+            </div>
           </div>
           
           <div class="form-group">
@@ -163,11 +166,6 @@ const canRegister = computed(() => {
          registerForm.password.length >= 6 &&
          registerForm.email.includes('@') &&
          registerForm.code.length === 6
-})
-
-// 密码是否匹配
-const passwordsMatch = computed(() => {
-  return registerForm.confirmPassword === registerForm.password
 })
 
 // 登录处理
@@ -339,6 +337,12 @@ const closeRegister = () => {
 .form-group input:focus {
   outline: none;
   border-color: #667eea;
+}
+
+.field-hint {
+  color: #e74c3c;
+  font-size: 12px;
+  margin-top: 5px;
 }
 
 .email-input-group {
