@@ -260,4 +260,110 @@ router.get('/me', jwtMiddleware, async (ctx) => {
   ctx.body = { user };
 });
 
+// 忘记密码 - 发送验证码
+router.post('/forgot-password/send-code', async (ctx) => {
+  const { email } = ctx.request.body;
+  
+  if (!email) {
+    ctx.status = 400;
+    ctx.body = { message: '请输入邮箱地址' };
+    return;
+  }
+
+  // 检查邮箱是否已注册
+  const user = await User.findOne({ email });
+  if (!user) {
+    ctx.status = 400;
+    ctx.body = { message: '该邮箱未注册' };
+    return;
+  }
+
+  // 生成验证码
+  const code = generateCode();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  // 删除该邮箱之前的验证码
+  await VerificationCode.deleteMany({ email });
+
+  // 存储新验证码
+  await VerificationCode.create({
+    email,
+    code,
+    type: 'forgot-password',
+    expiresAt
+  });
+
+  // 发送邮件
+  try {
+    await transporter.sendMail({
+      from: emailConfig.from,
+      to: email,
+      subject: '找回密码 - 财务记账系统',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #667eea;">财务记账系统</h2>
+          <p>您好，您正在进行找回密码操作。</p>
+          <div style="background: #f5f5f5; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0;">
+            <span style="font-size: 32px; font-weight: bold; color: #667eea;">${code}</span>
+          </div>
+          <p style="color: #666; font-size: 14px;">
+            验证码有效期为 5 分钟，请尽快完成密码重置。<br>
+            如果这不是您的操作，请忽略此邮件。
+          </p>
+        </div>
+      `
+    });
+    console.log(`📧 找回密码验证码已发送到 ${email}: ${code}`);
+  } catch (mailErr) {
+    console.error('📧 邮件发送失败:', mailErr.message);
+  }
+
+  ctx.body = { message: '验证码已发送到您的邮箱' };
+});
+
+// 忘记密码 - 重置密码
+router.post('/forgot-password/reset', async (ctx) => {
+  const { email, code, newPassword } = ctx.request.body;
+  
+  if (!email || !code || !newPassword) {
+    ctx.status = 400;
+    ctx.body = { message: '请填写完整信息' };
+    return;
+  }
+
+  // 查找验证码
+  const verification = await VerificationCode.findOne({ email, code, type: 'forgot-password' });
+  
+  if (!verification) {
+    ctx.status = 400;
+    ctx.body = { message: '验证码错误' };
+    return;
+  }
+
+  // 检查是否过期
+  if (verification.expiresAt < new Date()) {
+    ctx.status = 400;
+    ctx.body = { message: '验证码已过期，请重新获取' };
+    return;
+  }
+
+  // 查找用户并更新密码
+  const user = await User.findOne({ email });
+  if (!user) {
+    ctx.status = 400;
+    ctx.body = { message: '用户不存在' };
+    return;
+  }
+
+  // 加密新密码
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  user.password = hashedPassword;
+  await user.save();
+
+  // 删除已使用的验证码
+  await VerificationCode.deleteOne({ _id: verification._id });
+
+  ctx.body = { message: '密码重置成功，请使用新密码登录' };
+});
+
 module.exports = router;

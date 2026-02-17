@@ -37,6 +37,10 @@
       <div class="register-link">
         还没有账户？ <a href="#" @click.prevent="showRegister = true">立即注册</a>
       </div>
+      
+      <div class="forgot-password-link">
+        <a href="#" @click.prevent="showForgotPassword = true">忘记密码？</a>
+      </div>
     </div>
 
     <!-- 注册弹窗 -->
@@ -127,6 +131,83 @@
         </form>
       </div>
     </div>
+
+    <!-- 忘记密码弹窗 -->
+    <div class="modal" v-if="showForgotPassword">
+      <div class="register-box">
+        <button class="close-btn" @click="closeForgotPassword">×</button>
+        <h2>找回密码</h2>
+        
+        <form @submit.prevent="handleResetPassword" v-if="!passwordResetSuccess">
+          <div class="form-group">
+            <label>邮箱</label>
+            <div class="email-input-group">
+              <input 
+                v-model="forgotPasswordForm.email" 
+                type="email" 
+                placeholder="请输入注册邮箱"
+                required
+                autocomplete="email"
+              />
+              <button 
+                type="button" 
+                class="send-code-btn" 
+                @click="sendForgotPasswordCode"
+                :disabled="sendingCode || countdown > 0 || !forgotPasswordForm.email"
+              >
+                {{ sendingCode ? '发送中...' : countdown > 0 ? `${countdown}s` : '发送验证码' }}
+              </button>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>验证码</label>
+            <input 
+              v-model="forgotPasswordForm.code" 
+              type="text" 
+              placeholder="请输入6位验证码"
+              maxlength="6"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>新密码</label>
+            <input 
+              v-model="forgotPasswordForm.newPassword" 
+              type="password" 
+              placeholder="请输入新密码（至少6位）"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>确认新密码</label>
+            <input 
+              v-model="forgotPasswordForm.confirmPassword" 
+              type="password" 
+              placeholder="请再次输入新密码"
+              required
+            />
+          </div>
+          
+          <div class="error-message" v-if="forgotPasswordError">{{ forgotPasswordError }}</div>
+          
+          <div class="modal-buttons">
+            <button type="button" class="cancel-btn" @click="closeForgotPassword">取消</button>
+            <button type="submit" class="register-btn" :disabled="resettingPassword">
+              {{ resettingPassword ? '重置中...' : '重置密码' }}
+            </button>
+          </div>
+        </form>
+
+        <div v-else class="success-reset">
+          <div class="success-icon">✓</div>
+          <p>密码重置成功！</p>
+          <button class="login-btn" @click="closeForgotPassword">去登录</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -153,12 +234,24 @@ const registerForm = reactive({
 const loading = ref(false)
 const error = ref('')
 const showRegister = ref(false)
+const showForgotPassword = ref(false)
 const sendingCode = ref(false)
 const registering = ref(false)
 const registerError = ref('')
 const codeSent = ref(false)
 const countdown = ref(0)
 let countdownTimer = null
+
+// 忘记密码表单
+const forgotPasswordForm = reactive({
+  email: '',
+  code: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+const forgotPasswordError = ref('')
+const resettingPassword = ref(false)
+const passwordResetSuccess = ref(false)
 
 // 能否注册（基本条件）
 const canRegister = computed(() => {
@@ -278,7 +371,91 @@ const closeRegister = () => {
   countdown.value = 0
   if (countdownTimer) clearInterval(countdownTimer)
 }
-</script>
+
+// 发送忘记密码验证码
+const sendForgotPasswordCode = async () => {
+  if (!forgotPasswordForm.email) {
+    forgotPasswordError.value = '请输入邮箱地址'
+    return
+  }
+  
+  if (!forgotPasswordForm.email.includes('@')) {
+    forgotPasswordError.value = '邮箱格式不正确'
+    return
+  }
+  
+  sendingCode.value = true
+  forgotPasswordError.value = ''
+  
+  try {
+    await axios.post('/api/auth/forgot-password/send-code', {
+      email: forgotPasswordForm.email
+    })
+    
+    // 开始倒计时
+    countdown.value = 60
+    if (countdownTimer) clearInterval(countdownTimer)
+    countdownTimer = setInterval(() => {
+      countdown.value--
+      if (countdown.value <= 0) {
+        clearInterval(countdownTimer)
+      }
+    }, 1000)
+    
+  } catch (err) {
+    forgotPasswordError.value = err.response?.data?.message || '发送失败，请稍后重试'
+  } finally {
+    sendingCode.value = false
+  }
+}
+
+// 重置密码
+const handleResetPassword = async () => {
+  if (!forgotPasswordForm.code) {
+    forgotPasswordError.value = '请输入验证码'
+    return
+  }
+  
+  if (forgotPasswordForm.newPassword.length < 6) {
+    forgotPasswordError.value = '新密码至少6位'
+    return
+  }
+  
+  if (forgotPasswordForm.newPassword !== forgotPasswordForm.confirmPassword) {
+    forgotPasswordError.value = '两次输入的密码不一致'
+    return
+  }
+  
+  forgotPasswordError.value = ''
+  resettingPassword.value = true
+  
+  try {
+    await axios.post('/api/auth/forgot-password/reset', {
+      email: forgotPasswordForm.email,
+      code: forgotPasswordForm.code,
+      newPassword: forgotPasswordForm.newPassword
+    })
+    
+    passwordResetSuccess.value = true
+    
+  } catch (err) {
+    forgotPasswordError.value = err.response?.data?.message || '重置失败，请稍后重试'
+  } finally {
+    resettingPassword.value = false
+  }
+}
+
+const closeForgotPassword = () => {
+  showForgotPassword.value = false
+  forgotPasswordForm.email = ''
+  forgotPasswordForm.code = ''
+  forgotPasswordForm.newPassword = ''
+  forgotPasswordForm.confirmPassword = ''
+  forgotPasswordError.value = ''
+  passwordResetSuccess.value = false
+  countdown.value = 0
+  if (countdownTimer) clearInterval(countdownTimer)
+}</script>
 
 <style scoped>
 .login-container {
@@ -428,6 +605,46 @@ const closeRegister = () => {
 
 .register-link a:hover {
   text-decoration: underline;
+}
+
+.forgot-password-link {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+.forgot-password-link a {
+  color: #999;
+  text-decoration: none;
+}
+
+.forgot-password-link a:hover {
+  color: #667eea;
+  text-decoration: underline;
+}
+
+.success-reset {
+  text-align: center;
+  padding: 20px;
+}
+
+.success-icon {
+  width: 60px;
+  height: 60px;
+  background: #27ae60;
+  color: white;
+  border-radius: 50%;
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.success-reset p {
+  color: #27ae60;
+  font-size: 18px;
+  margin-bottom: 20px;
 }
 
 .modal {
