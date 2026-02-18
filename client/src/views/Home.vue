@@ -3,89 +3,44 @@
     <header class="header">
       <h1>个人财务记账系统</h1>
       <div class="user-info">
-        <span class="role-badge" :class="user?.role">{{ user?.role === 'admin' ? '管理员' : '普通用户' }}</span>
         <span>欢迎，{{ user?.nickname || user?.username }}</span>
         <button @click="handleLogout" class="logout-btn">退出登录</button>
       </div>
     </header>
     
     <main class="main-content">
-      <!-- 管理员界面 -->
-      <div v-if="user?.role === 'admin'" class="admin-panel">
-        <div class="welcome-card admin">
-          <h2>🔧 管理员后台</h2>
-          <p>欢迎来到管理后台</p>
-          
-          <div class="admin-features">
-            <div class="feature-card">
-              <span class="icon">👥</span>
-              <h3>用户管理</h3>
-              <p>查看和管理所有注册用户</p>
-            </div>
-            <div class="feature-card">
-              <span class="icon">📊</span>
-              <h3>数据统计</h3>
-              <p>查看所有用户的财务数据统计</p>
-            </div>
-            <div class="feature-card">
-              <span class="icon">⚙️</span>
-              <h3>系统设置</h3>
-              <p>管理系统配置和参数</p>
-            </div>
-          </div>
-        </div>
+      <div class="welcome-card">
+        <h2>💰 个人财务记账</h2>
+        <p>记录每一笔收入和支出</p>
         
-        <div class="stats-cards">
-          <div class="stat-card">
-            <div class="stat-label">总收入</div>
-            <div class="stat-value income">¥0.00</div>
+        <div class="features">
+          <div class="feature-item" @click="showAddDialog = true">
+            <span class="icon">➕</span>
+            <span>记一笔账</span>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">总支出</div>
-            <div class="stat-value expense">¥0.00</div>
+          <div class="feature-item">
+            <span class="icon">📋</span>
+            <span>账单明细</span>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">用户数量</div>
-            <div class="stat-value balance">0</div>
+          <div class="feature-item">
+            <span class="icon">📈</span>
+            <span>数据报表</span>
           </div>
         </div>
       </div>
       
-      <!-- 普通用户界面 -->
-      <div v-else class="user-panel">
-        <div class="welcome-card">
-          <h2>💰 个人财务记账</h2>
-          <p>记录每一笔收入和支出</p>
-          
-          <div class="features">
-            <div class="feature-item" @click="showAddDialog = true">
-              <span class="icon">➕</span>
-              <span>记一笔账</span>
-            </div>
-            <div class="feature-item">
-              <span class="icon">📋</span>
-              <span>账单明细</span>
-            </div>
-            <div class="feature-item">
-              <span class="icon">📈</span>
-              <span>数据报表</span>
-            </div>
-          </div>
+      <div class="stats-cards">
+        <div class="stat-card">
+          <div class="stat-label">本月收入</div>
+          <div class="stat-value income">¥0.00</div>
         </div>
-        
-        <div class="stats-cards">
-          <div class="stat-card">
-            <div class="stat-label">本月收入</div>
-            <div class="stat-value income">¥0.00</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">本月支出</div>
-            <div class="stat-value expense">¥0.00</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">本月结余</div>
-            <div class="stat-value balance">¥0.00</div>
-          </div>
+        <div class="stat-card">
+          <div class="stat-label">本月支出</div>
+          <div class="stat-value expense">¥0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">本月结余</div>
+          <div class="stat-value balance">¥0.00</div>
         </div>
       </div>
     </main>
@@ -148,21 +103,17 @@ const newRecord = ref({
 })
 
 onMounted(() => {
-  // 从本地存储获取用户信息
   const userStr = localStorage.getItem('user')
   if (userStr) {
     user.value = JSON.parse(userStr)
   } else {
-    // 没有登录，跳转到登录页
     router.push('/login')
   }
 })
 
 const handleLogout = () => {
-  // 清除本地存储
   localStorage.removeItem('token')
   localStorage.removeItem('user')
-  // 跳转到登录页
   router.push('/login')
 }
 
@@ -197,23 +148,6 @@ const handleAddRecord = () => {
   display: flex;
   align-items: center;
   gap: 15px;
-}
-
-.role-badge {
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.role-badge.admin {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
-}
-
-.role-badge.user {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
 }
 
 .user-info span {
@@ -251,10 +185,6 @@ const handleAddRecord = () => {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
-.welcome-card.admin {
-  background: linear-gradient(135deg, #fff1eb 0%, #ace0f9 100%);
-}
-
 .welcome-card h2 {
   color: #333;
   font-size: 28px;
@@ -267,49 +197,31 @@ const handleAddRecord = () => {
   margin-bottom: 30px;
 }
 
-.features, .admin-features {
+.features {
   display: flex;
   justify-content: center;
   gap: 30px;
   flex-wrap: wrap;
 }
 
-.feature-item, .feature-card {
+.feature-item {
   padding: 20px 30px;
   background: #f8f9fa;
   border-radius: 16px;
   cursor: pointer;
   transition: all 0.3s ease;
-}
-
-.feature-item:hover, .feature-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-}
-
-.feature-item {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.feature-card {
-  text-align: center;
-  min-width: 180px;
+.feature-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 
-.feature-item .icon, .feature-card .icon {
+.feature-item .icon {
   font-size: 28px;
-}
-
-.feature-card h3 {
-  margin: 10px 0 5px;
-  color: #333;
-}
-
-.feature-card p {
-  font-size: 12px;
-  margin-bottom: 0;
 }
 
 .stats-cards {
@@ -349,7 +261,6 @@ const handleAddRecord = () => {
   color: #3498db;
 }
 
-/* 弹窗样式 */
 .modal {
   position: fixed;
   top: 0;
