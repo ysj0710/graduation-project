@@ -1,7 +1,7 @@
 <template>
-  <div class="app-container">
+  <div class="app-container" :style="containerStyle">
     <!-- 左侧边栏导航 - iPad Pro 风格 -->
-    <aside class="sidebar">
+    <aside class="sidebar" :style="{ backdropFilter: `blur(${userStore.theme.glassBlur || 20}px)` }">
       <div class="sidebar-header">
         <div class="logo">
           <span class="logo-icon">💰</span>
@@ -250,7 +250,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../../stores/user'
 import { Search, Bell } from '@element-plus/icons-vue'
@@ -311,6 +311,11 @@ const currentCategories = computed(() => {
     ? userStore.categories.income 
     : userStore.categories.expense
 })
+
+// 主题背景样式
+const containerStyle = computed(() => ({
+  background: userStore.theme.background || 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)'
+}))
 
 const formatNumber = (num) => {
   return Number(num || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
@@ -473,6 +478,11 @@ onMounted(() => {
   userStore.fetchProfile()
   fetchData()
 })
+
+// 监听主题变化
+watch(() => userStore.theme, (newTheme) => {
+  // 主题变化时会自动通过 computed containerStyle 更新
+}, { deep: true })
 </script>
 
 <style scoped>
@@ -480,12 +490,13 @@ onMounted(() => {
   display: flex;
   min-height: 100vh;
   background: #F5F5F7;
+  transition: background 0.5s ease;
 }
 
 /* 侧边栏 */
 .sidebar {
   width: 280px;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(20px);
   border-right: 1px solid rgba(255, 255, 255, 0.3);
   display: flex;
@@ -495,6 +506,7 @@ onMounted(() => {
   left: 0;
   bottom: 0;
   z-index: 100;
+  transition: backdrop-filter 0.3s ease;
 }
 
 .sidebar-header {

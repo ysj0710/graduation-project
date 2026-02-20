@@ -14,22 +14,36 @@ api.interceptors.request.use(config => {
 })
 
 export const useUserStore = defineStore('user', {
-  state: () => ({
-    profile: {
-      id: '',
-      username: '',
-      nickname: '',
-      avatar: '',
-      email: ''
-    },
-    theme: {
-      background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
-      primaryColor: '#007AFF'
-    },
-    budget: {
-      monthly: 5000,
-      alertThreshold: 80
-    },
+  state: () => {
+    // 从本地读取主题设置
+    let savedTheme = {
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+      primaryColor: '#667eea',
+      glassBlur: 20
+    }
+    
+    try {
+      const localTheme = localStorage.getItem('user_theme')
+      if (localTheme) {
+        savedTheme = { ...savedTheme, ...JSON.parse(localTheme) }
+      }
+    } catch (e) {
+      console.error('Parse theme error:', e)
+    }
+    
+    return {
+      profile: {
+        id: '',
+        username: '',
+        nickname: '',
+        avatar: '',
+        email: ''
+      },
+      theme: savedTheme,
+      budget: {
+        monthly: 5000,
+        alertThreshold: 80
+      },
     categories: {
       income: [
         { id: 'salary', name: '工资', icon: '💰', color: '#34C759' },
