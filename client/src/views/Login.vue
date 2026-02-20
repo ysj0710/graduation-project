@@ -507,7 +507,7 @@ const handleLogin = async () => {
       if (data.user.role === 'admin') {
         router.push('/admin')
       } else {
-        router.push('/home')
+        router.push('/dashboard')
       }
     } catch (err) {
       error.value =
