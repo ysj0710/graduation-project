@@ -44,26 +44,27 @@ export const useUserStore = defineStore('user', {
         monthly: 5000,
         alertThreshold: 80
       },
-    categories: {
-      income: [
-        { id: 'salary', name: '工资', icon: '💰', color: '#34C759' },
-        { id: 'bonus', name: '奖金', icon: '🎁', color: '#34C759' },
-        { id: 'investment', name: '理财', icon: '📈', color: '#34C759' },
-        { id: 'parttime', name: '兼职', icon: '💼', color: '#34C759' },
-        { id: 'other_income', name: '其他', icon: '💵', color: '#34C759' }
-      ],
-      expense: [
-        { id: 'food', name: '餐饮', icon: '🍜', color: '#FF3B30' },
-        { id: 'transport', name: '交通', icon: '🚗', color: '#FF9500' },
-        { id: 'shopping', name: '购物', icon: '🛍️', color: '#007AFF' },
-        { id: 'entertainment', name: '娱乐', icon: '🎮', color: '#AF52DE' },
-        { id: 'housing', name: '住房', icon: '🏠', color: '#34C759' },
-        { id: 'medical', name: '医疗', icon: '💊', color: '#FF2D55' },
-        { id: 'education', name: '教育', icon: '📚', color: '#5856D6' },
-        { id: 'other_expense', name: '其他', icon: '📦', color: '#8E8E93' }
-      ]
+      categories: {
+        income: [
+          { id: 'salary', name: '工资', icon: '💰', color: '#34C759' },
+          { id: 'bonus', name: '奖金', icon: '🎁', color: '#34C759' },
+          { id: 'investment', name: '理财', icon: '📈', color: '#34C759' },
+          { id: 'parttime', name: '兼职', icon: '💼', color: '#34C759' },
+          { id: 'other_income', name: '其他', icon: '💵', color: '#34C759' }
+        ],
+        expense: [
+          { id: 'food', name: '餐饮', icon: '🍜', color: '#FF3B30' },
+          { id: 'transport', name: '交通', icon: '🚗', color: '#FF9500' },
+          { id: 'shopping', name: '购物', icon: '🛍️', color: '#007AFF' },
+          { id: 'entertainment', name: '娱乐', icon: '🎮', color: '#AF52DE' },
+          { id: 'housing', name: '住房', icon: '🏠', color: '#34C759' },
+          { id: 'medical', name: '医疗', icon: '💊', color: '#FF2D55' },
+          { id: 'education', name: '教育', icon: '📚', color: '#5856D6' },
+          { id: 'other_expense', name: '其他', icon: '📦', color: '#8E8E93' }
+        ]
+      }
     }
-  }),
+  },
 
   actions: {
     async fetchProfile() {
