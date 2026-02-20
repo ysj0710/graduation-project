@@ -350,18 +350,18 @@
                 </div>
               </div>
 
-              <div class="flex gap-2 mt-3">
+              <div class="flex flex-col gap-2">
                 <input
                   v-model="record.note"
                   type="text"
                   placeholder="添加备注..."
-                  class="flex-1 px-4 py-3 bg-gray-50 rounded-xl text-sm outline-none"
+                  class="h-20 px-4 py-3 bg-gray-50 rounded-xl text-sm outline-none"
                 />
                 <button
-                  class="w-20 h-20 bg-gradient-to-br from-green-500 to-green-400 rounded-xl text-white text-xl font-medium shadow-lg shadow-green-400/30 active:scale-95 transition-transform flex items-center justify-center"
+                  class="h-20 w-full bg-gradient-to-br from-green-500 to-green-400 rounded-xl text-white text-lg font-medium shadow-lg shadow-green-400/30 active:scale-95 transition-transform flex items-center justify-center"
                   @click="saveRecord"
                 >
-                  ✓
+                  完成记账
                 </button>
               </div>
             </div>
@@ -1190,19 +1190,7 @@ watch(
   font-weight: 500;
 }
 
-.note-section {
-  margin-bottom: 20px;
-}
-
-.note-input {
-  width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 12px;
-  background: #f5f5f7;
-  font-size: 15px;
-  outline: none;
-}
+/* 样式已使用 Tailwind CSS */
 
 /* 数字键盘 */
 .number-keypad {
