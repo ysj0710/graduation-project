@@ -310,20 +310,20 @@ onMounted(() => {
 }
 
 .keypad {
-  padding: 2px 4px 4px;
+  padding: 4px 6px;
   display: flex;
   flex-direction: column;
 }
 
 .keypad-row {
   display: flex;
-  gap: 2px;
-  margin-bottom: 2px;
+  gap: 4px;
+  margin-bottom: 4px;
 }
 
 .key {
   flex: 1;
-  height: 40px;
+  height: 56px;
   border: none;
   border-radius: 12px;
   background: #F3F4F6;
@@ -354,32 +354,34 @@ onMounted(() => {
 }
 
 .category-section {
-  padding: 4px 8px;
+  padding: 6px 10px;
   overflow-y: auto;
 }
 
 .section-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: #111827;
-  margin: 0 0 2px 0;
+  margin: 0 0 6px 0;
 }
 
 .category-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2px;
+  gap: 6px;
 }
 
 .category-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 12px 6px;
+  justify-content: center;
+  gap: 2px;
+  padding: 12px 4px;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
+  min-height: 60px;
 }
 
 .category-item.active {
@@ -387,20 +389,20 @@ onMounted(() => {
 }
 
 .category-item .icon {
-  font-size: 22px;
+  font-size: 24px;
 }
 
 .category-item .name {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: #374151;
 }
 
 .note-section {
-  padding: 4px 8px;
+  padding: 6px 10px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .note-input {
@@ -410,14 +412,14 @@ onMounted(() => {
 .note-input :deep(.el-input__wrapper) {
   border: none;
   background: #F3F4F6;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .save-btn {
   flex: 0 0 auto;
-  height: 32px;
-  font-size: 13px;
-  border-radius: 6px;
-  padding: 0 12px;
+  height: 36px;
+  font-size: 14px;
+  border-radius: 8px;
+  padding: 0 16px;
 }
 </style>
