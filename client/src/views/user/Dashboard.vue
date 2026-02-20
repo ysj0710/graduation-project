@@ -226,7 +226,7 @@
         <!-- 双栏布局 -->
         <div class="flex flex-1">
           <!-- 左侧：金额 + 数字键盘 -->
-          <div class="flex-1 px-5 py-4 border-r border-gray-100">
+          <div class="flex-1 px-5 py-4 border-r border-gray-100 overflow-y-auto">
             <div class="flex flex-col h-full">
               <div class="text-center p-4 bg-gray-50 rounded-xl h-20">
                 <span class="text-gray-400 text-lg mr-1">¥</span>
@@ -326,9 +326,9 @@
           </div>
 
           <!-- 右侧：分类 + 备注 + 确认 -->
-          <div class="flex-1 px-5 py-4">
+          <div class="flex-1 px-5 py-4 overflow-y-auto">
             <div class="flex flex-col h-full">
-              <div class="grid grid-cols-3 gap-1.5">
+              <div class="grid grid-cols-3 gap-1.5 mb-3">
                 <div
                   v-for="cat in currentCategories.slice(0, 9)"
                   :key="cat.id"
