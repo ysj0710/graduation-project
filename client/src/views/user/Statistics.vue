@@ -36,10 +36,10 @@
       </div>
     </div>
 
-    <!-- 趋势图 -->
+    <!-- 趋势图 - 每日消费柱状图 -->
     <div class="chart-card">
       <div class="card-header">
-        <h3>📈 收支趋势</h3>
+        <h3>📊 每日消费</h3>
       </div>
       <div ref="trendChartRef" class="chart-container"></div>
     </div>
@@ -95,11 +95,22 @@ const timeRange = ref('month')
 const statistics = ref({ income: { total: 0, count: 0 }, expense: { total: 0, count: 0 }, balance: 0 })
 const categoryList = ref([])
 const trendChartRef = ref(null)
-const pieChartRef = ref(null)
-const trendData = ref({ dates: [], income: [], expense: [] })
+// 存储每日数据
+const dailyData = ref([])
 
 const formatNumber = (num) => {
   return Number(num || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+// 获取日期范围内的所有日期
+const getDateRange = (start, end) => {
+  const dates = []
+  const current = new Date(start)
+  while (current <= end) {
+    dates.push(new Date(current))
+    current.setDate(current.getDate() + 1)
+  }
+  return dates
 }
 
 // 获取趋势数据
@@ -107,24 +118,28 @@ const fetchTrendData = async () => {
   try {
     const token = localStorage.getItem('token')
     const now = new Date()
-    let startDate, endDate, dateFormat, dateKey
+    let startDate, endDate
     
     if (timeRange.value === 'week') {
+      // 本周：从周一到周日
+      const day = now.getDay() || 7
       startDate = new Date(now)
-      startDate.setDate(now.getDate() - now.getDay() + 1)
+      startDate.setDate(now.getDate() - day + 1)
+      startDate.setHours(0, 0, 0, 0)
       endDate = new Date(startDate)
       endDate.setDate(startDate.getDate() + 6)
-      dateFormat = (d) => `${d.getMonth() + 1}/${d.getDate()}`
+      endDate.setHours(23, 59, 59, 999)
     } else if (timeRange.value === 'month') {
+      // 本月
       startDate = new Date(now.getFullYear(), now.getMonth(), 1)
       endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      dateFormat = (d) => `${d.getMonth() + 1}/${d.getDate()}`
     } else {
+      // 本年
       startDate = new Date(now.getFullYear(), 0, 1)
       endDate = new Date(now.getFullYear(), 11, 31)
-      dateFormat = (d) => `${d.getMonth() + 1}月`
     }
     
+    // 获取该时间段的所有记录
     const response = await axios.get('http://localhost:3000/api/transactions', {
       params: {
         startDate: startDate.toISOString(),
@@ -135,30 +150,33 @@ const fetchTrendData = async () => {
     
     const transactions = response.data.transactions || []
     
-    // 按日期分组
+    // 获取所有日期
+    const allDates = getDateRange(startDate, endDate)
+    
+    // 初始化每日数据
     const dateMap = {}
+    allDates.forEach(date => {
+      const key = `${date.getMonth() + 1}-${date.getDate()}`
+      dateMap[key] = { date: key, income: 0, expense: 0 }
+    })
+    
+    // 填充数据
     transactions.forEach(t => {
       const date = new Date(t.date)
-      const key = dateFormat(date)
-      if (!dateMap[key]) {
-        dateMap[key] = { income: 0, expense: 0 }
-      }
-      if (t.type === 'income') {
-        dateMap[key].income += t.amount
-      } else {
-        dateMap[key].expense += t.amount
+      const key = `${date.getMonth() + 1}-${date.getDate()}`
+      if (dateMap[key]) {
+        if (t.type === 'income') {
+          dateMap[key].income += t.amount
+        } else {
+          dateMap[key].expense += t.amount
+        }
       }
     })
     
-    trendData.value = {
-      dates: Object.keys(dateMap),
-      income: Object.values(dateMap).map(d => d.income),
-      expense: Object.values(dateMap).map(d => d.expense)
-    }
+    dailyData.value = Object.values(dateMap)
   } catch (error) {
     console.error('Failed to fetch trend data:', error)
-    // 使用空数据
-    trendData.value = { dates: [], income: [], expense: [] }
+    dailyData.value = []
   }
 }
 
@@ -173,11 +191,12 @@ const fetchData = async () => {
     
     // 处理分类数据
     const expenseCats = res.byCategory?.expense || []
+    const totalExpense = expenseCats.reduce((sum, cat) => sum + cat.total, 0)
     categoryList.value = expenseCats.map((cat) => ({
       category: cat.category,
       total: cat.total,
       count: cat.count,
-      percent: expenseCats.length > 0 ? Math.round((cat.total / expenseCats.reduce((a, b) => a + b.total, 0)) * 100) : 0,
+      percent: totalExpense > 0 ? Math.round((cat.total / totalExpense) * 100) : 0,
       icon: getCategoryIcon(cat.category),
       color: '#EF4444'
     }))
@@ -200,30 +219,46 @@ const getCategoryIcon = (category) => {
 }
 
 const renderCharts = () => {
-  // 趋势图 - 使用真实数据
+  // 趋势图 - 每日消费柱状图
   if (trendChartRef.value) {
     const chart = echarts.init(trendChartRef.value)
+    
+    const dates = dailyData.value.map(d => d.date)
+    const incomeData = dailyData.value.map(d => d.income)
+    const expenseData = dailyData.value.map(d => d.expense)
+    
     chart.setOption({
-      tooltip: { trigger: 'axis' },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params) => {
+          let result = `${params[0].name}<br/>`
+          params.forEach(p => {
+            result += `${p.seriesName}: ¥${p.value}<br/>`
+          })
+          return result
+        }
+      },
       legend: { data: ['收入', '支出'], top: 0, textStyle: { fontSize: 12 } },
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: { 
         type: 'category', 
-        data: trendData.value.dates.length > 0 ? trendData.value.dates : ['暂无数据'] 
+        data: dates,
+        axisLabel: { fontSize: 10 }
       },
       yAxis: { type: 'value' },
       series: [
         { 
           name: '收入', 
           type: 'bar', 
-          data: trendData.value.income.length > 0 ? trendData.value.income : [0], 
-          itemStyle: { color: '#10B981' } 
+          data: incomeData, 
+          itemStyle: { color: '#10B981' },
+          barGap: 0
         },
         { 
           name: '支出', 
           type: 'bar', 
-          data: trendData.value.expense.length > 0 ? trendData.value.expense : [0], 
-          itemStyle: { color: '#EF4444' } 
+          data: expenseData, 
+          itemStyle: { color: '#EF4444' }
         }
       ]
     })
