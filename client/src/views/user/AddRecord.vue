@@ -251,6 +251,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background: white;
+  min-height: 400px;
 }
 
 .amount-display {
@@ -301,7 +302,13 @@ onMounted(() => {
 .keypad-row {
   display: flex;
   gap: 4px;
-  margin-bottom: 4px;
+  flex: 1;
+}
+
+.keypad-row .key {
+  flex: 1;
+  height: 100%;
+  min-height: 50px;
 }
 
 .keypad-row:last-child {
@@ -309,8 +316,14 @@ onMounted(() => {
 }
 
 .key {
-  flex: 1;
-  height: 48px;
+  border: none;
+  border-radius: 8px;
+  background: #F3F4F6;
+  font-size: 18px;
+  font-weight: 500;
+  color: #111827;
+  cursor: pointer;
+}
   border: none;
   border-radius: 8px;
   background: #F3F4F6;
@@ -358,6 +371,7 @@ onMounted(() => {
   padding: 10px 4px;
   border-radius: 8px;
   cursor: pointer;
+  min-height: 50px;
 }
 
 .category-item.active {

@@ -240,22 +240,22 @@
                   >{{ displayAmount }}</span
                 >
               </div>
-              <div class="mt-3 flex-1 flex flex-col justify-end">
+              <div class="mt-3 flex-1 flex flex-col justify-start">
                 <div class="flex gap-2 mb-2">
                   <button
-                    class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
+                    class="flex-1 h-20 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
                     @click="inputDigit('1')"
                   >
                     1
                   </button>
                   <button
-                    class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
+                    class="flex-1 h-20 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
                     @click="inputDigit('2')"
                   >
                     2
                   </button>
                   <button
-                    class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
+                    class="flex-1 h-20 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
                     @click="inputDigit('3')"
                   >
                     3
@@ -263,19 +263,19 @@
                 </div>
                 <div class="flex gap-2 mb-2">
                   <button
-                    class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
+                    class="flex-1 h-20 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
                     @click="inputDigit('4')"
                   >
                     4
                   </button>
                   <button
-                    class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
+                    class="flex-1 h-20 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
                     @click="inputDigit('5')"
                   >
                     5
                   </button>
                   <button
-                    class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
+                    class="flex-1 h-20 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
                     @click="inputDigit('6')"
                   >
                     6
@@ -283,19 +283,19 @@
                 </div>
                 <div class="flex gap-2 mb-2">
                   <button
-                    class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
+                    class="flex-1 h-20 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
                     @click="inputDigit('7')"
                   >
                     7
                   </button>
                   <button
-                    class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
+                    class="flex-1 h-20 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
                     @click="inputDigit('8')"
                   >
                     8
                   </button>
                   <button
-                    class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
+                    class="flex-1 h-20 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
                     @click="inputDigit('9')"
                   >
                     9
@@ -303,19 +303,19 @@
                 </div>
                 <div class="flex gap-2">
                   <button
-                    class="flex-1 h-13 bg-gray-50 rounded-lg text-base active:scale-95 transition-transform"
+                    class="flex-1 h-17 bg-gray-50 rounded-lg text-base active:scale-95 transition-transform"
                     @click="inputDigit('.')"
                   >
                     .
                   </button>
                   <button
-                    class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
+                    class="flex-1 h-20 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform"
                     @click="inputDigit('0')"
                   >
                     0
                   </button>
                   <button
-                    class="flex-1 h-13 bg-gray-50 rounded-lg text-base active:scale-95 transition-transform"
+                    class="flex-1 h-17 bg-gray-50 rounded-lg text-base active:scale-95 transition-transform"
                     @click="deleteDigit"
                   >
                     ⌫
@@ -328,27 +328,25 @@
           <!-- 右侧：分类 + 备注 + 确认 -->
           <div class="flex-1 px-5 py-4">
             <div class="flex flex-col h-full">
-              <div class="flex-1">
-                <div class="grid grid-cols-3 gap-1.5">
-                  <div
-                    v-for="cat in currentCategories.slice(0, 9)"
-                    :key="cat.id"
-                    class="flex flex-col items-center gap-0.5 py-2 rounded-lg bg-gray-50 cursor-pointer transition-all"
-                    :class="
-                      record.category === cat.name
-                        ? 'text-white'
-                        : 'hover:bg-gray-100'
-                    "
-                    :style="
-                      record.category === cat.name
-                        ? { backgroundColor: cat.color }
-                        : {}
-                    "
-                    @click="record.category = cat.name"
-                  >
-                    <span class="text-lg">{{ cat.icon }}</span>
-                    <span class="text-xs font-medium">{{ cat.name }}</span>
-                  </div>
+              <div class="grid grid-cols-3 gap-1.5">
+                <div
+                  v-for="cat in currentCategories.slice(0, 9)"
+                  :key="cat.id"
+                  class="flex flex-col items-center gap-0.5 py-2 rounded-lg bg-gray-50 cursor-pointer transition-all"
+                  :class="
+                    record.category === cat.name
+                      ? 'text-white'
+                      : 'hover:bg-gray-100'
+                  "
+                  :style="
+                    record.category === cat.name
+                      ? { backgroundColor: cat.color }
+                      : {}
+                  "
+                  @click="record.category = cat.name"
+                >
+                  <span class="text-lg">{{ cat.icon }}</span>
+                  <span class="text-xs font-medium">{{ cat.name }}</span>
                 </div>
               </div>
 
