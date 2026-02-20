@@ -6,7 +6,7 @@ import Dashboard from '../views/user/Dashboard.vue'
 import Transactions from '../views/user/Transactions.vue'
 import Statistics from '../views/user/Statistics.vue'
 import Accounts from '../views/user/Accounts.vue'
-import Settings from '../views/user/Settings.vue'
+import Personal from '../views/user/Personal.vue'
 import Profile from '../views/user/Profile.vue'
 
 // 管理员端页面
@@ -108,11 +108,11 @@ const routes = [
     meta: { title: '账户管理' }
   },
   {
-    path: '/settings',
-    name: 'Settings',
-    component: Settings,
+    path: '/personal',
+    name: 'Personal',
+    component: Personal,
     beforeEnter: requireAuth,
-    meta: { title: '设置' }
+    meta: { title: '个性设置' }
   },
   {
     path: '/profile',

@@ -268,7 +268,8 @@ const pageTitle = computed(() => {
     '/transactions': '交易记录',
     '/statistics': '统计分析',
     '/accounts': '账户管理',
-    '/settings': '设置'
+    '/personal': '个性设置',
+    '/profile': '个人中心'
   }
   return titles[currentPath.value] || '总览'
 })
@@ -278,7 +279,7 @@ const navItems = [
   { path: '/transactions', icon: '📋', label: '交易记录' },
   { path: '/statistics', icon: '📊', label: '统计分析' },
   { path: '/accounts', icon: '💳', label: '账户管理' },
-  { path: '/settings', icon: '⚙️', label: '设置' }
+  { path: '/personal', icon: '🎨', label: '个性设置' }
 ]
 
 const currentDate = ref(new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }))
