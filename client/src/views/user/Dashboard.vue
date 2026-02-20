@@ -185,66 +185,67 @@
         <div class="sheet-content">
           <!-- 左侧：金额 + 数字键盘 -->
           <div class="sheet-left">
-            <div class="amount-display">
-              <span class="currency">¥</span>
-              <span class="amount" :class="record.type">{{ displayAmount }}</span>
-            </div>
-            <div class="number-keypad">
-              <div class="keypad-row">
-                <button class="keypad-btn" @click="inputDigit('1')">1</button>
-                <button class="keypad-btn" @click="inputDigit('2')">2</button>
-                <button class="keypad-btn" @click="inputDigit('3')">3</button>
+            <div class="left-box">
+              <div class="amount-display">
+                <span class="currency">¥</span>
+                <span class="amount" :class="record.type">{{ displayAmount }}</span>
               </div>
-              <div class="keypad-row">
-                <button class="keypad-btn" @click="inputDigit('4')">4</button>
-                <button class="keypad-btn" @click="inputDigit('5')">5</button>
-                <button class="keypad-btn" @click="inputDigit('6')">6</button>
-              </div>
-              <div class="keypad-row">
-                <button class="keypad-btn" @click="inputDigit('7')">7</button>
-                <button class="keypad-btn" @click="inputDigit('8')">8</button>
-                <button class="keypad-btn" @click="inputDigit('9')">9</button>
-              </div>
-              <div class="keypad-row">
-                <button class="keypad-btn small" @click="inputDigit('.')">.</button>
-                <button class="keypad-btn" @click="inputDigit('0')">0</button>
-                <button class="keypad-btn small" @click="deleteDigit">⌫</button>
+              <div class="number-keypad">
+                <div class="keypad-row">
+                  <button class="keypad-btn" @click="inputDigit('1')">1</button>
+                  <button class="keypad-btn" @click="inputDigit('2')">2</button>
+                  <button class="keypad-btn" @click="inputDigit('3')">3</button>
+                </div>
+                <div class="keypad-row">
+                  <button class="keypad-btn" @click="inputDigit('4')">4</button>
+                  <button class="keypad-btn" @click="inputDigit('5')">5</button>
+                  <button class="keypad-btn" @click="inputDigit('6')">6</button>
+                </div>
+                <div class="keypad-row">
+                  <button class="keypad-btn" @click="inputDigit('7')">7</button>
+                  <button class="keypad-btn" @click="inputDigit('8')">8</button>
+                  <button class="keypad-btn" @click="inputDigit('9')">9</button>
+                </div>
+                <div class="keypad-row">
+                  <button class="keypad-btn small" @click="inputDigit('.')">.</button>
+                  <button class="keypad-btn" @click="inputDigit('0')">0</button>
+                  <button class="keypad-btn small" @click="deleteDigit">⌫</button>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- 右侧：分类 + 备注 + 确认 -->
           <div class="sheet-right">
-            <div class="category-section">
-              <div class="section-title">选择分类</div>
-              <div class="category-grid category-grid-9">
-                <div 
-                  v-for="cat in currentCategories.slice(0, 9)" 
-                  :key="cat.id"
-                  class="category-item"
-                  :class="{ active: record.category === cat.name }"
-                  :style="{ '--cat-color': cat.color }"
-                  @click="record.category = cat.name"
-                >
-                  <span class="cat-icon">{{ cat.icon }}</span>
-                  <span class="cat-name">{{ cat.name }}</span>
+            <div class="right-box">
+              <div class="category-section">
+                <div class="category-grid category-grid-9">
+                  <div 
+                    v-for="cat in currentCategories.slice(0, 9)" 
+                    :key="cat.id"
+                    class="category-item"
+                    :class="{ active: record.category === cat.name }"
+                    :style="{ '--cat-color': cat.color }"
+                    @click="record.category = cat.name"
+                  >
+                    <span class="cat-icon">{{ cat.icon }}</span>
+                    <span class="cat-name">{{ cat.name }}</span>
+                  </div>
                 </div>
               </div>
+              
+              <div class="note-section">
+                <input 
+                  v-model="record.note" 
+                  type="text" 
+                  placeholder="添加备注..." 
+                  class="note-input"
+                />
+                <button class="confirm-btn" @click="saveRecord">
+                  <span class="confirm-icon">✓</span>
+                </button>
+              </div>
             </div>
-            
-            <div class="note-section">
-              <input 
-                v-model="record.note" 
-                type="text" 
-                placeholder="添加备注..." 
-                class="note-input"
-              />
-            </div>
-            
-            <button class="confirm-btn" @click="saveRecord">
-              <span class="confirm-icon">✓</span>
-              <span>确认记账</span>
-            </button>
           </div>
         </div>
       </div>
@@ -1111,12 +1112,10 @@ watch(() => userStore.theme, (newTheme) => {
   flex: 1;
   overflow: hidden;
 }
-
 .sheet-left {
   flex: 1;
   padding: 16px 20px 20px;
   display: flex;
-  flex-direction: column;
   border-right: 1px solid #F2F2F7;
 }
 
@@ -1124,8 +1123,14 @@ watch(() => userStore.theme, (newTheme) => {
   flex: 1;
   padding: 16px 20px 20px;
   display: flex;
+}
+
+/* 左右盒子 - 固定布局 */
+.left-box,
+.right-box {
+  width: 100%;
+  display: flex;
   flex-direction: column;
-  overflow-y: auto;
 }
 
 /* 金额显示 */
@@ -1134,7 +1139,6 @@ watch(() => userStore.theme, (newTheme) => {
   padding: 16px;
   background: #F5F5F7;
   border-radius: 16px;
-  margin-bottom: 12px;
 }
 
 .amount-display .currency {
@@ -1159,13 +1163,7 @@ watch(() => userStore.theme, (newTheme) => {
 
 /* 右侧分类 */
 .category-section {
-  margin-bottom: 12px;
-}
-
-.section-title {
-  font-size: 12px;
-  color: #8E8E93;
-  margin-bottom: 10px;
+  flex: 1;
 }
 
 .category-grid {
@@ -1225,15 +1223,16 @@ watch(() => userStore.theme, (newTheme) => {
 
 /* 备注输入 */
 .note-section {
-  margin-top: auto;
-  margin-bottom: 12px;
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .note-input {
-  width: 100%;
-  padding: 14px;
+  flex: 1;
+  padding: 14px 16px;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   background: #F5F5F7;
   font-size: 14px;
   outline: none;
@@ -1241,25 +1240,24 @@ watch(() => userStore.theme, (newTheme) => {
 
 /* 确认按钮 */
 .confirm-btn {
-  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 16px;
+  width: 54px;
+  height: 48px;
   border: none;
-  border-radius: 16px;
+  border-radius: 14px;
   background: linear-gradient(135deg, #34C759 0%, #30D158 100%);
   color: white;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(52, 199, 89, 0.35);
+  box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
   transition: all 0.2s;
 }
 
 .confirm-btn:active {
-  transform: scale(0.98);
+  transform: scale(0.95);
   box-shadow: 0 2px 8px rgba(52, 199, 89, 0.4);
 }
 
@@ -1273,6 +1271,7 @@ watch(() => userStore.theme, (newTheme) => {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  margin-top: 12px;
 }
 
 .keypad-row {
@@ -1292,6 +1291,12 @@ watch(() => userStore.theme, (newTheme) => {
   color: #000;
   cursor: pointer;
   transition: all 0.12s ease;
+}
+
+.keypad-btn:active {
+  transform: scale(0.95);
+  background: #E5E5EA;
+}
 }
 
 .keypad-btn:active {
