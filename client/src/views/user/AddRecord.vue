@@ -248,7 +248,6 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background: white;
-  border-right: 1px solid #F3F4F6;
 }
 
 .right-panel {
@@ -256,19 +255,20 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background: white;
+  border-left: 1px solid #F3F4F6;
 }
 
 .amount-display {
-  padding: 16px;
+  padding: 12px 16px;
   text-align: center;
-  border-bottom: 1px solid #F3F4F6;
+  border-bottom: none;
 }
 
 .type-toggle {
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .amount-text {
@@ -299,7 +299,7 @@ onMounted(() => {
 
 .keypad {
   flex: 1;
-  padding: 12px;
+  padding: 8px 12px 12px;
 }
 
 .keypad-row {
@@ -342,7 +342,7 @@ onMounted(() => {
 
 .category-section {
   flex: 1;
-  padding: 16px;
+  padding: 12px 16px;
   overflow-y: auto;
 }
 
@@ -350,13 +350,13 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 600;
   color: #111827;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .category-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 6px;
 }
 
 .category-item {
@@ -385,12 +385,12 @@ onMounted(() => {
 }
 
 .note-section {
-  padding: 12px 16px;
-  border-top: 1px solid #F3F4F6;
+  padding: 8px 16px 12px;
+  border-top: none;
 }
 
 .note-input {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .note-input :deep(.el-input__wrapper) {
@@ -401,8 +401,8 @@ onMounted(() => {
 
 .save-btn {
   width: 100%;
-  height: 44px;
-  font-size: 16px;
+  height: 40px;
+  font-size: 15px;
   border-radius: 10px;
 }
 </style>
