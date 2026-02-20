@@ -182,67 +182,67 @@
         </div>
 
         <!-- 双栏布局 -->
-        <div class="sheet-content">
+        <div class="flex flex-1">
           <!-- 左侧：金额 + 数字键盘 -->
-          <div class="sheet-left">
-            <div class="left-box">
-              <div class="amount-display">
-                <span class="currency">¥</span>
-                <span class="amount" :class="record.type">{{ displayAmount }}</span>
+          <div class="flex-1 px-5 py-4 border-r border-gray-100">
+            <div class="flex flex-col h-full">
+              <div class="text-center p-4 bg-gray-50 rounded-xl">
+                <span class="text-gray-400 text-lg mr-1">¥</span>
+                <span class="text-2xl font-bold" :class="record.type === 'expense' ? 'text-red-500' : 'text-green-500'">{{ displayAmount }}</span>
               </div>
-              <div class="number-keypad">
-                <div class="keypad-row">
-                  <button class="keypad-btn" @click="inputDigit('1')">1</button>
-                  <button class="keypad-btn" @click="inputDigit('2')">2</button>
-                  <button class="keypad-btn" @click="inputDigit('3')">3</button>
+              <div class="mt-3 flex-1 flex flex-col justify-end">
+                <div class="flex gap-2 mb-2">
+                  <button class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform" @click="inputDigit('1')">1</button>
+                  <button class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform" @click="inputDigit('2')">2</button>
+                  <button class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform" @click="inputDigit('3')">3</button>
                 </div>
-                <div class="keypad-row">
-                  <button class="keypad-btn" @click="inputDigit('4')">4</button>
-                  <button class="keypad-btn" @click="inputDigit('5')">5</button>
-                  <button class="keypad-btn" @click="inputDigit('6')">6</button>
+                <div class="flex gap-2 mb-2">
+                  <button class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform" @click="inputDigit('4')">4</button>
+                  <button class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform" @click="inputDigit('5')">5</button>
+                  <button class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform" @click="inputDigit('6')">6</button>
                 </div>
-                <div class="keypad-row">
-                  <button class="keypad-btn" @click="inputDigit('7')">7</button>
-                  <button class="keypad-btn" @click="inputDigit('8')">8</button>
-                  <button class="keypad-btn" @click="inputDigit('9')">9</button>
+                <div class="flex gap-2 mb-2">
+                  <button class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform" @click="inputDigit('7')">7</button>
+                  <button class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform" @click="inputDigit('8')">8</button>
+                  <button class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform" @click="inputDigit('9')">9</button>
                 </div>
-                <div class="keypad-row">
-                  <button class="keypad-btn small" @click="inputDigit('.')">.</button>
-                  <button class="keypad-btn" @click="inputDigit('0')">0</button>
-                  <button class="keypad-btn small" @click="deleteDigit">⌫</button>
+                <div class="flex gap-2">
+                  <button class="flex-1 h-13 bg-gray-50 rounded-lg text-base active:scale-95 transition-transform" @click="inputDigit('.')">.</button>
+                  <button class="flex-1 h-13 bg-gray-50 rounded-lg text-xl font-medium active:scale-95 transition-transform" @click="inputDigit('0')">0</button>
+                  <button class="flex-1 h-13 bg-gray-50 rounded-lg text-base active:scale-95 transition-transform" @click="deleteDigit">⌫</button>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- 右侧：分类 + 备注 + 确认 -->
-          <div class="sheet-right">
-            <div class="right-box">
-              <div class="category-section">
-                <div class="category-grid category-grid-9">
+          <div class="flex-1 px-5 py-4">
+            <div class="flex flex-col h-full">
+              <div class="flex-1">
+                <div class="grid grid-cols-3 gap-1.5">
                   <div 
                     v-for="cat in currentCategories.slice(0, 9)" 
                     :key="cat.id"
-                    class="category-item"
-                    :class="{ active: record.category === cat.name }"
-                    :style="{ '--cat-color': cat.color }"
+                    class="flex flex-col items-center gap-0.5 py-2 rounded-lg bg-gray-50 cursor-pointer transition-all"
+                    :class="record.category === cat.name ? 'text-white' : 'hover:bg-gray-100'"
+                    :style="record.category === cat.name ? { backgroundColor: cat.color } : {}"
                     @click="record.category = cat.name"
                   >
-                    <span class="cat-icon">{{ cat.icon }}</span>
-                    <span class="cat-name">{{ cat.name }}</span>
+                    <span class="text-lg">{{ cat.icon }}</span>
+                    <span class="text-xs font-medium">{{ cat.name }}</span>
                   </div>
                 </div>
               </div>
               
-              <div class="note-section">
+              <div class="flex gap-2 mt-3">
                 <input 
                   v-model="record.note" 
                   type="text" 
                   placeholder="添加备注..." 
-                  class="note-input"
+                  class="flex-1 px-4 py-3 bg-gray-50 rounded-xl text-sm outline-none"
                 />
-                <button class="confirm-btn" @click="saveRecord">
-                  <span class="confirm-icon">✓</span>
+                <button class="w-14 h-12 bg-gradient-to-br from-green-500 to-green-400 rounded-xl text-white text-xl font-medium shadow-lg shadow-green-400/30 active:scale-95 transition-transform flex items-center justify-center" @click="saveRecord">
+                  ✓
                 </button>
               </div>
             </div>
@@ -1103,204 +1103,34 @@ watch(() => userStore.theme, (newTheme) => {
 }
 
 .add-sheet .type-toggle {
-  margin: 8px 20px 0;
-}
 
-/* 双栏内容区 */
-.sheet-content {
-  display: flex;
+
+/* 类型切换按钮 */
+.type-btn {
   flex: 1;
-  overflow: hidden;
-}
-.sheet-left {
-  flex: 1;
-  padding: 16px 20px 20px;
-  display: flex;
-  border-right: 1px solid #F2F2F7;
-}
-
-.sheet-right {
-  flex: 1;
-  padding: 16px 20px 20px;
-  display: flex;
-}
-
-/* 左右盒子 - 固定布局 */
-.left-box,
-.right-box {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 金额显示 */
-.amount-display {
-  text-align: center;
-  padding: 16px;
-  background: #F5F5F7;
-  border-radius: 16px;
-}
-
-.amount-display .currency {
-  font-size: 18px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
   color: #8E8E93;
-  margin-right: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.amount-display .amount {
-  font-size: 36px;
-  font-weight: 700;
-  color: #000;
+.type-btn.active {
+  background: #F5F5F7;
+  color: #007AFF;
 }
 
-.amount-display .amount.expense {
+.type-btn:first-child.active {
+  background: rgba(255, 59, 48, 0.15);
   color: #FF3B30;
 }
 
-.amount-display .amount.income {
+.type-btn:last-child.active {
+  background: rgba(52, 199, 89, 0.15);
   color: #34C759;
-}
-
-/* 右侧分类 */
-.category-section {
-  flex: 1;
-}
-
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-/* 9宫格分类 */
-.category-grid-9 {
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-}
-
-.category-grid-9 .category-item {
-  padding: 8px 4px;
-  border-radius: 10px;
-}
-
-.category-grid-9 .category-item .cat-icon {
-  font-size: 18px;
-}
-
-.category-grid-9 .category-item .cat-name {
-  font-size: 10px;
-}
-
-.category-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 12px 8px;
-  border-radius: 12px;
-  background: #F5F5F7;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.category-item:hover {
-  background: #E5E5EA;
-}
-
-.category-item.active {
-  background: var(--cat-color);
-  color: white;
-}
-
-.category-item .cat-icon {
-  font-size: 20px;
-}
-
-.category-item .cat-name {
-  font-size: 11px;
-  font-weight: 500;
-}
-
-/* 备注输入 */
-.note-section {
-  display: flex;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.note-input {
-  flex: 1;
-  padding: 14px 16px;
-  border: none;
-  border-radius: 14px;
-  background: #F5F5F7;
-  font-size: 14px;
-  outline: none;
-}
-
-/* 确认按钮 */
-.confirm-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 54px;
-  height: 48px;
-  border: none;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #34C759 0%, #30D158 100%);
-  color: white;
-  font-size: 20px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
-  transition: all 0.2s;
-}
-
-.confirm-btn:active {
-  transform: scale(0.95);
-  box-shadow: 0 2px 8px rgba(52, 199, 89, 0.4);
-}
-
-.confirm-icon {
-  font-size: 18px;
-}
-
-/* 数字键盘 */
-.number-keypad {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  margin-top: 12px;
-}
-
-.keypad-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.keypad-btn {
-  flex: 1;
-  height: 52px;
-  border: none;
-  border-radius: 12px;
-  background: #F5F5F7;
-  font-size: 22px;
-  font-weight: 500;
-  color: #000;
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-
-.keypad-btn:active {
-  transform: scale(0.95);
-  background: #E5E5EA;
-}
-}
-
-.keypad-btn:active {
-  transform: scale(0.95);
-  background: #E5E5EA;
 }
 </style>
