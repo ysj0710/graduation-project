@@ -270,13 +270,14 @@ onMounted(() => {
 .amount-display {
   padding: 8px 12px;
   text-align: center;
+  margin: 0;
 }
 
 .type-toggle {
   display: flex;
   justify-content: center;
   gap: 4px;
-  margin-bottom: 2px;
+  margin-bottom: 0;
 }
 
 .amount-text {
@@ -352,20 +353,21 @@ onMounted(() => {
   flex: 1;
   padding: 8px 12px;
   overflow-y: auto;
-  border-bottom: 1px solid #F3F4F6;
+  margin: 0;
 }
 
 .section-title {
   font-size: 13px;
   font-weight: 600;
   color: #111827;
-  margin-bottom: 4px;
+  margin: 0 0 4px 0;
 }
 
 .category-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 3px;
+  gap: 2px;
+  margin: 0;
 }
 
 .category-item {
@@ -395,10 +397,11 @@ onMounted(() => {
 
 .note-section {
   padding: 6px 12px 8px;
+  margin: 0;
 }
 
 .note-input {
-  margin-bottom: 4px;
+  margin: 0 0 4px 0;
 }
 
 .note-input :deep(.el-input__wrapper) {
