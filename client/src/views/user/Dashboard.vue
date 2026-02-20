@@ -217,9 +217,9 @@
           <div class="sheet-right">
             <div class="category-section">
               <div class="section-title">选择分类</div>
-              <div class="category-grid">
+              <div class="category-grid category-grid-9">
                 <div 
-                  v-for="cat in currentCategories.slice(0, 6)" 
+                  v-for="cat in currentCategories.slice(0, 9)" 
                   :key="cat.id"
                   class="category-item"
                   :class="{ active: record.category === cat.name }"
@@ -1102,7 +1102,7 @@ watch(() => userStore.theme, (newTheme) => {
 }
 
 .add-sheet .type-toggle {
-  margin: 16px 20px 0;
+  margin: 8px 20px 0;
 }
 
 /* 双栏内容区 */
@@ -1172,6 +1172,25 @@ watch(() => userStore.theme, (newTheme) => {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+}
+
+/* 9宫格分类 */
+.category-grid-9 {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.category-grid-9 .category-item {
+  padding: 8px 4px;
+  border-radius: 10px;
+}
+
+.category-grid-9 .category-item .cat-icon {
+  font-size: 18px;
+}
+
+.category-grid-9 .category-item .cat-name {
+  font-size: 10px;
 }
 
 .category-item {
