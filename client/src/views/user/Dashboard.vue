@@ -228,7 +228,7 @@
           <!-- 左侧：金额 + 数字键盘 -->
           <div class="flex-1 px-5 py-4 border-r border-gray-100">
             <div class="flex flex-col h-full">
-              <div class="text-center p-4 bg-gray-50 rounded-xl">
+              <div class="text-center p-4 bg-gray-50 rounded-xl h-20">
                 <span class="text-gray-400 text-lg mr-1">¥</span>
                 <span
                   class="text-2xl font-bold"
@@ -332,7 +332,7 @@
                 <div
                   v-for="cat in currentCategories.slice(0, 9)"
                   :key="cat.id"
-                  class="flex flex-col items-center gap-0.5 py-2 rounded-lg bg-gray-50 cursor-pointer transition-all"
+                  class="flex flex-col items-center h-20 gap-0.5 py-2 rounded-lg bg-gray-50 cursor-pointer transition-all"
                   :class="
                     record.category === cat.name
                       ? 'text-white'
@@ -358,7 +358,7 @@
                   class="flex-1 px-4 py-3 bg-gray-50 rounded-xl text-sm outline-none"
                 />
                 <button
-                  class="w-14 h-12 bg-gradient-to-br from-green-500 to-green-400 rounded-xl text-white text-xl font-medium shadow-lg shadow-green-400/30 active:scale-95 transition-transform flex items-center justify-center"
+                  class="w-20 h-20 bg-gradient-to-br from-green-500 to-green-400 rounded-xl text-white text-xl font-medium shadow-lg shadow-green-400/30 active:scale-95 transition-transform flex items-center justify-center"
                   @click="saveRecord"
                 >
                   ✓

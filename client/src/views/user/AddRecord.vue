@@ -90,20 +90,18 @@
             </div>
           </div>
           <div class="note-section">
-            <el-input
-              v-model="record.note"
-              placeholder="添加备注..."
-              class="note-input"
-              clearable
+            <input 
+              v-model="record.note" 
+              type="text" 
+              placeholder="添加备注..." 
+              class="note-input-tx"
             />
-            <el-button 
-              type="primary" 
-              class="save-btn"
-              @click="saveRecord" 
-              :loading="saving"
+            <button 
+              class="save-btn-tx"
+              @click="saveRecord"
             >
-              保存记录
-            </el-button>
+              完成记账
+            </button>
           </div>
         </div>
       </div>
@@ -391,25 +389,34 @@ onMounted(() => {
 .note-section {
   padding: 8px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
 }
 
-.note-input {
+.note-input-tx {
   flex: 1;
-}
-
-.note-input :deep(.el-input__wrapper) {
-  border: none;
-  background: #F3F4F6;
-  border-radius: 8px;
-}
-
-.save-btn {
-  flex: 0 0 auto;
-  height: 36px;
-  font-size: 14px;
-  border-radius: 8px;
+  height: 40px;
   padding: 0 16px;
+  background: #F3F4F6;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.save-btn-tx {
+  width: 100%;
+  height: 40px;
+  background: linear-gradient(to bottom right, #10B981, #34D399);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.save-btn-tx:active {
+  transform: scale(0.98);
 }
 </style>
