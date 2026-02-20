@@ -71,40 +71,44 @@
 
       <!-- 右侧：分类 + 备注 + 提交 -->
       <div class="right-panel">
-        <div class="category-section">
-          <div class="section-title">选择分类</div>
-          <div class="category-grid">
-            <div 
-              v-for="cat in currentCategories" 
-              :key="cat.id"
-              class="category-item"
-              :class="{ active: record.category === cat.name }"
-              :style="{ 
-                '--cat-color': cat.color,
-                background: record.category === cat.name ? cat.color + '20' : '#F9FAFB' 
-              }"
-              @click="record.category = cat.name"
-            >
-              <span class="icon">{{ cat.icon }}</span>
-              <span class="name">{{ cat.name }}</span>
+        <div class="right-top">
+          <div class="category-section">
+            <div class="section-title">选择分类</div>
+            <div class="category-grid">
+              <div 
+                v-for="cat in currentCategories" 
+                :key="cat.id"
+                class="category-item"
+                :class="{ active: record.category === cat.name }"
+                :style="{ 
+                  '--cat-color': cat.color,
+                  background: record.category === cat.name ? cat.color + '20' : '#F9FAFB' 
+                }"
+                @click="record.category = cat.name"
+              >
+                <span class="icon">{{ cat.icon }}</span>
+                <span class="name">{{ cat.name }}</span>
+              </div>
             </div>
           </div>
         </div>
-        <div class="note-section">
-          <el-input
-            v-model="record.note"
-            placeholder="添加备注..."
-            class="note-input"
-            clearable
-          />
-          <el-button 
-            type="primary" 
-            class="save-btn"
-            @click="saveRecord" 
-            :loading="saving"
-          >
-            保存记录
-          </el-button>
+        <div class="right-bottom">
+          <div class="note-section">
+            <el-input
+              v-model="record.note"
+              placeholder="添加备注..."
+              class="note-input"
+              clearable
+            />
+            <el-button 
+              type="primary" 
+              class="save-btn"
+              @click="saveRecord" 
+              :loading="saving"
+            >
+              保存记录
+            </el-button>
+          </div>
         </div>
       </div>
     </div>
@@ -255,29 +259,27 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background: white;
-  justify-content: space-between;
 }
 
-.left-panel .amount-display,
-.left-panel .keypad {
-  background: transparent;
+.right-top {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-.right-panel .category-section,
-.right-panel .note-section {
-  background: transparent;
+.right-bottom {
+  flex: 0;
 }
 
 .amount-display {
-  padding: 8px 12px;
+  padding: 4px 8px;
   text-align: center;
-  margin: 0;
 }
 
 .type-toggle {
   display: flex;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   margin-bottom: 0;
 }
 
@@ -308,17 +310,15 @@ onMounted(() => {
 }
 
 .keypad {
-  flex: 0;
-  padding: 2px 6px 6px;
+  padding: 2px 4px 4px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
 }
 
 .keypad-row {
   display: flex;
-  gap: 3px;
-  margin-bottom: 3px;
+  gap: 2px;
+  margin-bottom: 2px;
 }
 
 .key {
@@ -354,25 +354,21 @@ onMounted(() => {
 }
 
 .category-section {
-  flex: 1;
-  padding: 8px 12px;
+  padding: 4px 8px;
   overflow-y: auto;
-  margin: 0;
-  min-height: 0;
 }
 
 .section-title {
   font-size: 13px;
   font-weight: 600;
   color: #111827;
-  margin: 0 0 4px 0;
+  margin: 0 0 2px 0;
 }
 
 .category-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 2px;
-  margin: 0;
 }
 
 .category-item {
@@ -401,24 +397,27 @@ onMounted(() => {
 }
 
 .note-section {
-  padding: 6px 12px 8px;
-  margin: 0;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .note-input {
-  margin: 0 0 4px 0;
+  flex: 1;
 }
 
 .note-input :deep(.el-input__wrapper) {
   border: none;
   background: #F3F4F6;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .save-btn {
-  width: 100%;
-  height: 36px;
-  font-size: 14px;
-  border-radius: 8px;
+  flex: 0 0 auto;
+  height: 32px;
+  font-size: 13px;
+  border-radius: 6px;
+  padding: 0 12px;
 }
 </style>
