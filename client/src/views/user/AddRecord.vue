@@ -248,7 +248,6 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background: white;
-  padding-bottom: 0;
 }
 
 .right-panel {
@@ -256,20 +255,28 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background: white;
-  padding-bottom: 0;
+}
+
+.left-panel .amount-display,
+.left-panel .keypad {
+  background: transparent;
+}
+
+.right-panel .category-section,
+.right-panel .note-section {
+  background: transparent;
 }
 
 .amount-display {
   padding: 8px 12px;
   text-align: center;
-  border-bottom: none;
 }
 
 .type-toggle {
   display: flex;
   justify-content: center;
   gap: 4px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .amount-text {
@@ -300,18 +307,18 @@ onMounted(() => {
 
 .keypad {
   flex: 1;
-  padding: 4px 8px 8px;
+  padding: 2px 6px 6px;
 }
 
 .keypad-row {
   display: flex;
-  gap: 4px;
-  margin-bottom: 4px;
+  gap: 3px;
+  margin-bottom: 3px;
 }
 
 .key {
   flex: 1;
-  height: 44px;
+  height: 40px;
   border: none;
   border-radius: 12px;
   background: #F3F4F6;
@@ -345,19 +352,20 @@ onMounted(() => {
   flex: 1;
   padding: 8px 12px;
   overflow-y: auto;
+  border-bottom: 1px solid #F3F4F6;
 }
 
 .section-title {
   font-size: 13px;
   font-weight: 600;
   color: #111827;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .category-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
+  gap: 3px;
 }
 
 .category-item {
@@ -386,8 +394,7 @@ onMounted(() => {
 }
 
 .note-section {
-  padding: 4px 12px 8px;
-  border-top: none;
+  padding: 6px 12px 8px;
 }
 
 .note-input {
