@@ -1,15 +1,12 @@
 <template>
   <div class="user-app-container add-page">
-    <!-- 顶部导航 -->
     <div class="page-header">
       <el-button :icon="ArrowLeft" circle @click="$router.back()" />
       <span class="title">记一笔</span>
       <div style="width: 60px"></div>
     </div>
 
-    <!-- 左右两个完整的面板 -->
     <div class="main-content">
-      <!-- 左侧面板：金额 + 键盘 -->
       <div class="panel">
         <div class="panel-content">
           <div class="amount-display">
@@ -71,7 +68,6 @@
         </div>
       </div>
 
-      <!-- 右侧面板：分类 + 备注 + 提交 -->
       <div class="panel">
         <div class="panel-content">
           <div class="category-section">
@@ -248,7 +244,6 @@ onMounted(() => {
 .panel {
   flex: 1;
   display: flex;
-  flex-direction: column;
 }
 
 .panel-content {
@@ -256,20 +251,18 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background: white;
-  gap: 0;
 }
 
 .amount-display {
-  padding: 8px 12px;
+  padding: 8px;
   text-align: center;
-  margin-bottom: 0;
 }
 
 .type-toggle {
   display: flex;
   justify-content: center;
   gap: 4px;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .amount-text {
@@ -300,10 +293,9 @@ onMounted(() => {
 
 .keypad {
   flex: 1;
-  padding: 6px 8px;
+  padding: 4px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
 }
 
 .keypad-row {
@@ -312,21 +304,20 @@ onMounted(() => {
   margin-bottom: 4px;
 }
 
+.keypad-row:last-child {
+  margin-bottom: 0;
+}
+
 .key {
   flex: 1;
   height: 48px;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #F3F4F6;
   font-size: 18px;
   font-weight: 500;
   color: #111827;
   cursor: pointer;
-  transition: background 0.15s;
-}
-
-.key:active {
-  background: #E5E7EB;
 }
 
 .key.delete, .key.action {
@@ -340,14 +331,9 @@ onMounted(() => {
   color: white;
 }
 
-.key.confirm:active {
-  background: #059669;
-}
-
 .category-section {
   flex: 1;
-  padding: 8px 12px;
-  margin-bottom: 0;
+  padding: 8px;
 }
 
 .section-title {
@@ -369,11 +355,9 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 12px 4px;
-  border-radius: 10px;
+  padding: 10px 4px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
-  min-height: 56px;
 }
 
 .category-item.active {
@@ -391,7 +375,7 @@ onMounted(() => {
 }
 
 .note-section {
-  padding: 8px 12px;
+  padding: 8px;
   display: flex;
   align-items: center;
   gap: 8px;
