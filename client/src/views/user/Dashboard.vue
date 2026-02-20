@@ -160,7 +160,7 @@
       v-model="showAddSheet"
       title="记一笔"
       direction="btt"
-      size="70vh"
+      size="65vh"
       :show-close="false"
       class="add-sheet-drawer"
     >
@@ -850,30 +850,67 @@ watch(() => userStore.theme, (newTheme) => {
   color: #34C759;
 }
 
-/* 悬浮按钮 */
+/* 悬浮按钮 - 更明显的记账按钮 */
 .fab-button {
   position: fixed;
-  bottom: 32px;
-  right: 32px;
-  width: 60px;
-  height: 60px;
-  border-radius: 30px;
-  background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
+  bottom: 28px;
+  right: 28px;
+  width: 64px;
+  height: 64px;
+  border-radius: 32px;
+  background: linear-gradient(135deg, #34C759 0%, #30D158 100%);
   border: none;
   color: white;
-  font-size: 32px;
-  font-weight: 300;
-  box-shadow: 0 10px 30px rgba(0, 122, 255, 0.4);
+  font-size: 28px;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(52, 199, 89, 0.45);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 90;
 }
 
+.fab-button::before {
+  content: '记一笔';
+  position: absolute;
+  top: -36px;
+  background: white;
+  color: #34C759;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s;
+}
+
+.fab-button::after {
+  content: '';
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(52, 199, 89, 0.3);
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
 .fab-button:hover {
-  transform: scale(1.1);
+  transform: scale(1.08);
+}
+
+.fab-button:hover::before {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .fab-button:active {
@@ -1040,5 +1077,78 @@ watch(() => userStore.theme, (newTheme) => {
 
 .keypad-btn.confirm:active {
   background: #2AAF55;
+}
+
+/* 自定义记账面板样式 - 限制宽度，优化布局 */
+.add-sheet-drawer {
+  --el-drawer-padding-primary: 0;
+}
+
+.add-sheet-drawer .el-drawer__body {
+  display: flex;
+  justify-content: center;
+  padding: 0 !important;
+}
+
+.add-sheet {
+  width: 100%;
+  max-width: 420px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px 32px;
+  background: white;
+  border-radius: 28px 28px 0 0;
+}
+
+/* 优化数字键盘布局 */
+.number-keypad {
+  margin-top: auto;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.keypad-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.keypad-btn {
+  flex: 1;
+  height: 58px;
+  border: none;
+  border-radius: 16px;
+  background: #F5F5F7;
+  font-size: 24px;
+  font-weight: 500;
+  color: #000;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  touch-action: manipulation;
+}
+
+.keypad-btn:active {
+  transform: scale(0.95);
+  background: #E5E5EA;
+}
+
+.keypad-btn.delete, 
+.keypad-btn.action {
+  background: #E5E5EA;
+  color: #8E8E93;
+  font-size: 15px;
+}
+
+.keypad-btn.confirm {
+  background: linear-gradient(135deg, #34C759 0%, #30D158 100%);
+  color: white;
+  font-size: 20px;
+  box-shadow: 0 4px 16px rgba(52, 199, 89, 0.35);
+}
+
+.keypad-btn.confirm:active {
+  transform: scale(0.95);
+  background: #2AAF55;
+  box-shadow: 0 2px 8px rgba(52, 199, 89, 0.4);
 }
 </style>
