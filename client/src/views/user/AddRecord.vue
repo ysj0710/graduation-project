@@ -11,17 +11,17 @@
         <div class="panel-content">
           <div class="amount-display">
             <div class="type-toggle">
-              <el-button 
+              <el-button
                 :type="record.type === 'income' ? 'success' : 'default'"
-                round 
+                round
                 size="small"
                 @click="record.type = 'income'"
               >
                 收入
               </el-button>
-              <el-button 
+              <el-button
                 :type="record.type === 'expense' ? 'danger' : 'default'"
-                round 
+                round
                 size="small"
                 @click="record.type = 'expense'"
               >
@@ -30,7 +30,9 @@
             </div>
             <div class="amount-text">
               <span class="currency">¥</span>
-              <span class="amount" :class="record.type">{{ displayAmount }}</span>
+              <span class="amount" :class="record.type">{{
+                displayAmount
+              }}</span>
             </div>
           </div>
           <div class="keypad">
@@ -52,8 +54,13 @@
               <button class="key" @click="inputDigit('1')">1</button>
               <button class="key" @click="inputDigit('2')">2</button>
               <button class="key" @click="inputDigit('3')">3</button>
-              <button class="key action" @click="record.type = record.type === 'income' ? 'expense' : 'income'">
-                {{ record.type === 'income' ? '支出' : '收入' }}
+              <button
+                class="key action"
+                @click="
+                  record.type = record.type === 'income' ? 'expense' : 'income'
+                "
+              >
+                {{ record.type === "income" ? "支出" : "收入" }}
               </button>
             </div>
             <div class="keypad-row">
@@ -73,14 +80,15 @@
           <div class="category-section">
             <div class="section-title">选择分类</div>
             <div class="category-grid">
-              <div 
-                v-for="cat in currentCategories" 
+              <div
+                v-for="cat in currentCategories"
                 :key="cat.id"
                 class="category-item"
                 :class="{ active: record.category === cat.name }"
-                :style="{ 
+                :style="{
                   '--cat-color': cat.color,
-                  background: record.category === cat.name ? cat.color + '20' : '#F9FAFB' 
+                  background:
+                    record.category === cat.name ? cat.color + '20' : '#F9FAFB',
                 }"
                 @click="record.category = cat.name"
               >
@@ -89,15 +97,15 @@
               </div>
             </div>
           </div>
-          <div class="note-section">
+          <div class="flex flex-col gap-2 p-2">
             <input 
               v-model="record.note" 
               type="text" 
               placeholder="添加备注..." 
-              class="note-input-tx"
+              class="flex-1 px-4 py-3 bg-gray-50 rounded-xl text-sm outline-none"
             />
             <button 
-              class="save-btn-tx"
+              class="w-full h-12 bg-gradient-to-br from-green-500 to-green-400 rounded-xl text-white text-base font-medium"
               @click="saveRecord"
             >
               完成记账
@@ -110,103 +118,103 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useUserStore } from '../../stores/user'
-import { ArrowLeft, Delete, Check } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ref, computed, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useUserStore } from "../../stores/user";
+import { ArrowLeft, Delete, Check } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 
-const route = useRoute()
-const router = useRouter()
-const userStore = useUserStore()
+const route = useRoute();
+const router = useRouter();
+const userStore = useUserStore();
 
-const saving = ref(false)
-const amountStr = ref('0')
+const saving = ref(false);
+const amountStr = ref("0");
 
 const record = ref({
-  type: 'expense',
+  type: "expense",
   amount: 0,
-  category: '餐饮',
-  note: '',
-  date: new Date().toISOString().split('T')[0]
-})
+  category: "餐饮",
+  note: "",
+  date: new Date().toISOString().split("T")[0],
+});
 
 const displayAmount = computed(() => {
-  if (amountStr.value === '0' || amountStr.value === '') return '0'
-  return amountStr.value
-})
+  if (amountStr.value === "0" || amountStr.value === "") return "0";
+  return amountStr.value;
+});
 
 const currentCategories = computed(() => {
-  return record.value.type === 'income' 
-    ? userStore.categories.income 
-    : userStore.categories.expense
-})
+  return record.value.type === "income"
+    ? userStore.categories.income
+    : userStore.categories.expense;
+});
 
 const inputDigit = (digit) => {
-  if (digit === '.') {
-    if (amountStr.value.includes('.')) return
-    amountStr.value += '.'
-  } else if (digit === '00') {
-    if (amountStr.value === '0') return
-    amountStr.value += '00'
+  if (digit === ".") {
+    if (amountStr.value.includes(".")) return;
+    amountStr.value += ".";
+  } else if (digit === "00") {
+    if (amountStr.value === "0") return;
+    amountStr.value += "00";
   } else {
-    if (amountStr.value === '0') {
-      amountStr.value = digit
+    if (amountStr.value === "0") {
+      amountStr.value = digit;
     } else {
-      amountStr.value += digit
+      amountStr.value += digit;
     }
   }
-}
+};
 
 const deleteDigit = () => {
   if (amountStr.value.length > 1) {
-    amountStr.value = amountStr.value.slice(0, -1)
+    amountStr.value = amountStr.value.slice(0, -1);
   } else {
-    amountStr.value = '0'
+    amountStr.value = "0";
   }
-}
+};
 
 const setToday = () => {
-  record.value.date = new Date().toISOString().split('T')[0]
-}
+  record.value.date = new Date().toISOString().split("T")[0];
+};
 
 const saveRecord = async () => {
-  const amount = parseFloat(amountStr.value)
+  const amount = parseFloat(amountStr.value);
   if (!amount || amount <= 0) {
-    ElMessage.warning('请输入金额')
-    return
+    ElMessage.warning("请输入金额");
+    return;
   }
   if (!record.value.category) {
-    ElMessage.warning('请选择分类')
-    return
+    ElMessage.warning("请选择分类");
+    return;
   }
 
-  saving.value = true
+  saving.value = true;
   try {
     await userStore.addRecord({
       type: record.value.type,
       amount: amount,
       category: record.value.category,
       note: record.value.note,
-      date: record.value.date
-    })
-    ElMessage.success('记账成功')
-    router.push('/')
+      date: record.value.date,
+    });
+    ElMessage.success("记账成功");
+    router.push("/");
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '记账失败')
+    ElMessage.error(error.response?.data?.message || "记账失败");
   } finally {
-    saving.value = false
+    saving.value = false;
   }
-}
+};
 
 onMounted(() => {
   if (route.query.type) {
-    record.value.type = route.query.type
+    record.value.type = route.query.type;
   }
   if (route.query.category) {
-    record.value.category = route.query.category
+    record.value.category = route.query.category;
   }
-})
+});
 </script>
 
 <style scoped>
@@ -214,7 +222,7 @@ onMounted(() => {
   max-width: 100%;
   margin: 0 auto;
   min-height: 100vh;
-  background: #F9FAFB;
+  background: #f9fafb;
   display: flex;
   flex-direction: column;
 }
@@ -225,7 +233,7 @@ onMounted(() => {
   justify-content: space-between;
   padding: 8px 16px;
   background: white;
-  border-bottom: 1px solid #F3F4F6;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .title {
@@ -273,7 +281,7 @@ onMounted(() => {
 
 .currency {
   font-size: 18px;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 .amount {
@@ -283,11 +291,11 @@ onMounted(() => {
 }
 
 .amount.income {
-  color: #10B981;
+  color: #10b981;
 }
 
 .amount.expense {
-  color: #EF4444;
+  color: #ef4444;
 }
 
 .keypad {
@@ -316,29 +324,29 @@ onMounted(() => {
 .key {
   border: none;
   border-radius: 8px;
-  background: #F3F4F6;
+  background: #f3f4f6;
   font-size: 18px;
   font-weight: 500;
   color: #111827;
   cursor: pointer;
-}
   border: none;
   border-radius: 8px;
-  background: #F3F4F6;
+  background: #f3f4f6;
   font-size: 18px;
   font-weight: 500;
   color: #111827;
   cursor: pointer;
 }
 
-.key.delete, .key.action {
-  background: #E5E7EB;
-  color: #6B7280;
+.key.delete,
+.key.action {
+  background: #e5e7eb;
+  color: #6b7280;
   font-size: 12px;
 }
 
 .key.confirm {
-  background: #10B981;
+  background: #10b981;
   color: white;
 }
 
@@ -384,39 +392,5 @@ onMounted(() => {
   font-size: 11px;
   font-weight: 500;
   color: #374151;
-}
-
-.note-section {
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.note-input-tx {
-  flex: 1;
-  height: 40px;
-  padding: 0 16px;
-  background: #F3F4F6;
-  border: none;
-  border-radius: 12px;
-  font-size: 14px;
-  outline: none;
-}
-
-.save-btn-tx {
-  width: 100%;
-  height: 40px;
-  background: linear-gradient(to bottom right, #10B981, #34D399);
-  border: none;
-  border-radius: 12px;
-  color: white;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.save-btn-tx:active {
-  transform: scale(0.98);
 }
 </style>

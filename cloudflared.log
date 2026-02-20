@@ -1,46 +1,25 @@
-2026-02-20T05:53:36Z INF Starting tunnel tunnelID=0d51b78d-31a8-40aa-b683-4fc00c2a53d2
-2026-02-20T05:53:36Z INF Version 2026.2.0 (Checksum 659e90c91014a0017ec933e4a5c924e5ed1c77e3033bf768c47509c2120e598d)
-2026-02-20T05:53:36Z INF GOOS: darwin, GOVersion: go1.25.7, GoArch: arm64
-2026-02-20T05:53:36Z INF Settings: map[cred-file:/Users/enjoy0710/.cloudflared/0d51b78d-31a8-40aa-b683-4fc00c2a53d2.json credentials-file:/Users/enjoy0710/.cloudflared/0d51b78d-31a8-40aa-b683-4fc00c2a53d2.json]
-2026-02-20T05:53:36Z INF cloudflared will not automatically update if installed by a package manager.
-2026-02-20T05:53:36Z INF Generated Connector ID: a4e61525-c601-4f74-91bc-83ffbbec1944
-2026-02-20T05:53:37Z INF Initial protocol quic
-2026-02-20T05:53:37Z INF ICMP proxy will use 10.31.247.77 as source for IPv4
-2026-02-20T05:53:37Z INF ICMP proxy will use ::1 in zone lo0 as source for IPv6
-2026-02-20T05:53:37Z INF Created ICMP proxy listening on 10.31.247.77:0
-2026-02-20T05:53:37Z INF Created ICMP proxy listening on [::1]:0
-2026-02-20T05:53:37Z INF ICMP proxy will use 10.31.247.77 as source for IPv4
-2026-02-20T05:53:37Z INF ICMP proxy will use ::1 in zone lo0 as source for IPv6
-2026-02-20T05:53:37Z INF Starting metrics server on 127.0.0.1:20241/metrics
-2026-02-20T05:53:37Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=0 event=0 ip=198.41.200.193
-2026-02-20T05:53:42Z ERR Failed to dial a quic connection error="failed to dial to edge with quic: timeout: no recent network activity" connIndex=0 event=0 ip=198.41.200.193
-2026-02-20T05:53:42Z INF Retrying connection in up to 2s connIndex=0 event=0 ip=198.41.200.193
-2026-02-20T05:53:44Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=0 event=0 ip=198.41.200.233
-2026-02-20T05:53:44Z INF Registered tunnel connection connIndex=0 connection=16a28892-ac1f-4702-8652-302d427d55b4 event=0 ip=198.41.200.233 location=sjc05 protocol=quic
-2026-02-20T05:53:44Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=1 event=0 ip=198.41.192.7
-2026-02-20T05:53:45Z INF Registered tunnel connection connIndex=1 connection=3ca57632-7b24-4f41-9fb9-76c7e86378d7 event=0 ip=198.41.192.7 location=sjc01 protocol=quic
-2026-02-20T05:53:45Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=2 event=0 ip=198.41.192.77
-2026-02-20T05:53:46Z INF Registered tunnel connection connIndex=2 connection=b6a3c214-a2c7-46c5-a492-1b2e6491c435 event=0 ip=198.41.192.77 location=sjc01 protocol=quic
-2026-02-20T05:53:46Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=3 event=0 ip=198.41.200.63
-2026-02-20T05:53:47Z INF Registered tunnel connection connIndex=3 connection=2b21a637-b6c9-431c-b1d9-71a1f62005f8 event=0 ip=198.41.200.63 location=sjc05 protocol=quic
-2026-02-20T05:54:57Z ERR  error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: dial tcp [::1]:5173: connect: connection refused" connIndex=1 event=1 ingressRule=1 originService=http://localhost:5173
-2026-02-20T05:54:57Z ERR Request failed error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: dial tcp [::1]:5173: connect: connection refused" connIndex=1 dest=https://ysj0710.xyz/login event=0 ip=198.41.192.7 type=http
-2026-02-20T05:55:05Z ERR  error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: dial tcp [::1]:5173: connect: connection refused" connIndex=1 event=1 ingressRule=1 originService=http://localhost:5173
-2026-02-20T05:55:05Z ERR Request failed error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: dial tcp [::1]:5173: connect: connection refused" connIndex=1 dest=https://ysj0710.xyz/ event=0 ip=198.41.192.7 type=http
-2026-02-20T05:55:06Z ERR  error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: dial tcp [::1]:5173: connect: connection refused" connIndex=1 event=1 ingressRule=1 originService=http://localhost:5173
-2026-02-20T05:55:06Z ERR Request failed error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: dial tcp [::1]:5173: connect: connection refused" connIndex=1 dest=https://ysj0710.xyz/ event=0 ip=198.41.192.7 type=http
-2026-02-20T05:58:43Z ERR Failed to refresh DNS local resolver error="lookup region1.v2.argotunnel.com: i/o timeout"
-2026/02/20 13:58:54 Unsolicited response received on idle HTTP channel starting with "HTTP/1.1 400 Bad Request\r\n\r\n"; err=<nil>
-2026/02/20 14:06:24 Unsolicited response received on idle HTTP channel starting with "HTTP/1.1 400 Bad Request\r\n\r\n"; err=<nil>
-2026-02-20T06:28:49Z ERR Failed to refresh DNS local resolver error="lookup region1.v2.argotunnel.com: i/o timeout"
-2026/02/20 14:32:24 Unsolicited response received on idle HTTP channel starting with "HTTP/1.1 400 Bad Request\r\n\r\n"; err=<nil>
-2026-02-20T06:33:21Z ERR  error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: dial tcp [::1]:5173: connect: connection refused" connIndex=0 event=1 ingressRule=1 originService=http://localhost:5173
-2026-02-20T06:33:21Z ERR Request failed error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: dial tcp [::1]:5173: connect: connection refused" connIndex=0 dest=https://ysj0710.xyz/ event=0 ip=198.41.200.233 type=http
-2026-02-20T06:33:22Z ERR  error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: dial tcp [::1]:5173: connect: connection refused" connIndex=0 event=1 ingressRule=1 originService=http://localhost:5173
-2026-02-20T06:33:22Z ERR Request failed error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: dial tcp [::1]:5173: connect: connection refused" connIndex=0 dest=https://ysj0710.xyz/admin/dashboard event=0 ip=198.41.200.233 type=http
-2026-02-20T06:37:49Z ERR  error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: dial tcp [::1]:5173: connect: connection refused" connIndex=2 event=1 ingressRule=1 originService=http://localhost:5173
-2026-02-20T06:37:49Z ERR Request failed error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: dial tcp [::1]:5173: connect: connection refused" connIndex=2 dest=https://ysj0710.xyz/admin/dashboard event=0 ip=198.41.192.77 type=http
-2026-02-20T06:43:55Z ERR Failed to refresh DNS local resolver error="lookup region1.v2.argotunnel.com: i/o timeout"
-2026-02-20T06:53:46Z ERR Failed to refresh feature selector error="lookup cfd-features.argotunnel.com on 114.114.114.255:53: dial udp 114.114.114.255:53: i/o timeout"
-2026-02-20T07:29:03Z ERR Failed to refresh DNS local resolver error="lookup region1.v2.argotunnel.com: i/o timeout"
-2026-02-20T08:04:10Z ERR Failed to refresh DNS local resolver error="lookup region1.v2.argotunnel.com: i/o timeout"
+2026-02-20T15:38:30Z INF Starting tunnel tunnelID=0d51b78d-31a8-40aa-b683-4fc00c2a53d2
+2026-02-20T15:38:30Z INF Version 2026.2.0 (Checksum 659e90c91014a0017ec933e4a5c924e5ed1c77e3033bf768c47509c2120e598d)
+2026-02-20T15:38:30Z INF GOOS: darwin, GOVersion: go1.25.7, GoArch: arm64
+2026-02-20T15:38:30Z INF Settings: map[cred-file:/Users/enjoy0710/.cloudflared/0d51b78d-31a8-40aa-b683-4fc00c2a53d2.json credentials-file:/Users/enjoy0710/.cloudflared/0d51b78d-31a8-40aa-b683-4fc00c2a53d2.json]
+2026-02-20T15:38:30Z INF cloudflared will not automatically update if installed by a package manager.
+2026-02-20T15:38:31Z INF Generated Connector ID: 1e9bee42-05be-40a2-ad20-0e965f612f0f
+2026-02-20T15:38:31Z INF Initial protocol quic
+2026-02-20T15:38:31Z INF ICMP proxy will use 10.31.247.77 as source for IPv4
+2026-02-20T15:38:31Z INF ICMP proxy will use ::1 in zone lo0 as source for IPv6
+2026-02-20T15:38:31Z INF Created ICMP proxy listening on 10.31.247.77:0
+2026-02-20T15:38:31Z INF Created ICMP proxy listening on [::1]:0
+2026-02-20T15:38:42Z INF ICMP proxy will use 10.31.247.77 as source for IPv4
+2026-02-20T15:38:42Z INF ICMP proxy will use ::1 in zone lo0 as source for IPv6
+2026-02-20T15:38:42Z INF Starting metrics server on 127.0.0.1:20242/metrics
+2026-02-20T15:38:42Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=0 event=0 ip=198.41.200.73
+2026-02-20T15:38:47Z ERR Failed to dial a quic connection error="failed to dial to edge with quic: timeout: no recent network activity" connIndex=0 event=0 ip=198.41.200.73
+2026-02-20T15:38:47Z INF Retrying connection in up to 2s connIndex=0 event=0 ip=198.41.200.73
+2026-02-20T15:38:48Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=0 event=0 ip=198.41.200.33
+2026-02-20T15:38:49Z INF Registered tunnel connection connIndex=0 connection=06096676-edea-4ff1-b4bd-0d99a2d91fe7 event=0 ip=198.41.200.33 location=sjc10 protocol=quic
+2026-02-20T15:38:49Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=1 event=0 ip=198.41.192.37
+2026-02-20T15:38:50Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=2 event=0 ip=198.41.200.233
+2026-02-20T15:38:50Z INF Registered tunnel connection connIndex=1 connection=024e1926-17fe-4cfe-ac94-9eda9ff33611 event=0 ip=198.41.192.37 location=sjc06 protocol=quic
+2026-02-20T15:38:50Z INF Registered tunnel connection connIndex=2 connection=6f8bcbce-dc15-4a5f-8950-2c8a3c5856b8 event=0 ip=198.41.200.233 location=sjc08 protocol=quic
+2026-02-20T15:38:51Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=3 event=0 ip=198.41.192.227
+2026-02-20T15:38:51Z INF Registered tunnel connection connIndex=3 connection=a640cf66-6356-44c2-b843-ca7d99185561 event=0 ip=198.41.192.227 location=sjc06 protocol=quic
