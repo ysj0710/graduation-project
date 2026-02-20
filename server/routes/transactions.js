@@ -244,7 +244,7 @@ router.get('/month-stats', async (ctx) => {
     const stats = await Transaction.aggregate([
       {
         $match: {
-          userId: mongoose.Types.ObjectId(userId),
+          userId: new mongoose.Types.ObjectId(userId),
           date: { $gte: startOfMonth, $lte: endOfMonth }
         }
       },

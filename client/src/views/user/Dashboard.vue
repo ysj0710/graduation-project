@@ -139,10 +139,12 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useUserStore } from '../../stores/user'
+import { useRouter } from 'vue-router'
 import { Brush, Setting, TrendCharts, Money, PieChart, Check } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 
 const userStore = useUserStore()
+const router = useRouter()
 const currentTime = ref('')
 const timeRange = ref('month')
 const showThemePicker = ref(false)
@@ -186,7 +188,7 @@ const selectTheme = (theme) => {
 }
 
 const quickAdd = (cat) => {
-  userStore.$router.push(`/add?type=${cat.type}&category=${cat.name}`)
+  router.push(`/add?type=${cat.type}&category=${cat.name}`)
 }
 
 const fetchTrendData = async () => {
