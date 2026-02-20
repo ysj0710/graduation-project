@@ -87,6 +87,7 @@ import { ref, onMounted, nextTick } from 'vue'
 import { useUserStore } from '../../stores/user'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
+import axios from 'axios'
 
 const userStore = useUserStore()
 
@@ -95,9 +96,70 @@ const statistics = ref({ income: { total: 0, count: 0 }, expense: { total: 0, co
 const categoryList = ref([])
 const trendChartRef = ref(null)
 const pieChartRef = ref(null)
+const trendData = ref({ dates: [], income: [], expense: [] })
 
 const formatNumber = (num) => {
   return Number(num || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+// 获取趋势数据
+const fetchTrendData = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    const now = new Date()
+    let startDate, endDate, dateFormat, dateKey
+    
+    if (timeRange.value === 'week') {
+      startDate = new Date(now)
+      startDate.setDate(now.getDate() - now.getDay() + 1)
+      endDate = new Date(startDate)
+      endDate.setDate(startDate.getDate() + 6)
+      dateFormat = (d) => `${d.getMonth() + 1}/${d.getDate()}`
+    } else if (timeRange.value === 'month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      dateFormat = (d) => `${d.getMonth() + 1}/${d.getDate()}`
+    } else {
+      startDate = new Date(now.getFullYear(), 0, 1)
+      endDate = new Date(now.getFullYear(), 11, 31)
+      dateFormat = (d) => `${d.getMonth() + 1}月`
+    }
+    
+    const response = await axios.get('http://localhost:3000/api/transactions', {
+      params: {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      },
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    
+    const transactions = response.data.transactions || []
+    
+    // 按日期分组
+    const dateMap = {}
+    transactions.forEach(t => {
+      const date = new Date(t.date)
+      const key = dateFormat(date)
+      if (!dateMap[key]) {
+        dateMap[key] = { income: 0, expense: 0 }
+      }
+      if (t.type === 'income') {
+        dateMap[key].income += t.amount
+      } else {
+        dateMap[key].expense += t.amount
+      }
+    })
+    
+    trendData.value = {
+      dates: Object.keys(dateMap),
+      income: Object.values(dateMap).map(d => d.income),
+      expense: Object.values(dateMap).map(d => d.expense)
+    }
+  } catch (error) {
+    console.error('Failed to fetch trend data:', error)
+    // 使用空数据
+    trendData.value = { dates: [], income: [], expense: [] }
+  }
 }
 
 const fetchData = async () => {
@@ -111,7 +173,7 @@ const fetchData = async () => {
     
     // 处理分类数据
     const expenseCats = res.byCategory?.expense || []
-    categoryList.value = expenseCats.map((cat, idx) => ({
+    categoryList.value = expenseCats.map((cat) => ({
       category: cat.category,
       total: cat.total,
       count: cat.count,
@@ -120,6 +182,7 @@ const fetchData = async () => {
       color: '#EF4444'
     }))
     
+    await fetchTrendData()
     await nextTick()
     renderCharts()
   } catch (error) {
@@ -137,18 +200,31 @@ const getCategoryIcon = (category) => {
 }
 
 const renderCharts = () => {
-  // 趋势图
+  // 趋势图 - 使用真实数据
   if (trendChartRef.value) {
-    const trendChart = echarts.init(trendChartRef.value)
-    trendChart.setOption({
+    const chart = echarts.init(trendChartRef.value)
+    chart.setOption({
       tooltip: { trigger: 'axis' },
       legend: { data: ['收入', '支出'], top: 0, textStyle: { fontSize: 12 } },
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: { type: 'category', data: ['第1周', '第2周', '第3周', '第4周'] },
+      xAxis: { 
+        type: 'category', 
+        data: trendData.value.dates.length > 0 ? trendData.value.dates : ['暂无数据'] 
+      },
       yAxis: { type: 'value' },
       series: [
-        { name: '收入', type: 'bar', data: [1200, 800, 1500, 2000], itemStyle: { color: '#10B981' } },
-        { name: '支出', type: 'bar', data: [900, 1100, 800, 1300], itemStyle: { color: '#EF4444' } }
+        { 
+          name: '收入', 
+          type: 'bar', 
+          data: trendData.value.income.length > 0 ? trendData.value.income : [0], 
+          itemStyle: { color: '#10B981' } 
+        },
+        { 
+          name: '支出', 
+          type: 'bar', 
+          data: trendData.value.expense.length > 0 ? trendData.value.expense : [0], 
+          itemStyle: { color: '#EF4444' } 
+        }
       ]
     })
   }
@@ -161,8 +237,12 @@ const renderCharts = () => {
       itemStyle: { color: getCategoryColor(cat.category) }
     }))
     
-    const pieChart = echarts.init(pieChartRef.value)
-    pieChart.setOption({
+    if (pieData.length === 0) {
+      pieData.push({ name: '暂无数据', value: 1, itemStyle: { color: '#E5E7EB' } })
+    }
+    
+    const chart = echarts.init(pieChartRef.value)
+    chart.setOption({
       tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
       legend: { orient: 'vertical', right: 10, top: 'center', textStyle: { fontSize: 11 } },
       series: [{
