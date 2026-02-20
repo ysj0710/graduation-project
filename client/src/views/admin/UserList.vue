@@ -1,206 +1,218 @@
 <template>
   <div class="user-list-page">
-    <!-- 筛选栏 -->
-    <div class="flex gap-3 mb-5">
-      <el-select 
-        v-model="adminStore.filters.status" 
-        placeholder="用户状态" 
-        clearable 
-        @change="handleFilterChange"
-        class="w-40"
-      >
-        <el-option label="全部" value="" />
-        <el-option label="正常" value="normal" />
-        <el-option label="低风险" value="low" />
-        <el-option label="中风险" value="medium" />
-        <el-option label="高风险" value="high" />
-        <el-option label="已注销" value="inactive" />
-      </el-select>
-      
-      <el-input 
-        v-model="adminStore.filters.search" 
-        placeholder="搜索用户名/邮箱"
-        prefix-icon="Search"
-        clearable
-        class="w-60"
-        @input="handleSearch"
-      />
-      
-      <el-button type="primary" @click="openAddDialog">+ 新增用户</el-button>
-      <el-button @click="exportData">导出数据</el-button>
+    <!-- 顶部操作栏 -->
+    <div class="action-bar">
+      <div class="search-box">
+        <input 
+          v-model="searchKeyword" 
+          type="text" 
+          placeholder="搜索用户..." 
+          class="search-input"
+        />
+      </div>
+      <el-button type="primary" @click="$router.push('/admin/users-add')">
+        + 新增用户
+      </el-button>
     </div>
-    
-    <!-- 数据表格 -->
-    <div class="bg-white rounded-2xl p-5 shadow-sm">
-      <el-table 
-        :data="adminStore.userList" 
-        v-loading="loading"
-        class="w-full"
-      >
-        <el-table-column label="用户信息" min-width="200">
-          <template #default="{ row }">
-            <div class="flex items-center gap-3">
-              <el-avatar :size="40" style="background: #10B981;">
-                {{ row.username?.charAt(0).toUpperCase() }}
-              </el-avatar>
-              <div>
-                <div class="font-medium text-gray-800">{{ row.username }}</div>
-                <div class="text-xs text-gray-500">{{ row.email || '-' }}</div>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="角色" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.role === 'admin' ? 'warning' : 'success'" size="small">
-              {{ row.role === 'admin' ? '管理员' : '用户' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="注册时间" width="180">
-          <template #default="{ row }">
-            {{ formatDate(row.createdAt) }}
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="最后登录" width="180">
-          <template #default="{ row }">
-            {{ row.lastLogin ? formatDate(row.lastLogin) : '-' }}
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.isActive !== false ? 'success' : 'info'" size="small">
-              {{ row.isActive !== false ? '正常' : '已注销' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="操作" width="180" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="editUser(row)">编辑</el-button>
-            <el-dropdown trigger="click">
-              <el-button link size="small">更多</el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item @click="sendReminder(row)">发送提醒</el-dropdown-item>
-                  <el-dropdown-item @click="resetPassword(row)">重置密码</el-dropdown-item>
-                  <el-dropdown-item divided @click="handleDelete(row)" class="text-red-500">
-                    删除
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </template>
-        </el-table-column>
-      </el-table>
+
+    <!-- 用户表格 -->
+    <div class="ios-card">
+      <div class="table-header">
+        <span>用户信息</span>
+        <span>预算设置</span>
+        <span>本月消费</span>
+        <span>风险等级</span>
+        <span>操作</span>
+      </div>
+      <div class="table-row" v-for="user in filteredUsers" :key="user.id">
+        <div class="user-cell">
+          <el-avatar :size="40" :style="{ background: user.avatarColor }">
+            {{ user.name.charAt(0) }}
+          </el-avatar>
+          <div class="user-info">
+            <div class="user-name">{{ user.name }}</div>
+            <div class="user-email">{{ user.email }}</div>
+          </div>
+        </div>
+        <span>¥{{ formatNumber(user.budget) }}</span>
+        <span :class="{ 'expense': user.spent > user.budget * 0.8 }">
+          ¥{{ formatNumber(user.spent) }}
+        </span>
+        <span :class="['risk-badge', user.riskLevel]">{{ user.riskLabel }}</span>
+        <div class="action-btns">
+          <el-button size="small" @click="viewDetail(user)">详情</el-button>
+          <el-button size="small" @click="editUser(user)">编辑</el-button>
+          <el-button size="small" type="danger" @click="deleteUser(user)">删除</el-button>
+        </div>
+      </div>
     </div>
-    
+
     <!-- 分页 -->
-    <div class="mt-5 flex justify-end">
+    <div class="pagination">
       <el-pagination
-        v-model:current-page="adminStore.pagination.current"
-        v-model:page-size="adminStore.pagination.size"
-        :total="adminStore.pagination.total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
+        v-model:current-page="currentPage"
+        :page-size="pageSize"
+        :total="total"
+        layout="prev, pager, next"
+        background
       />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useAdminStore } from '@/stores/admin'
 
-const adminStore = useAdminStore()
-const loading = ref(false)
+const searchKeyword = ref('')
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(156)
 
-const formatDate = (date) => {
-  if (!date) return '-'
-  return new Date(date).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+const users = ref([
+  { id: 1, name: '张三', email: 'zhangsan@example.com', budget: 5000, spent: 3200, riskLevel: 'low', riskLabel: '低风险', avatarColor: '#007AFF' },
+  { id: 2, name: '李四', email: 'lisi@example.com', budget: 3000, spent: 2800, riskLevel: 'high', riskLabel: '高风险', avatarColor: '#34C759' },
+  { id: 3, name: '王五', email: 'wangwu@example.com', budget: 4000, spent: 3500, riskLevel: 'medium', riskLabel: '中风险', avatarColor: '#FF9500' },
+  { id: 4, name: '赵六', email: 'zhaoliu@example.com', budget: 6000, spent: 4100, riskLevel: 'low', riskLabel: '低风险', avatarColor: '#AF52DE' },
+  { id: 5, name: '钱七', email: 'qianqi@example.com', budget: 3500, spent: 3400, riskLevel: 'high', riskLabel: '高风险', avatarColor: '#FF3B30' }
+])
+
+const filteredUsers = computed(() => {
+  return users.value.filter(u => 
+    u.name.includes(searchKeyword.value) || 
+    u.email.includes(searchKeyword.value)
+  )
+})
+
+const formatNumber = (num) => Number(num || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+
+const viewDetail = (user) => {
+  ElMessage.info(`查看用户 ${user.name} 详情`)
 }
 
-const handleFilterChange = async () => {
-  adminStore.pagination.current = 1
-  await fetchData()
+const editUser = (user) => {
+  ElMessage.info(`编辑用户 ${user.name}`)
 }
 
-const handleSearch = async () => {
-  adminStore.pagination.current = 1
-  await fetchData()
-}
-
-const handleSizeChange = async () => {
-  await fetchData()
-}
-
-const handleCurrentChange = async () => {
-  await fetchData()
-}
-
-const fetchData = async () => {
-  loading.value = true
-  await adminStore.fetchUserList()
-  loading.value = false
-}
-
-const openAddDialog = () => {
-  ElMessage.info('新增用户功能开发中')
-}
-
-const editUser = (row) => {
-  ElMessage.info('编辑用户功能开发中')
-}
-
-const sendReminder = async (row) => {
-  const success = await adminStore.sendAlert(row._id, '系统提醒')
-  if (success) {
-    ElMessage.success('提醒已发送')
-  }
-}
-
-const resetPassword = (row) => {
-  ElMessage.info('重置密码功能开发中')
-}
-
-const handleDelete = async (row) => {
+const deleteUser = async (user) => {
   try {
-    await ElMessageBox.confirm(`确定要删除用户 "${row.username}" 吗？`, '提示', {
-      confirmButtonText: '确定',
+    await ElMessageBox.confirm(`确定要删除用户 ${user.name} 吗？`, '确认删除', {
+      confirmButtonText: '删除',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    
-    const success = await adminStore.deleteUser(row._id)
-    if (success) {
-      ElMessage.success('删除成功')
-    }
+    ElMessage.success('删除成功')
   } catch {
-    // 用户取消
+    // 取消
   }
 }
-
-const exportData = () => {
-  ElMessage.info('导出功能开发中')
-}
-
-onMounted(() => {
-  fetchData()
-})
 </script>
 
 <style scoped>
+.user-list-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.search-input {
+  width: 300px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  background: white;
+  font-size: 14px;
+  outline: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.search-input:focus {
+  box-shadow: 0 4px 20px rgba(0, 122, 255, 0.15);
+}
+
+.ios-card {
+  background: white;
+  border-radius: 20px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 180px;
+  padding: 16px 24px;
+  background: #F5F5F7;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8E8E93;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 180px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #F2F2F7;
+  align-items: center;
+  transition: background 0.2s;
+}
+
+.table-row:hover {
+  background: #F9F9FB;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #000;
+}
+
+.user-email {
+  font-size: 12px;
+  color: #8E8E93;
+  margin-top: 2px;
+}
+
+.expense {
+  color: #FF3B30;
+  font-weight: 600;
+}
+
+.risk-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.risk-badge.high { background: rgba(255, 59, 48, 0.15); color: #FF3B30; }
+.risk-badge.medium { background: rgba(255, 149, 0, 0.15); color: #FF9500; }
+.risk-badge.low { background: rgba(52, 199, 89, 0.15); color: #34C759; }
+
+.action-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+}
 </style>
