@@ -256,18 +256,20 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background: white;
+  gap: 0;
 }
 
 .amount-display {
   padding: 8px 12px;
   text-align: center;
+  margin-bottom: 0;
 }
 
 .type-toggle {
   display: flex;
   justify-content: center;
   gap: 4px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .amount-text {
@@ -345,6 +347,7 @@ onMounted(() => {
 .category-section {
   flex: 1;
   padding: 8px 12px;
+  margin-bottom: 0;
 }
 
 .section-title {
