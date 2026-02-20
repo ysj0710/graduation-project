@@ -138,7 +138,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { useUserStore } from '../stores/user'
+import { useUserStore } from '../../stores/user'
 import { Brush, Setting, TrendCharts, Money, PieChart, Check } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 

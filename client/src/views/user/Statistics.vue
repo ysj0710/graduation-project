@@ -84,7 +84,7 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
-import { useUserStore } from '../stores/user'
+import { useUserStore } from '../../stores/user'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 

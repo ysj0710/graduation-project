@@ -83,7 +83,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '../stores/user'
+import { useUserStore } from '../../stores/user'
 import { ArrowLeft, HomeFilled, SwitchButton, ArrowRight } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 

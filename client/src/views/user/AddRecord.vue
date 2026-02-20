@@ -99,7 +99,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useUserStore } from '../stores/user'
+import { useUserStore } from '../../stores/user'
 import { ArrowLeft, Backspace, Check } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
