@@ -17,10 +17,35 @@ import MessageTemplate from '../views/admin/MessageTemplate.vue'
 import OperationLog from '../views/admin/OperationLog.vue'
 import NotificationCenter from '../views/admin/NotificationCenter.vue'
 
+// 用户端页面
+import UserDashboard from '../views/user/Dashboard.vue'
+import AddRecord from '../views/user/AddRecord.vue'
+import Statistics from '../views/user/Statistics.vue'
+import Profile from '../views/user/Profile.vue'
+
 // 路由守卫 - 检查是否已登录
 const requireAuth = (to, from, next) => {
   const token = localStorage.getItem('token')
+  const userStr = localStorage.getItem('user')
+  
   if (token) {
+    // 检查用户角色
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr)
+        if (user.role === 'admin') {
+          // 管理员跳转管理后台
+          if (to.path.startsWith('/admin') || to.path === '/') {
+            next()
+          } else {
+            next('/admin')
+          }
+          return
+        }
+      } catch (e) {
+        console.error('Parse user error:', e)
+      }
+    }
     next()
   } else {
     next('/login')
@@ -30,13 +55,43 @@ const requireAuth = (to, from, next) => {
 const routes = [
   {
     path: '/',
-    redirect: '/login'
+    redirect: '/dashboard'
   },
   {
     path: '/login',
     name: 'Login',
     component: Login
   },
+  // 用户端路由
+  {
+    path: '/dashboard',
+    name: 'UserDashboard',
+    component: UserDashboard,
+    beforeEnter: requireAuth,
+    meta: { title: '首页' }
+  },
+  {
+    path: '/add',
+    name: 'AddRecord',
+    component: AddRecord,
+    beforeEnter: requireAuth,
+    meta: { title: '记账' }
+  },
+  {
+    path: '/stats',
+    name: 'Statistics',
+    component: Statistics,
+    beforeEnter: requireAuth,
+    meta: { title: '统计' }
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: Profile,
+    beforeEnter: requireAuth,
+    meta: { title: '我的' }
+  },
+  // 兼容旧路由
   {
     path: '/home',
     name: 'Home',
@@ -55,7 +110,7 @@ const routes = [
       },
       {
         path: 'dashboard',
-        name: 'Dashboard',
+        name: 'AdminDashboard',
         component: Dashboard,
         meta: { title: '数据概览' }
       },
