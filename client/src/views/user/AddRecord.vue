@@ -214,7 +214,7 @@ onMounted(() => {
 
 <style scoped>
 .user-app-container.add-page {
-  max-width: 800px;
+  max-width: 100%;
   margin: 0 auto;
   min-height: 100vh;
   background: #F9FAFB;
@@ -226,7 +226,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 8px 16px;
   background: white;
   border-bottom: 1px solid #F3F4F6;
 }
@@ -248,6 +248,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background: white;
+  padding-bottom: 0;
 }
 
 .right-panel {
@@ -255,11 +256,11 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background: white;
-  border-left: 1px solid #F3F4F6;
+  padding-bottom: 0;
 }
 
 .amount-display {
-  padding: 12px 16px;
+  padding: 8px 12px;
   text-align: center;
   border-bottom: none;
 }
@@ -267,8 +268,8 @@ onMounted(() => {
 .type-toggle {
   display: flex;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 4px;
+  margin-bottom: 4px;
 }
 
 .amount-text {
@@ -299,18 +300,18 @@ onMounted(() => {
 
 .keypad {
   flex: 1;
-  padding: 8px 12px 12px;
+  padding: 4px 8px 8px;
 }
 
 .keypad-row {
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 4px;
+  margin-bottom: 4px;
 }
 
 .key {
   flex: 1;
-  height: 48px;
+  height: 44px;
   border: none;
   border-radius: 12px;
   background: #F3F4F6;
@@ -342,21 +343,21 @@ onMounted(() => {
 
 .category-section {
   flex: 1;
-  padding: 12px 16px;
+  padding: 8px 12px;
   overflow-y: auto;
 }
 
 .section-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #111827;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .category-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+  gap: 4px;
 }
 
 .category-item {
@@ -385,24 +386,24 @@ onMounted(() => {
 }
 
 .note-section {
-  padding: 8px 16px 12px;
+  padding: 4px 12px 8px;
   border-top: none;
 }
 
 .note-input {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .note-input :deep(.el-input__wrapper) {
   border: none;
   background: #F3F4F6;
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .save-btn {
   width: 100%;
-  height: 40px;
-  font-size: 15px;
-  border-radius: 10px;
+  height: 36px;
+  font-size: 14px;
+  border-radius: 8px;
 }
 </style>
