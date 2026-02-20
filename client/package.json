@@ -11,6 +11,7 @@
     "@element-plus/icons-vue": "^2.3.2",
     "autoprefixer": "^10.4.24",
     "axios": "^1.6.2",
+    "echarts": "^5.4.3",
     "element-plus": "^2.13.2",
     "pinia": "^3.0.4",
     "postcss": "^8.5.6",
