@@ -213,8 +213,8 @@ const renderTrendChart = () => {
     xAxis: { type: 'category', data: trendChartData.value.dates },
     yAxis: { type: 'value' },
     series: [
-      { name: '收入', type: 'line', data: trendChartData.value.income, smooth: true, itemStyle: { color: '#10B981' } },
-      { name: '支出', type: 'line', data: trendChartData.value.expense, smooth: true, itemStyle: { color: '#EF4444' } }
+      { name: '收入', type: 'bar', data: trendChartData.value.income, smooth: true, itemStyle: { color: '#10B981' } },
+      { name: '支出', type: 'bar', data: trendChartData.value.expense, smooth: true, itemStyle: { color: '#EF4444' } }
     ]
   }
   chart.setOption(option)
