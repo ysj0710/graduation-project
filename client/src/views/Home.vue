@@ -18,11 +18,11 @@
             <span class="icon">➕</span>
             <span>记一笔账</span>
           </div>
-          <div class="feature-item">
+          <div class="feature-item" @click="showRecords">
             <span class="icon">📋</span>
             <span>账单明细</span>
           </div>
-          <div class="feature-item">
+          <div class="feature-item" @click="showStats">
             <span class="icon">📈</span>
             <span>数据报表</span>
           </div>
@@ -32,15 +32,38 @@
       <div class="stats-cards">
         <div class="stat-card">
           <div class="stat-label">本月收入</div>
-          <div class="stat-value income">¥0.00</div>
+          <div class="stat-value income">¥{{ monthStats.income.toFixed(2) }}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">本月支出</div>
-          <div class="stat-value expense">¥0.00</div>
+          <div class="stat-value expense">¥{{ monthStats.expense.toFixed(2) }}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">本月结余</div>
-          <div class="stat-value balance">¥0.00</div>
+          <div class="stat-value" :class="monthStats.balance >= 0 ? 'income' : 'expense'">
+            ¥{{ monthStats.balance.toFixed(2) }}
+          </div>
+        </div>
+      </div>
+
+      <!-- 最近交易记录 -->
+      <div class="recent-records" v-if="recentTransactions.length > 0">
+        <h3>📝 最近交易</h3>
+        <div class="record-list">
+          <div 
+            v-for="record in recentTransactions" 
+            :key="record._id" 
+            class="record-item"
+          >
+            <div class="record-info">
+              <span class="record-category">{{ record.category }}</span>
+              <span class="record-note" v-if="record.note">{{ record.note }}</span>
+              <span class="record-date">{{ formatDate(record.date) }}</span>
+            </div>
+            <div class="record-amount" :class="record.type">
+              {{ record.type === 'income' ? '+' : '-' }}¥{{ record.amount.toFixed(2) }}
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -59,28 +82,44 @@
           </div>
           <div class="form-group">
             <label>金额</label>
-            <input type="number" v-model="newRecord.amount" placeholder="请输入金额" required />
+            <input type="number" v-model="newRecord.amount" placeholder="请输入金额" required step="0.01" min="0" />
           </div>
           <div class="form-group">
             <label>分类</label>
             <select v-model="newRecord.category">
-              <option value="工资">工资</option>
-              <option value="奖金">奖金</option>
-              <option value="理财">理财</option>
-              <option value="餐饮">餐饮</option>
-              <option value="交通">交通</option>
-              <option value="购物">购物</option>
-              <option value="娱乐">娱乐</option>
-              <option value="其他">其他</option>
+              <option value="" disabled>请选择分类</option>
+              <optgroup v-if="newRecord.type === 'income'" label="收入分类">
+                <option value="工资">工资</option>
+                <option value="奖金">奖金</option>
+                <option value="理财">理财</option>
+                <option value="兼职">兼职</option>
+                <option value="其他收入">其他收入</option>
+              </optgroup>
+              <optgroup v-if="newRecord.type === 'expense'" label="支出分类">
+                <option value="餐饮">餐饮</option>
+                <option value="交通">交通</option>
+                <option value="购物">购物</option>
+                <option value="娱乐">娱乐</option>
+                <option value="住房">住房</option>
+                <option value="医疗">医疗</option>
+                <option value="教育">教育</option>
+                <option value="其他支出">其他支出</option>
+              </optgroup>
             </select>
           </div>
           <div class="form-group">
             <label>备注</label>
             <input type="text" v-model="newRecord.note" placeholder="可选备注" />
           </div>
+          <div class="form-group">
+            <label>日期</label>
+            <input type="date" v-model="newRecord.date" />
+          </div>
           <div class="modal-buttons">
             <button type="button" class="cancel-btn" @click="showAddDialog = false">取消</button>
-            <button type="submit" class="submit-btn">保存</button>
+            <button type="submit" class="submit-btn" :disabled="loading">
+              {{ loading ? '保存中...' : '保存' }}
+            </button>
           </div>
         </form>
       </div>
@@ -89,27 +128,77 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 const router = useRouter()
 const user = ref(null)
+const loading = ref(false)
 const showAddDialog = ref(false)
-const newRecord = ref({
+const recentTransactions = ref([])
+
+const monthStats = reactive({
+  income: 0,
+  expense: 0,
+  balance: 0
+})
+
+const newRecord = reactive({
   type: 'expense',
   amount: '',
-  category: '餐饮',
-  note: ''
+  category: '',
+  note: '',
+  date: new Date().toISOString().split('T')[0]
+})
+
+// API 请求配置
+const api = axios.create({
+  baseURL: 'http://localhost:3000/api',
+  timeout: 10000
+})
+
+// 请求拦截器 - 添加 token
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
 onMounted(() => {
   const userStr = localStorage.getItem('user')
   if (userStr) {
     user.value = JSON.parse(userStr)
+    fetchMonthStats()
+    fetchRecentTransactions()
   } else {
     router.push('/login')
   }
 })
+
+const fetchMonthStats = async () => {
+  try {
+    const response = await api.get('/transactions/month-stats')
+    monthStats.income = response.data.income || 0
+    monthStats.expense = response.data.expense || 0
+    monthStats.balance = response.data.balance || 0
+  } catch (error) {
+    console.error('获取月度统计失败:', error)
+  }
+}
+
+const fetchRecentTransactions = async () => {
+  try {
+    const response = await api.get('/transactions', {
+      params: { pageSize: 5 }
+    })
+    recentTransactions.value = response.data.transactions || []
+  } catch (error) {
+    console.error('获取交易记录失败:', error)
+  }
+}
 
 const handleLogout = () => {
   localStorage.removeItem('token')
@@ -117,10 +206,53 @@ const handleLogout = () => {
   router.push('/login')
 }
 
-const handleAddRecord = () => {
-  console.log('记账:', newRecord.value)
-  alert('记账功能开发中...')
-  showAddDialog.value = false
+const handleAddRecord = async () => {
+  if (!newRecord.amount || !newRecord.category) {
+    alert('请填写完整信息')
+    return
+  }
+  
+  loading.value = true
+  try {
+    await api.post('/transactions', {
+      type: newRecord.type,
+      amount: parseFloat(newRecord.amount),
+      category: newRecord.category,
+      note: newRecord.note,
+      date: newRecord.date
+    })
+    
+    alert('记账成功！')
+    showAddDialog.value = false
+    
+    // 重置表单
+    newRecord.amount = ''
+    newRecord.category = ''
+    newRecord.note = ''
+    newRecord.date = new Date().toISOString().split('T')[0]
+    
+    // 刷新数据
+    fetchMonthStats()
+    fetchRecentTransactions()
+  } catch (error) {
+    console.error('记账失败:', error)
+    alert(error.response?.data?.message || '记账失败，请重试')
+  } finally {
+    loading.value = false
+  }
+}
+
+const showRecords = () => {
+  alert('账单明细页面开发中...')
+}
+
+const showStats = () => {
+  alert('数据报表页面开发中...')
+}
+
+const formatDate = (dateStr) => {
+  const date = new Date(dateStr)
+  return `${date.getMonth() + 1}/${date.getDate()}`
 }
 </script>
 
@@ -228,6 +360,7 @@ const handleAddRecord = () => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 20px;
+  margin-bottom: 30px;
 }
 
 .stat-card {
@@ -257,8 +390,66 @@ const handleAddRecord = () => {
   color: #e74c3c;
 }
 
-.stat-value.balance {
-  color: #3498db;
+.recent-records {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.recent-records h3 {
+  color: #333;
+  margin-bottom: 16px;
+  font-size: 18px;
+}
+
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.record-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+
+.record-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.record-category {
+  font-weight: 600;
+  color: #333;
+}
+
+.record-note {
+  font-size: 12px;
+  color: #666;
+}
+
+.record-date {
+  font-size: 12px;
+  color: #999;
+}
+
+.record-amount {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.record-amount.income {
+  color: #27ae60;
+}
+
+.record-amount.expense {
+  color: #e74c3c;
 }
 
 .modal {
@@ -341,8 +532,13 @@ const handleAddRecord = () => {
   border: none;
 }
 
-.submit-btn:hover {
+.submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>
