@@ -28,27 +28,39 @@ const requireAuth = (to, from, next) => {
   const token = localStorage.getItem('token')
   const userStr = localStorage.getItem('user')
   
-  if (token) {
-    // 检查用户角色
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr)
-        if (user.role === 'admin') {
-          // 管理员跳转管理后台
-          if (to.path.startsWith('/admin') || to.path === '/') {
-            next()
-          } else {
-            next('/admin')
-          }
-          return
-        }
-      } catch (e) {
-        console.error('Parse user error:', e)
-      }
-    }
-    next()
-  } else {
+  if (!token) {
     next('/login')
+    return
+  }
+  
+  // 检查用户角色
+  let userRole = 'user'
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      userRole = user.role || 'user'
+    } catch (e) {
+      console.error('Parse user error:', e)
+    }
+  }
+  
+  // 管理员只能访问管理后台
+  if (userRole === 'admin') {
+    if (to.path.startsWith('/admin')) {
+      next()
+    } else if (to.path === '/') {
+      next('/admin')
+    } else {
+      next('/admin')
+    }
+    return
+  }
+  
+  // 普通用户不能访问管理后台
+  if (to.path.startsWith('/admin')) {
+    next('/dashboard')
+  } else {
+    next()
   }
 }
 

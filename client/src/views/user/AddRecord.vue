@@ -67,7 +67,7 @@
         <button class="key" @click="inputDigit('8')">8</button>
         <button class="key" @click="inputDigit('9')">9</button>
         <button class="key delete" @click="deleteDigit">
-          <el-icon><Backspace /></el-icon>
+          <el-icon><Delete /></el-icon>
         </button>
       </div>
       <div class="keypad-row">
@@ -100,7 +100,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../../stores/user'
-import { ArrowLeft, Backspace, Check } from '@element-plus/icons-vue'
+import { ArrowLeft, Delete, Check } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
