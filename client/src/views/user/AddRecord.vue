@@ -255,6 +255,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background: white;
+  justify-content: space-between;
 }
 
 .left-panel .amount-display,
@@ -307,8 +308,11 @@ onMounted(() => {
 }
 
 .keypad {
-  flex: 1;
+  flex: 0;
   padding: 2px 6px 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .keypad-row {
@@ -354,6 +358,7 @@ onMounted(() => {
   padding: 8px 12px;
   overflow-y: auto;
   margin: 0;
+  min-height: 0;
 }
 
 .section-title {
