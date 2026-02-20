@@ -7,71 +7,73 @@
       <div style="width: 60px"></div>
     </div>
 
-    <!-- 左右分栏布局 -->
+    <!-- 左右两个完整的面板 -->
     <div class="main-content">
-      <!-- 左侧：金额 + 数字键盘 -->
-      <div class="left-panel">
-        <div class="amount-display">
-          <div class="type-toggle">
-            <el-button 
-              :type="record.type === 'income' ? 'success' : 'default'"
-              round 
-              size="small"
-              @click="record.type = 'income'"
-            >
-              收入
-            </el-button>
-            <el-button 
-              :type="record.type === 'expense' ? 'danger' : 'default'"
-              round 
-              size="small"
-              @click="record.type = 'expense'"
-            >
-              支出
-            </el-button>
+      <!-- 左侧面板：金额 + 键盘 -->
+      <div class="panel">
+        <div class="panel-content">
+          <div class="amount-display">
+            <div class="type-toggle">
+              <el-button 
+                :type="record.type === 'income' ? 'success' : 'default'"
+                round 
+                size="small"
+                @click="record.type = 'income'"
+              >
+                收入
+              </el-button>
+              <el-button 
+                :type="record.type === 'expense' ? 'danger' : 'default'"
+                round 
+                size="small"
+                @click="record.type = 'expense'"
+              >
+                支出
+              </el-button>
+            </div>
+            <div class="amount-text">
+              <span class="currency">¥</span>
+              <span class="amount" :class="record.type">{{ displayAmount }}</span>
+            </div>
           </div>
-          <div class="amount-text">
-            <span class="currency">¥</span>
-            <span class="amount" :class="record.type">{{ displayAmount }}</span>
-          </div>
-        </div>
-        <div class="keypad">
-          <div class="keypad-row">
-            <button class="key" @click="inputDigit('7')">7</button>
-            <button class="key" @click="inputDigit('8')">8</button>
-            <button class="key" @click="inputDigit('9')">9</button>
-            <button class="key delete" @click="deleteDigit">
-              <el-icon><Delete /></el-icon>
-            </button>
-          </div>
-          <div class="keypad-row">
-            <button class="key" @click="inputDigit('4')">4</button>
-            <button class="key" @click="inputDigit('5')">5</button>
-            <button class="key" @click="inputDigit('6')">6</button>
-            <button class="key action" @click="setToday">今天</button>
-          </div>
-          <div class="keypad-row">
-            <button class="key" @click="inputDigit('1')">1</button>
-            <button class="key" @click="inputDigit('2')">2</button>
-            <button class="key" @click="inputDigit('3')">3</button>
-            <button class="key action" @click="record.type = record.type === 'income' ? 'expense' : 'income'">
-              {{ record.type === 'income' ? '支出' : '收入' }}
-            </button>
-          </div>
-          <div class="keypad-row">
-            <button class="key" @click="inputDigit('.')">.</button>
-            <button class="key" @click="inputDigit('0')">0</button>
-            <button class="key" @click="inputDigit('00')">00</button>
-            <button class="key confirm" @click="saveRecord">
-              <el-icon><Check /></el-icon>
-            </button>
+          <div class="keypad">
+            <div class="keypad-row">
+              <button class="key" @click="inputDigit('7')">7</button>
+              <button class="key" @click="inputDigit('8')">8</button>
+              <button class="key" @click="inputDigit('9')">9</button>
+              <button class="key delete" @click="deleteDigit">
+                <el-icon><Delete /></el-icon>
+              </button>
+            </div>
+            <div class="keypad-row">
+              <button class="key" @click="inputDigit('4')">4</button>
+              <button class="key" @click="inputDigit('5')">5</button>
+              <button class="key" @click="inputDigit('6')">6</button>
+              <button class="key action" @click="setToday">今天</button>
+            </div>
+            <div class="keypad-row">
+              <button class="key" @click="inputDigit('1')">1</button>
+              <button class="key" @click="inputDigit('2')">2</button>
+              <button class="key" @click="inputDigit('3')">3</button>
+              <button class="key action" @click="record.type = record.type === 'income' ? 'expense' : 'income'">
+                {{ record.type === 'income' ? '支出' : '收入' }}
+              </button>
+            </div>
+            <div class="keypad-row">
+              <button class="key" @click="inputDigit('.')">.</button>
+              <button class="key" @click="inputDigit('0')">0</button>
+              <button class="key" @click="inputDigit('00')">00</button>
+              <button class="key confirm" @click="saveRecord">
+                <el-icon><Check /></el-icon>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- 右侧：分类 + 备注 + 提交 -->
-      <div class="right-panel">
-        <div class="right-top">
+      <!-- 右侧面板：分类 + 备注 + 提交 -->
+      <div class="panel">
+        <div class="panel-content">
           <div class="category-section">
             <div class="section-title">选择分类</div>
             <div class="category-grid">
@@ -91,8 +93,6 @@
               </div>
             </div>
           </div>
-        </div>
-        <div class="right-bottom">
           <div class="note-section">
             <el-input
               v-model="record.note"
@@ -206,7 +206,6 @@ const saveRecord = async () => {
 }
 
 onMounted(() => {
-  // 从 URL 参数获取预填信息
   if (route.query.type) {
     record.value.type = route.query.type
   }
@@ -244,43 +243,31 @@ onMounted(() => {
 .main-content {
   display: flex;
   flex: 1;
-  overflow: hidden;
 }
 
-.left-panel {
+.panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   background: white;
-}
-
-.right-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: white;
-}
-
-.right-top {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.right-bottom {
-  flex: 0;
 }
 
 .amount-display {
-  padding: 4px 8px;
+  padding: 8px 12px;
   text-align: center;
 }
 
 .type-toggle {
   display: flex;
   justify-content: center;
-  gap: 2px;
-  margin-bottom: 0;
+  gap: 4px;
+  margin-bottom: 4px;
 }
 
 .amount-text {
@@ -296,7 +283,7 @@ onMounted(() => {
 }
 
 .amount {
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 700;
   color: #111827;
 }
@@ -310,9 +297,11 @@ onMounted(() => {
 }
 
 .keypad {
-  padding: 4px 6px;
+  flex: 1;
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
 }
 
 .keypad-row {
@@ -323,11 +312,11 @@ onMounted(() => {
 
 .key {
   flex: 1;
-  height: 56px;
+  height: 48px;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #F3F4F6;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 500;
   color: #111827;
   cursor: pointer;
@@ -354,15 +343,15 @@ onMounted(() => {
 }
 
 .category-section {
-  padding: 6px 10px;
-  overflow-y: auto;
+  flex: 1;
+  padding: 8px 12px;
 }
 
 .section-title {
   font-size: 14px;
   font-weight: 600;
   color: #111827;
-  margin: 0 0 6px 0;
+  margin-bottom: 6px;
 }
 
 .category-grid {
@@ -381,7 +370,7 @@ onMounted(() => {
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
-  min-height: 60px;
+  min-height: 56px;
 }
 
 .category-item.active {
@@ -389,20 +378,20 @@ onMounted(() => {
 }
 
 .category-item .icon {
-  font-size: 24px;
+  font-size: 22px;
 }
 
 .category-item .name {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: #374151;
 }
 
 .note-section {
-  padding: 6px 10px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .note-input {
