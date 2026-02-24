@@ -276,4 +276,69 @@ router.get('/month-stats', async (ctx) => {
   }
 });
 
+// 获取每日消费数据（用于柱状图）
+router.get('/daily-stats', async (ctx) => {
+  try {
+    const userId = ctx.state.userId;
+    const { range = 'month' } = ctx.query;
+    
+    const now = new Date();
+    let startDate, endDate;
+    
+    if (range === 'week') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    } else if (range === 'year') {
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+    } else {
+      // 默认本月
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    }
+    
+    const dailyStats = await Transaction.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId),
+          type: 'expense',
+          date: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$date' }
+          },
+          total: { $sum: '$amount' }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+    
+    // 转换为日期 -> 金额 的映射
+    const dataMap = {};
+    dailyStats.forEach(item => {
+      dataMap[item._id] = item.total;
+    });
+    
+    // 生成日期范围内的所有日期
+    const result = [];
+    const current = new Date(startDate);
+    while (current <= endDate) {
+      const dateStr = current.toISOString().split('T')[0];
+      result.push({
+        date: dateStr,
+        amount: dataMap[dateStr] || 0
+      });
+      current.setDate(current.getDate() + 1);
+    }
+    
+    ctx.body = result;
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = { message: '获取每日数据失败', error: error.message };
+  }
+});
+
 module.exports = router;

@@ -7,9 +7,9 @@
     <!-- 筛选器 -->
     <div class="filter-bar">
       <el-radio-group v-model="filterType" size="small">
-        <el-radio-button label="all">全部</el-radio-button>
-        <el-radio-button label="expense">支出</el-radio-button>
-        <el-radio-button label="income">收入</el-radio-button>
+        <el-radio-button value="all">全部</el-radio-button>
+        <el-radio-button value="expense">支出</el-radio-button>
+        <el-radio-button value="income">收入</el-radio-button>
       </el-radio-group>
     </div>
     

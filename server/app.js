@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const authRouter = require('./routes/auth');
 const adminRouter = require('./routes/admin');
 const transactionRouter = require('./routes/transactions');
+const accountRouter = require('./routes/accounts');
 
 const app = new Koa();
 const router = new Router();
@@ -36,6 +37,7 @@ router.get('/', (ctx) => {
 router.use('/api/auth', authRouter.routes(), authRouter.allowedMethods());
 router.use('/api/admin', adminRouter.routes(), adminRouter.allowedMethods());
 router.use('/api/transactions', transactionRouter.routes(), transactionRouter.allowedMethods());
+router.use('/api/accounts', accountRouter.routes(), accountRouter.allowedMethods());
 
 app.use(router.routes());
 app.use(router.allowedMethods());

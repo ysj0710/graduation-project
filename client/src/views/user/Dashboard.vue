@@ -13,21 +13,20 @@
       </div>
 
       <nav class="sidebar-nav">
-        <a
+        <div
           v-for="item in navItems"
-          :key="item.path"
-          :href="item.path"
+          :key="item.id"
           class="nav-item"
-          :class="{ active: currentPath === item.path }"
-          @click.prevent="navigate(item.path)"
+          :class="{ active: currentView === item.id }"
+          @click="navigate(item)"
         >
           <span class="nav-icon">{{ item.icon }}</span>
           <span class="nav-label">{{ item.label }}</span>
-        </a>
+        </div>
       </nav>
 
       <div class="sidebar-footer">
-        <div class="user-card" @click="$router.push('/profile')">
+        <div class="user-card" @click="currentView = 'profile'">
           <el-avatar :size="40">{{
             userStore.profile.nickname?.charAt(0) || "U"
           }}</el-avatar>
@@ -47,7 +46,7 @@
       <header class="top-header">
         <div class="header-left">
           <h1 class="page-title">{{ pageTitle }}</h1>
-          <p class="page-subtitle">{{ currentDate }}</p>
+          <p v-show="!showContent" class="page-subtitle">{{ currentDate }}</p>
         </div>
         <div class="header-right">
           <el-button :icon="Search" circle />
@@ -55,7 +54,13 @@
         </div>
       </header>
 
-      <!-- 核心数据卡片 -->
+      <!-- 内容区域 -->
+      <div v-show="showContent" class="content-view">
+        <component :is="currentComponent" />
+      </div>
+
+      <!-- 首页内容 -->
+      <div v-show="!showContent">
       <div class="stats-grid">
         <div class="stat-card expense-card">
           <div class="stat-header">
@@ -86,7 +91,7 @@
             <span class="stat-label">本月结余</span>
             <span class="stat-badge">健康</span>
           </div>
-          <div class="stat-amount balance">¥{{ formatNumber(balance) }}</div>
+          <div class="stat-amount balance">¥{{ formatNumber(statistics.balance) }}</div>
           <div class="stat-budget">储蓄率 {{ savingsRate }}%</div>
         </div>
       </div>
@@ -104,9 +109,9 @@
                 size="small"
                 @change="fetchData"
               >
-                <el-radio-button label="week">周</el-radio-button>
-                <el-radio-button label="month">月</el-radio-button>
-                <el-radio-button label="year">年</el-radio-button>
+                <el-radio-button value="week">周</el-radio-button>
+                <el-radio-button value="month">月</el-radio-button>
+                <el-radio-button value="year">年</el-radio-button>
               </el-radio-group>
             </div>
             <div ref="trendChartRef" class="chart-container"></div>
@@ -189,6 +194,7 @@
             </div>
           </div>
         </div>
+      </div>
       </div>
     </main>
 
@@ -380,30 +386,52 @@ import { Search, Bell } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
 import axios from "axios";
 
+// 引入子页面组件
+import Transactions from "./Transactions.vue";
+import Statistics from "./Statistics.vue";
+import Accounts from "./Accounts.vue";
+import Personal from "./Personal.vue";
+import Profile from "./Profile.vue";
+
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
 
-const currentPath = computed(() => route.path);
+// 当前显示的页面
+const currentView = ref("dashboard");
+
 const pageTitle = computed(() => {
   const titles = {
-    "/dashboard": "总览",
-    "/transactions": "交易记录",
-    "/statistics": "统计分析",
-    "/accounts": "账户管理",
-    "/personal": "个性设置",
-    "/profile": "个人中心",
+    dashboard: "总览",
+    transactions: "交易记录",
+    statistics: "统计分析",
+    accounts: "账户管理",
+    personal: "个性设置",
+    profile: "个人中心",
   };
-  return titles[currentPath.value] || "总览";
+  return titles[currentView.value] || "总览";
 });
 
 const navItems = [
-  { path: "/dashboard", icon: "🏠", label: "总览" },
-  { path: "/transactions", icon: "📋", label: "交易记录" },
-  { path: "/statistics", icon: "📊", label: "统计分析" },
-  { path: "/accounts", icon: "💳", label: "账户管理" },
-  { path: "/personal", icon: "🎨", label: "个性设置" },
+  { id: "dashboard", icon: "🏠", label: "总览" },
+  { id: "transactions", icon: "📋", label: "交易记录" },
+  { id: "statistics", icon: "📊", label: "统计分析" },
+  { id: "accounts", icon: "💳", label: "账户管理" },
+  { id: "personal", icon: "🎨", label: "个性设置" },
 ];
+
+// 组件映射
+const components = {
+  dashboard: null,
+  transactions: Transactions,
+  statistics: Statistics,
+  accounts: Accounts,
+  personal: Personal,
+  profile: Profile,
+};
+
+const currentComponent = computed(() => components[currentView.value]);
+const showContent = computed(() => currentView.value !== "dashboard");
 
 const currentDate = ref(
   new Date().toLocaleDateString("zh-CN", {
@@ -483,8 +511,8 @@ const getCategoryIcon = (category) => {
   return icons[category] || "💰";
 };
 
-const navigate = (path) => {
-  router.push(path);
+const navigate = (item) => {
+  currentView.value = item.id;
 };
 
 const inputDigit = (digit) => {
@@ -601,40 +629,92 @@ const fetchData = async () => {
   }
 };
 
-const renderChart = () => {
+const renderChart = async () => {
   if (!trendChartRef.value) return;
 
-  const chart = echarts.init(trendChartRef.value);
-  const days = Array.from({ length: 30 }, (_, i) => `${i + 1}日`);
-  const data = days.map(() => Math.floor(Math.random() * 5000));
-
-  chart.setOption({
-    tooltip: { trigger: "axis" },
-    grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
-    xAxis: {
-      type: "category",
-      data: days,
-      axisLabel: { fontSize: 10 },
-    },
-    yAxis: { type: "value" },
-    series: [
+  try {
+    const token = localStorage.getItem("token");
+    const range = timeRange.value;
+    
+    // 从 API 获取每日消费数据
+    const res = await axios.get(
+      `http://localhost:3000/api/transactions/daily-stats?range=${range}`,
       {
-        type: "bar",
-        data: data,
-        itemStyle: {
-          color: (params) => {
-            return params.dataIndex >= 20 ? "#FF9500" : "#007AFF";
-          },
-        },
-        barWidth: "60%",
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    const data = res.data || [];
+    
+    // 根据 range 决定显示格式
+    let days, chartData;
+    if (range === 'week') {
+      days = data.map(item => {
+        const date = new Date(item.date);
+        return `${date.getMonth() + 1}/${date.getDate()}`;
+      });
+      chartData = data.map(item => item.amount);
+    } else if (range === 'year') {
+      // 按月汇总
+      const monthMap = {};
+      data.forEach(item => {
+        const month = item.date.substring(0, 7);
+        monthMap[month] = (monthMap[month] || 0) + item.amount;
+      });
+      const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+      days = months;
+      chartData = months.map((_, i) => monthMap[`${new Date().getFullYear()}-${String(i+1).padStart(2, '0')}`] || 0);
+    } else {
+      // 月（默认）
+      days = data.map(item => {
+        const day = parseInt(item.date.split('-')[2]);
+        return `${day}日`;
+      });
+      chartData = data.map(item => item.amount);
+    }
+
+    // 销毁已有图表实例
+    if (trendChartRef.value) {
+      echarts.getInstanceByDom(trendChartRef.value)?.dispose();
+    }
+
+    const chart = echarts.init(trendChartRef.value);
+
+    chart.setOption({
+      tooltip: { trigger: "axis" },
+      grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
+      xAxis: {
+        type: "category",
+        data: days,
+        axisLabel: { fontSize: 10 },
       },
-    ],
-  });
+      yAxis: { type: "value" },
+      series: [
+        {
+          type: "bar",
+          data: chartData,
+          itemStyle: {
+            color: "#007AFF",
+          },
+          barWidth: "60%",
+        },
+      ],
+    });
+  } catch (error) {
+    console.error("获取图表数据失败:", error);
+  }
 };
 
 onMounted(() => {
   userStore.fetchProfile();
   fetchData();
+});
+
+// 监听页面切换，切换回总览时重新加载数据
+watch(currentView, (newVal) => {
+  if (newVal === 'dashboard') {
+    fetchData();
+  }
 });
 
 // 监听主题变化
@@ -706,6 +786,7 @@ watch(
   text-decoration: none;
   margin: 4px 0;
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .nav-item:hover {
@@ -790,6 +871,16 @@ watch(
 .header-right {
   display: flex;
   gap: 12px;
+}
+
+/* 内容区域 */
+.content-view {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  min-height: calc(100vh - 200px);
+  overflow-y: auto;
 }
 
 /* 统计卡片 */
@@ -1283,6 +1374,22 @@ watch(
   .type-btn:last-child.active {
     background: rgba(52, 199, 89, 0.15);
     color: #34c759;
+  }
+}
+
+/* 内容切换动画 */
+.content-view {
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>

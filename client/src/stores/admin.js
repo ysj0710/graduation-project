@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
+import { ElMessage } from 'element-plus'
 
 const api = axios.create({
   baseURL: '/api'
@@ -13,6 +14,22 @@ api.interceptors.request.use(config => {
   }
   return config
 })
+
+// 响应拦截器：token 过期或无权限时自动退出
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      ElMessage.warning('登录已过期，请重新登录')
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 1500)
+    }
+    return Promise.reject(error)
+  }
+)
 
 export const useAdminStore = defineStore('admin', {
   state: () => ({

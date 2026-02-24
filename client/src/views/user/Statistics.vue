@@ -7,9 +7,9 @@
     <!-- 时间筛选 -->
     <div class="filter-bar">
       <el-radio-group v-model="timeRange" size="small" @change="fetchData">
-        <el-radio-button label="week">本周</el-radio-button>
-        <el-radio-button label="month">本月</el-radio-button>
-        <el-radio-button label="year">本年</el-radio-button>
+        <el-radio-button value="week">本周</el-radio-button>
+        <el-radio-button value="month">本月</el-radio-button>
+        <el-radio-button value="year">本年</el-radio-button>
       </el-radio-group>
     </div>
     
@@ -51,21 +51,65 @@ const timeRange = ref('month')
 const statistics = ref({ totalIncome: 0, totalExpense: 0, balance: 0 })
 const trendChartRef = ref(null)
 const pieChartRef = ref(null)
+const dailyData = ref([])
+const categoryData = ref([])
 
 const formatNumber = (num) => Number(num || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+
+// 计算日期范围
+const getDateRange = () => {
+  const now = new Date()
+  let startDate, endDate
+  
+  if (timeRange.value === 'week') {
+    startDate = new Date(now)
+    startDate.setDate(now.getDate() - 6)
+    endDate = now
+  } else if (timeRange.value === 'year') {
+    startDate = new Date(now.getFullYear(), 0, 1)
+    endDate = new Date(now.getFullYear(), 11, 31)
+  } else {
+    // month
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  }
+  
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: endDate.toISOString().split('T')[0]
+  }
+}
 
 const fetchData = async () => {
   try {
     const token = localStorage.getItem('token')
-    const res = await axios.get('http://localhost:3000/api/transactions/statistics', {
+    const { startDate, endDate } = getDateRange()
+    
+    // 获取统计数据
+    const statsRes = await axios.get('http://localhost:3000/api/transactions/statistics', {
+      params: { startDate, endDate },
       headers: { Authorization: `Bearer ${token}` }
     })
     
     statistics.value = {
-      totalIncome: res.data.income?.total || 0,
-      totalExpense: res.data.expense?.total || 0,
-      balance: res.data.balance || 0
+      totalIncome: statsRes.data.income?.total || 0,
+      totalExpense: statsRes.data.expense?.total || 0,
+      balance: statsRes.data.balance || 0
     }
+    
+    // 获取每日数据（趋势图）
+    const dailyRes = await axios.get('http://localhost:3000/api/transactions/daily-stats', {
+      params: { range: timeRange.value },
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    dailyData.value = dailyRes.data || []
+    
+    // 获取分类数据（饼图）
+    const expenseCats = statsRes.data.byCategory?.expense || []
+    categoryData.value = expenseCats.map(cat => ({
+      name: cat.category,
+      value: cat.total
+    }))
     
     await nextTick()
     renderCharts()
@@ -78,12 +122,41 @@ const renderCharts = () => {
   // 趋势图
   if (trendChartRef.value) {
     const chart = echarts.init(trendChartRef.value)
+    
+    let xData, chartData
+    if (timeRange.value === 'week') {
+      xData = dailyData.value.map(item => {
+        const d = new Date(item.date)
+        return `${d.getMonth() + 1}/${d.getDate()}`
+      })
+      chartData = dailyData.value.map(item => item.amount)
+    } else if (timeRange.value === 'year') {
+      // 按月汇总
+      const monthMap = {}
+      dailyData.value.forEach(item => {
+        const month = item.date.substring(0, 7)
+        monthMap[month] = (monthMap[month] || 0) + item.amount
+      })
+      xData = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+      chartData = xData.map((_, i) => {
+        const key = `${new Date().getFullYear()}-${String(i + 1).padStart(2, '0')}`
+        return monthMap[key] || 0
+      })
+    } else {
+      xData = dailyData.value.map(item => {
+        const day = parseInt(item.date.split('-')[2])
+        return `${day}日`
+      })
+      chartData = dailyData.value.map(item => item.amount)
+    }
+    
     chart.setOption({
       tooltip: { trigger: 'axis' },
-      xAxis: { type: 'category', data: ['第1周', '第2周', '第3周', '第4周'] },
+      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      xAxis: { type: 'category', data: xData, axisLabel: { fontSize: 10 } },
       yAxis: { type: 'value' },
       series: [
-        { name: '支出', type: 'bar', data: [1200, 900, 1500, 1100], itemStyle: { color: '#007AFF' } }
+        { name: '支出', type: 'bar', data: chartData, itemStyle: { color: '#007AFF' }, barWidth: '60%' }
       ]
     })
   }
@@ -91,16 +164,28 @@ const renderCharts = () => {
   // 饼图
   if (pieChartRef.value) {
     const chart = echarts.init(pieChartRef.value)
+    const colors = ['#FF3B30', '#007AFF', '#FF9500', '#34C759', '#5856D6', '#FF2D55', '#AF52DE', '#5AC8FA']
+    
     chart.setOption({
       tooltip: { trigger: 'item' },
+      legend: { top: '5%', left: 'center' },
       series: [{
         type: 'pie',
         radius: ['40%', '70%'],
-        data: [
-          { name: '餐饮', value: 1200, itemStyle: { color: '#FF3B30' } },
-          { name: '购物', value: 800, itemStyle: { color: '#007AFF' } },
-          { name: '交通', value: 400, itemStyle: { color: '#FF9500' } }
-        ]
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 10,
+          borderColor: '#fff',
+          borderWidth: 2
+        },
+        label: { show: false },
+        emphasis: {
+          label: { show: true, fontSize: 14, fontWeight: 'bold' }
+        },
+        data: categoryData.value.map((item, index) => ({
+          ...item,
+          itemStyle: { color: colors[index % colors.length] }
+        }))
       }]
     })
   }
@@ -143,18 +228,18 @@ onMounted(() => {
   border-radius: 16px;
   padding: 20px;
   text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .stat-label {
-  font-size: 13px;
+  font-size: 14px;
   color: #8E8E93;
   margin-bottom: 8px;
 }
 
 .stat-value {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  color: #000;
 }
 
 .stat-value.income {
@@ -167,18 +252,20 @@ onMounted(() => {
 
 .ios-card {
   background: white;
-  border-radius: 20px;
+  border-radius: 16px;
   padding: 20px;
   margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .ios-card h3 {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
+  color: #000;
   margin: 0 0 16px 0;
 }
 
 .chart-container {
-  height: 250px;
+  height: 280px;
 }
 </style>

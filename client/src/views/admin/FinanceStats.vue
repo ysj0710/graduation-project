@@ -3,9 +3,9 @@
     <!-- 时间筛选 -->
     <div class="filter-bar">
       <el-radio-group v-model="timeRange" size="small">
-        <el-radio-button label="week">本周</el-radio-button>
-        <el-radio-button label="month">本月</el-radio-button>
-        <el-radio-button label="year">本年</el-radio-button>
+        <el-radio-button value="week">本周</el-radio-button>
+        <el-radio-button value="month">本月</el-radio-button>
+        <el-radio-button value="year">本年</el-radio-button>
       </el-radio-group>
     </div>
 
