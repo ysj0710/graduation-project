@@ -16,7 +16,8 @@
     "koa-router": "^12.0.1",
     "mongoose": "^9.2.1",
     "nodemailer": "^8.0.1",
-    "proxy-agent": "^6.5.0"
+    "proxy-agent": "^6.5.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
