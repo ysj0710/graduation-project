@@ -56,7 +56,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 
 const accounts = ref([])
@@ -128,7 +128,6 @@ const saveAccount = async () => {
     const token = localStorage.getItem('token')
     const config = { headers: { Authorization: `Bearer ${token}` } }
     
-    // 根据类型自动设置图标和颜色
     const data = {
       ...form.value,
       icon: typeConfig[form.value.type]?.icon || '💰',
@@ -170,8 +169,6 @@ const deleteAccount = async (id) => {
     }
   }
 }
-
-import { ElMessageBox } from 'element-plus'
 
 onMounted(() => {
   fetchAccounts()

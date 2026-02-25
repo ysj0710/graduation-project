@@ -7,6 +7,7 @@ const authRouter = require('./routes/auth');
 const adminRouter = require('./routes/admin');
 const transactionRouter = require('./routes/transactions');
 const accountRouter = require('./routes/accounts');
+const importRouter = require('./routes/import');
 
 const app = new Koa();
 const router = new Router();
@@ -38,6 +39,7 @@ router.use('/api/auth', authRouter.routes(), authRouter.allowedMethods());
 router.use('/api/admin', adminRouter.routes(), adminRouter.allowedMethods());
 router.use('/api/transactions', transactionRouter.routes(), transactionRouter.allowedMethods());
 router.use('/api/accounts', accountRouter.routes(), accountRouter.allowedMethods());
+router.use('/api/import', importRouter.routes(), importRouter.allowedMethods());
 
 app.use(router.routes());
 app.use(router.allowedMethods());
