@@ -146,11 +146,14 @@ router.post('/wechat', async (ctx) => {
       const amount = Math.abs(parseFloat(amountStr) || 0);
       if (amount === 0) continue;
       
-      // 判断收入/支出 - 二维码收款/二维码支出属于支出
+      // 判断收入/支出
       let transactionType = 'expense';
-      if (note && (note.includes('二维码收款') || note.includes('二维码支付'))) {
+      // note包含二维码/收款，设为支出
+      if (note && (note.includes('二维码') || note.includes('收款码') || note.includes('收款'))) {
         transactionType = 'expense';
-      } else if (type && (type.includes('转入') || type.includes('收入') || type.includes('退款') || type.includes('红包'))) {
+      }
+      // type包含收入类关键字且note不包含收款，设为收入
+      else if (type && (type.includes('转入') || type.includes('收入') || type.includes('退款') || type.includes('红包')) && !(note && note.includes('收款'))) {
         transactionType = 'income';
       }
       
