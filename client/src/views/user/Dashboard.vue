@@ -126,26 +126,8 @@
                 <el-radio-button value="income">收入</el-radio-button>
               </el-radio-group>
             </div>
-            <div class="category-grid">
-              <div
-                v-for="cat in categoryList"
-                :key="cat.name"
-                class="category-item"
-              >
-                <div
-                  class="category-icon"
-                  :style="{ background: cat.color + '15', color: cat.color }"
-                >
-                  {{ cat.icon }}
-                </div>
-                <div class="category-info">
-                  <div class="category-name">{{ cat.name }}</div>
-                  <div class="category-percent">{{ cat.percent }}%</div>
-                </div>
-                <div class="category-amount">
-                  ¥{{ formatNumber(cat.amount) }}
-                </div>
-              </div>
+            <div class="category-chart-container">
+              <div ref="categoryPieRef" class="category-pie-chart"></div>
             </div>
           </div>
         </div>
@@ -447,6 +429,7 @@ const currentDate = ref(
 const timeRange = ref("month");
 const showAddSheet = ref(false);
 const trendChartRef = ref(null);
+const categoryPieRef = ref(null);
 
 const statistics = ref({ income: 0, expense: 0, balance: 0 });
 const budgetRemaining = ref(5000);
@@ -455,6 +438,7 @@ const savingsRate = ref(49.7);
 const recentRecords = ref([]);
 const categoryType = ref('expense');
 const categoryList = ref([]);
+let categoryPieChart = null;
 
 const record = ref({
   type: "expense",
@@ -625,12 +609,79 @@ const fetchData = async () => {
       icon: getCategoryIcon(cat.category),
       color: categoryType.value === 'expense' ? "#FF3B30" : "#34C759",
     }));
-
+    
+    // 渲染饼图
     await nextTick();
+    renderCategoryPie();
+
     renderChart();
   } catch (error) {
     console.error("获取数据失败:", error);
   }
+};
+
+// 渲染分类饼图
+const renderCategoryPie = () => {
+  if (!categoryPieRef.value) return;
+  
+  // 销毁已有图表
+  if (categoryPieChart) {
+    categoryPieChart.dispose();
+  }
+  
+  const chartData = categoryList.value.map(cat => ({
+    name: cat.name,
+    value: cat.amount
+  }));
+  
+  categoryPieChart = echarts.init(categoryPieRef.value);
+  
+  const colors = categoryType.value === 'expense' 
+    ? ['#FF3B30', '#FF6B6B', '#FF8E53', '#FFB347', '#FFD700', '#C0C0C0']
+    : ['#34C759', '#50C878', '#3CB371', '#2E8B57', '#20B2AA', '#C0C0C0'];
+  
+  categoryPieChart.setOption({
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: ¥{c} ({d}%)'
+    },
+    legend: {
+      orient: 'vertical',
+      right: 10,
+      top: 'center',
+      textStyle: {
+        fontSize: 12
+      }
+    },
+    series: [
+      {
+        type: 'pie',
+        radius: ['40%', '70%'],
+        center: ['35%', '50%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 6,
+          borderColor: '#fff',
+          borderWidth: 2
+        },
+        label: {
+          show: false
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 14,
+            fontWeight: 'bold'
+          }
+        },
+        labelLine: {
+          show: false
+        },
+        data: chartData,
+        color: colors
+      }
+    ]
+  });
 };
 
 const renderChart = async () => {
@@ -1001,55 +1052,14 @@ watch(
 }
 
 /* 分类网格 */
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+.category-chart-container {
+  width: 100%;
+  height: 300px;
 }
 
-.category-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 14px;
-  background: #f5f5f7;
-  transition: all 0.2s;
-}
-
-.category-item:hover {
-  background: #e5e5ea;
-}
-
-.category-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-}
-
-.category-info {
-  flex: 1;
-}
-
-.category-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #000;
-}
-
-.category-percent {
-  font-size: 12px;
-  color: #8e8e93;
-}
-
-.category-amount {
-  font-size: 14px;
-  font-weight: 600;
-  color: #ff3b30;
+.category-pie-chart {
+  width: 100%;
+  height: 100%;
 }
 
 /* 交易列表 */
