@@ -13,7 +13,6 @@ const emailConfig = require('../config/email');
 
 
 // 用户鉴权中间件
-const jwt = require("jsonwebtoken");
 const { JWT_SECRET } = require("../middleware/jwt"));
 
 const requireAuth = async (ctx, next) => {
