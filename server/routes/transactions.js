@@ -7,6 +7,12 @@ const { JWT_SECRET } = require('../middleware/jwt');
 const router = new Router();
 
 // 用户鉴权中间件
+// 浮点计算工具函数
+const precisionAdd = (...nums) => nums.reduce((sum, num) => sum + num, 0);
+const precisionSub = (a, b) => a - b;
+const precisionMul = (a, b) => a * b;
+const precisionDiv = (a, b) => b === 0 ? 0 : a / b;
+
 const requireAuth = async (ctx, next) => {
   const token = ctx.headers.authorization?.replace('Bearer ', '');
   if (!token) {
@@ -270,7 +276,7 @@ router.get('/month-stats', async (ctx) => {
       else if (s._id === 'expense') result.expense = s.total;
     });
     
-    result.balance = result.income - result.expense;
+    result.balance = precisionSub(result.income, result.expense);
     
     // 获取上月数据用于对比
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -301,10 +307,10 @@ router.get('/month-stats', async (ctx) => {
     result.lastMonthExpense = lastMonthExpense;
     // 计算环比变化，如果上月没有数据则显示为null（前端显示--）
     result.incomeChange = lastMonthIncome > 0 
-      ? Math.round(((result.income - lastMonthIncome) / lastMonthIncome) * 100) 
+      ? Math.round(precisionMul(precisionDiv(precisionSub(result.income, lastMonthIncome), lastMonthIncome), 100)) 
       : (lastMonthIncome === 0 && result.income > 0 ? 100 : null);
     result.expenseChange = lastMonthExpense > 0 
-      ? Math.round(((result.expense - lastMonthExpense) / lastMonthExpense) * 100) 
+      ? Math.round(precisionMul(precisionDiv(precisionSub(result.expense, lastMonthExpense), lastMonthExpense), 100)) 
       : (lastMonthExpense === 0 && result.expense > 0 ? 100 : null);
     
     ctx.body = result;

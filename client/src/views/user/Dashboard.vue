@@ -470,6 +470,23 @@ const containerStyle = computed(() => ({
     "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
 }));
 
+// 浮点计算工具函数
+const precisionAdd = (...nums) => {
+  return nums.reduce((sum, num) => sum + num, 0);
+};
+
+const precisionSub = (a, b) => {
+  return a - b;
+};
+
+const precisionMul = (...nums) => {
+  return nums.reduce((product, num) => product * num, 1);
+};
+
+const precisionDiv = (a, b) => {
+  return b === 0 ? 0 : a / b;
+};
+
 const formatNumber = (num) => {
   return Number(num || 0)
     .toFixed(2)
@@ -577,18 +594,17 @@ const fetchData = async () => {
     statistics.value = {
       income: res.data.income || 0,
       expense: res.data.expense || 0,
-      balance: res.data.balance || 0,
+      balance: precisionSub(res.data.income || 0, res.data.expense || 0),
     };
     console.log('month-stats response:', res.data);
 
     // 计算预算剩余
-    budgetRemaining.value = userStore.budget.monthly - statistics.value.expense;
+    budgetRemaining.value = precisionSub(userStore.budget.monthly || 0, statistics.value.expense);
     
     // 计算储蓄率
-    savingsRate.value =
-      statistics.value.income > 0
-        ? Math.round((statistics.value.balance / statistics.value.income) * 100)
-        : 0;
+    savingsRate.value = statistics.value.income > 0
+      ? Math.round(precisionMul(precisionDiv(statistics.value.balance, statistics.value.income), 100))
+      : 0;
     
     // 计算收入和支出变化百分比
     incomeChange.value = res.data.incomeChange !== undefined ? res.data.incomeChange : 0;
