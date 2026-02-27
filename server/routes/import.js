@@ -182,18 +182,21 @@ router.post('/wechat', requireAuth, async (ctx) => {
         continue;
       }
       
-      console.log('处理第', i, '行: fields=', fields.slice(0, 6));
       
-      // 判断收入/支出 - note和counterparty都可能是二维码收款
+      
+      // 判断收入/支出
       let transactionType = 'expense';
+      // 微信xlsx第5列是"收/支"字段
+      const incomeExpense = fields[4] || '';
+      if (incomeExpense.includes('收入')) {
+        transactionType = 'income';
+      } else if (incomeExpense.includes('支出')) {
+        transactionType = 'expense';
+      }
       // 检查note和counterparty是否包含二维码/收款
       const fullNote = (note || '') + ' ' + (counterparty || '');
       if (fullNote.includes('二维码') || fullNote.includes('收款码') || fullNote.includes('收款')) {
         transactionType = 'expense';
-      }
-      // type包含收入类关键字且不是收款，设为收入
-      else if (type && (type.includes('转入') || type.includes('收入') || type.includes('退款') || type.includes('红包'))) {
-        transactionType = 'income';
       }
       
       // 解析日期
