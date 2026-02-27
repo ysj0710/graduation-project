@@ -265,32 +265,48 @@ router.post('/alipay', requireAuth, async (ctx) => {
       data = parseFile(csvContent, 'alipay.csv');
     }
     
+    // 支付宝CSV可能需要处理编码
+    // 尝试找到表头行
+    let headerIndex = -1;
+    for (let i = 0; i < Math.min(data.length, 30); i++) {
+      const row = data[i];
+      if (row && row.some(cell => String(cell || '').includes('交易时间'))) {
+        headerIndex = i;
+        break;
+      }
+    }
+    
+    const startIndex = headerIndex >= 0 ? headerIndex + 1 : 1;
+    
     const transactions = [];
     let importedCount = 0;
     
-    // 支付宝格式：交易号,对方,商品,创建时间,完成时间,金额,状态
-    for (let i = 1; i < data.length; i++) {
+    // 支付宝格式：交易时间,交易分类,交易对方,对方账号,商品说明,收/支,金额,...
+    for (let i = startIndex; i < data.length; i++) {
       const row = data[i];
-      if (!row || row.length < 6) continue;
+      if (!row || row.length < 7) continue;
       
       let fields = Array.isArray(row) ? row : Object.values(row);
       fields = fields.map(f => String(f || '').trim());
       
-      const transactionNo = fields[0];
-      const counterparty = fields[1];
-      const note = fields[2];
-      const createTime = fields[3];
-      let amountStr = String(fields[5] || fields[4] || '0').replace(/[^\d.-]/g, '');
+      const dateStr = fields[0];
+      const category = fields[1];
+      const counterparty = fields[2];
+      const note = fields[4];
+      const incomeExpense = fields[5]; // 收/支字段
+      let amountStr = String(fields[6] || '').replace(/[^\d.-]/g, '');
       
-      if ((!createTime && !amountStr) || !amountStr) continue;
+      if (!dateStr || !amountStr) continue;
       
       const amount = Math.abs(parseFloat(amountStr) || 0);
       if (amount === 0) continue;
       
-      // 判断收入/支出（支付宝：正数是支出，负数是收入）
+      // 判断收入/支出（根据收/支字段）
       let transactionType = 'expense';
-      if (parseFloat(amountStr) < 0) {
+      if (incomeExpense && incomeExpense.includes('收入')) {
         transactionType = 'income';
+      } else if (incomeExpense && incomeExpense.includes('支出')) {
+        transactionType = 'expense';
       }
       
       // 解析日期
