@@ -65,7 +65,9 @@
         <div class="stat-card expense-card">
           <div class="stat-header">
             <span class="stat-label">本月支出</span>
-            <span class="stat-trend up">↑ 12%</span>
+            <span class="stat-trend" :class="expenseChange >= 0 ? 'up' : 'down'">
+              {{ expenseChange >= 0 ? '↑' : '↓' }} {{ Math.abs(expenseChange) }}%
+            </span>
           </div>
           <div class="stat-amount">¥{{ formatNumber(statistics.expense) }}</div>
           <div class="stat-budget">
@@ -76,13 +78,15 @@
         <div class="stat-card income-card">
           <div class="stat-header">
             <span class="stat-label">本月收入</span>
-            <span class="stat-trend up">↑ 8%</span>
+            <span class="stat-trend" :class="incomeChange >= 0 ? 'up' : 'down'">
+              {{ incomeChange >= 0 ? '↑' : '↓' }} {{ Math.abs(incomeChange) }}%
+            </span>
           </div>
           <div class="stat-amount income">
             ¥{{ formatNumber(statistics.income) }}
           </div>
           <div class="stat-budget">
-            较上月 +¥{{ formatNumber(incomeChange) }}
+            较上月 {{ incomeChange >= 0 ? '+' : '' }}{{ incomeChange }}%
           </div>
         </div>
 
@@ -433,8 +437,9 @@ const categoryPieRef = ref(null);
 
 const statistics = ref({ income: 0, expense: 0, balance: 0 });
 const budgetRemaining = ref(5000);
-const incomeChange = ref(1840);
+const incomeChange = ref(0);
 const savingsRate = ref(49.7);
+const expenseChange = ref(0);
 const recentRecords = ref([]);
 const categoryType = ref('expense');
 const categoryList = ref([]);
@@ -575,11 +580,18 @@ const fetchData = async () => {
       balance: res.data.balance || 0,
     };
 
+    // 计算预算剩余
     budgetRemaining.value = userStore.budget.monthly - statistics.value.expense;
+    
+    // 计算储蓄率
     savingsRate.value =
       statistics.value.income > 0
         ? Math.round((statistics.value.balance / statistics.value.income) * 100)
         : 0;
+    
+    // 计算收入和支出变化百分比
+    incomeChange.value = res.data.incomeChange || 0;
+    expenseChange.value = res.data.expenseChange || 0;
 
     // 获取最近交易
     const recordsRes = await axios.get(

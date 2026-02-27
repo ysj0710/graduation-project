@@ -269,6 +269,40 @@ router.get('/month-stats', async (ctx) => {
     
     result.balance = result.income - result.expense;
     
+    // 获取上月数据用于对比
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    
+    const lastMonthStats = await Transaction.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId),
+          date: { $gte: lastMonthStart, $lte: lastMonthEnd }
+        }
+      },
+      {
+        $group: {
+          _id: '$type',
+          total: { $sum: '$amount' }
+        }
+      }
+    ]);
+    
+    let lastMonthIncome = 0, lastMonthExpense = 0;
+    lastMonthStats.forEach(s => {
+      if (s._id === 'income') lastMonthIncome = s.total;
+      else if (s._id === 'expense') lastMonthExpense = s.total;
+    });
+    
+    result.lastMonthIncome = lastMonthIncome;
+    result.lastMonthExpense = lastMonthExpense;
+    result.incomeChange = lastMonthIncome > 0 
+      ? Math.round(((result.income - lastMonthIncome) / lastMonthIncome) * 100) 
+      : 0;
+    result.expenseChange = lastMonthExpense > 0 
+      ? Math.round(((result.expense - lastMonthExpense) / lastMonthExpense) * 100) 
+      : 0;
+    
     ctx.body = result;
   } catch (error) {
     ctx.status = 500;
