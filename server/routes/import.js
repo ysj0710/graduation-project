@@ -52,9 +52,17 @@ function parseCSVLine(line) {
 }
 
 // 根据关键词判断分类
-function getCategory(note) {
+function getCategory(note, type = 'expense') {
   if (!note) return '其他';
   const n = note.toLowerCase();
+  
+  // 二维码收款/二维码支出单独处理
+  if (n.includes('二维码') || n.includes('收款码')) return '二维码支出';
+  
+  if (type === 'income') {
+    if (n.includes('工资') || n.includes('退款') || n.includes('转账') || n.includes('收入') || n.includes('还款') || n.includes('红包')) return '收入';
+    return '其他收入';
+  }
   
   if (n.includes('餐饮') || n.includes('美食') || n.includes('外卖') || n.includes('快餐') || n.includes('小吃') || n.includes('烧烤') || n.includes('火锅')) return '餐饮';
   if (n.includes('交通') || n.includes('打车') || n.includes('滴滴') || n.includes('地铁') || n.includes('公交') || n.includes('停车') || n.includes('高速') || n.includes('加油')) return '交通';
@@ -138,14 +146,12 @@ router.post('/wechat', async (ctx) => {
       const amount = Math.abs(parseFloat(amountStr) || 0);
       if (amount === 0) continue;
       
-      // 判断收入/支出
+      // 判断收入/支出 - 二维码收款/二维码支出属于支出
       let transactionType = 'expense';
-      if (type && (type.includes('转入') || type.includes('收入') || type.includes('退款') || type.includes('红包')) && !type.includes('收款')) {
-        transactionType = 'income';
-      }
-      // 二维码收款也是支出
-      if (note && note.includes('二维码收款')) {
+      if (note && (note.includes('二维码收款') || note.includes('二维码支付'))) {
         transactionType = 'expense';
+      } else if (type && (type.includes('转入') || type.includes('收入') || type.includes('退款') || type.includes('红包'))) {
+        transactionType = 'income';
       }
       
       // 解析日期
@@ -160,7 +166,7 @@ router.post('/wechat', async (ctx) => {
         userId,
         type: transactionType,
         amount,
-        category: getCategory(note),
+        category: getCategory(note, transactionType),
         note: counterparty ? `${counterparty} - ${note}` : note,
         date
       });
@@ -254,7 +260,7 @@ router.post('/alipay', async (ctx) => {
         userId,
         type: transactionType,
         amount,
-        category: getCategory(note),
+        category: getCategory(note, transactionType),
         note: counterparty ? `${counterparty} - ${note}` : note,
         date
       });
