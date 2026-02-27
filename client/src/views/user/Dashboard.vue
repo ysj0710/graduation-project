@@ -721,6 +721,10 @@ watch(currentView, (newVal) => {
   }
 });
 
+watch(categoryType, () => {
+  fetchData();
+});
+
 // 监听主题变化
 watch(
   () => userStore.theme,

@@ -508,7 +508,13 @@ onMounted(() => {
 }
 
 .filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   margin-bottom: 20px;
+  padding: 12px 16px;
+  background: #f5f5f7;
+  border-radius: 10px;
 }
 
 .pagination-wrapper {
