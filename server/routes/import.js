@@ -140,8 +140,12 @@ router.post('/wechat', async (ctx) => {
       
       // 判断收入/支出
       let transactionType = 'expense';
-      if (type && (type.includes('转入') || type.includes('收入') || type.includes('退款') || type.includes('红包'))) {
+      if (type && (type.includes('转入') || type.includes('收入') || type.includes('退款') || type.includes('红包')) && !type.includes('收款')) {
         transactionType = 'income';
+      }
+      // 二维码收款也是支出
+      if (note && note.includes('二维码收款')) {
+        transactionType = 'expense';
       }
       
       // 解析日期
