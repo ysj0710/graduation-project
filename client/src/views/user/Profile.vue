@@ -40,7 +40,13 @@
         
         <div class="menu-item" @click="handleLogout">
           <span class="menu-icon">🚪</span>
-          <span class="danger">退出登录</span>
+          <span>退出登录</span>
+          <span class="menu-arrow">›</span>
+        </div>
+        
+        <div class="menu-item" @click="handleDeleteAccount">
+          <span class="menu-icon">🗑️</span>
+          <span class="danger">注销账号</span>
           <span class="menu-arrow">›</span>
         </div>
       </div>
@@ -162,6 +168,27 @@ const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     router.push('/login')
+  })
+}
+
+const handleDeleteAccount = () => {
+  ElMessageBox.confirm('注销账号将清除所有数据且不可恢复，是否确定注销？', '注销账号', {
+    confirmButtonText: '确定注销',
+    cancelButtonText: '取消',
+    type: 'error'
+  }).then(async () => {
+    try {
+      const token = localStorage.getItem('token')
+      await axios.delete('http://localhost:3000/api/users/account', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      ElMessage.success('账号已注销')
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      router.push('/login')
+    } catch (error) {
+      ElMessage.error('注销失败')
+    }
   })
 }
 </script>
