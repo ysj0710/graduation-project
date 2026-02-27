@@ -535,7 +535,12 @@ onMounted(() => {
 
 .header-actions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
+}
+
+.header-actions .el-button {
+  padding: 12px 20px;
+  font-size: 14px;
 }
 
 .filter-bar {
