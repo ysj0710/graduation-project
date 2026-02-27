@@ -103,7 +103,7 @@ function parseFile(content, filename) {
 }
 
 // 导入微信账单
-router.post('/wechat', async (ctx) => {
+router.post('/wechat', requireAuth, async (ctx) => {
   try {
     const { csvContent, xlsxContent, accountId } = ctx.request.body;
     const userId = new mongoose.Types.ObjectId(ctx.state.userId);
@@ -217,7 +217,7 @@ router.post('/wechat', async (ctx) => {
 });
 
 // 导入支付宝账单
-router.post('/alipay', async (ctx) => {
+router.post('/alipay', requireAuth, async (ctx) => {
   try {
     const { csvContent, xlsxContent, accountId } = ctx.request.body;
     const userId = new mongoose.Types.ObjectId(ctx.state.userId);
