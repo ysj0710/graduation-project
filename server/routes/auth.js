@@ -1,19 +1,15 @@
-const Router = require('koa-router');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
-const proxyAgent = require('proxy-agent');
-const mongoose = require('mongoose');
-const User = require('../models/User');
-const VerificationCode = require('../models/VerificationCode');
-const Transaction = require('../models/Transaction');
-const Account = require('../models/Account');
-const { jwtMiddleware, JWT_SECRET } = require('../middleware/jwt');
-const emailConfig = require('../config/email');
-
-
-// 用户鉴权中间件
-const { JWT_SECRET } = require("../middleware/jwt"));
+const Router = require("koa-router");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
+const proxyAgent = require("proxy-agent");
+const mongoose = require("mongoose");
+const User = require("../models/User");
+const VerificationCode = require("../models/VerificationCode");
+const Transaction = require("../models/Transaction");
+const Account = require("../models/Account");
+const { jwtMiddleware, JWT_SECRET } = require("../middleware/jwt");
+const emailConfig = require("../config/email");
 
 const requireAuth = async (ctx, next) => {
   const token = ctx.headers.authorization?.replace("Bearer ", "");
@@ -22,7 +18,7 @@ const requireAuth = async (ctx, next) => {
     ctx.body = { message: "未授权" };
     return;
   }
-  
+
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     ctx.state.userId = decoded.id;
@@ -42,25 +38,25 @@ const transporter = nodemailer.createTransport({
   secure: emailConfig.email.secure,
   auth: {
     user: emailConfig.email.auth.user,
-    pass: emailConfig.email.auth.pass
+    pass: emailConfig.email.auth.pass,
   },
   tls: {
     rejectUnauthorized: false,
-    servername: 'smtp.qq.com'
+    servername: "smtp.qq.com",
   },
   socketTimeout: 30000,
-  connectionTimeout: 30000
+  connectionTimeout: 30000,
 });
 
-console.log('📧 邮件配置:', {
+console.log("📧 邮件配置:", {
   host: emailConfig.email.host,
-  port: emailConfig.email.port
+  port: emailConfig.email.port,
 });
 
 // 移除全局代理设置
-process.env.HTTP_PROXY = '';
-process.env.HTTPS_PROXY = '';
-process.env.ALL_PROXY = '';
+process.env.HTTP_PROXY = "";
+process.env.HTTPS_PROXY = "";
+process.env.ALL_PROXY = "";
 
 // 生成6位数字验证码
 const generateCode = () => {
@@ -68,12 +64,12 @@ const generateCode = () => {
 };
 
 // 发送验证码
-router.post('/send-code', async (ctx) => {
+router.post("/send-code", async (ctx) => {
   const { email } = ctx.request.body;
-  
+
   if (!email) {
     ctx.status = 400;
-    ctx.body = { message: '请输入邮箱地址' };
+    ctx.body = { message: "请输入邮箱地址" };
     return;
   }
 
@@ -81,7 +77,7 @@ router.post('/send-code', async (ctx) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     ctx.status = 400;
-    ctx.body = { message: '邮箱格式不正确' };
+    ctx.body = { message: "邮箱格式不正确" };
     return;
   }
 
@@ -96,8 +92,8 @@ router.post('/send-code', async (ctx) => {
   await VerificationCode.create({
     email,
     code,
-    type: 'register',
-    expiresAt
+    type: "register",
+    expiresAt,
   });
 
   // 发送邮件
@@ -105,7 +101,7 @@ router.post('/send-code', async (ctx) => {
     await transporter.sendMail({
       from: emailConfig.from,
       to: email,
-      subject: '注册验证码 - 财务记账系统',
+      subject: "注册验证码 - 财务记账系统",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #667eea;">财务记账系统</h2>
@@ -118,77 +114,77 @@ router.post('/send-code', async (ctx) => {
             如果这不是您的操作，请忽略此邮件。
           </p>
         </div>
-      `
+      `,
     });
     console.log(`📧 验证码已发送到 ${email}: ${code}`);
   } catch (mailErr) {
-    console.error('📧 邮件发送失败:', mailErr.message);
+    console.error("📧 邮件发送失败:", mailErr.message);
     // 邮件发送失败，但验证码已生成，返回给客户端（开发环境）
   }
 
-  ctx.body = { 
-    message: '验证码已发送到您的邮箱'
+  ctx.body = {
+    message: "验证码已发送到您的邮箱",
   };
 });
 
 // 验证验证码
-router.post('/verify-code', async (ctx) => {
+router.post("/verify-code", async (ctx) => {
   const { email, code } = ctx.request.body;
-  
+
   if (!email || !code) {
     ctx.status = 400;
-    ctx.body = { message: '请提供邮箱和验证码' };
+    ctx.body = { message: "请提供邮箱和验证码" };
     return;
   }
 
   // 查找验证码
   const verification = await VerificationCode.findOne({ email, code });
-  
+
   if (!verification) {
     ctx.status = 400;
-    ctx.body = { message: '验证码错误' };
+    ctx.body = { message: "验证码错误" };
     return;
   }
 
   // 检查是否过期
   if (verification.expiresAt < new Date()) {
     ctx.status = 400;
-    ctx.body = { message: '验证码已过期，请重新获取' };
+    ctx.body = { message: "验证码已过期，请重新获取" };
     return;
   }
 
   // 验证成功，删除验证码
   await VerificationCode.deleteOne({ _id: verification._id });
 
-  ctx.body = { message: '验证码验证成功' };
+  ctx.body = { message: "验证码验证成功" };
 });
 
 // 发送敏感操作验证码（修改密码/注销账号）
-router.post('/send-sensitive-code', async (ctx) => {
+router.post("/send-sensitive-code", async (ctx) => {
   const { email, purpose } = ctx.request.body;
-  
+
   if (!email) {
     ctx.status = 400;
-    ctx.body = { message: '请提供邮箱' };
+    ctx.body = { message: "请提供邮箱" };
     return;
   }
 
   // 生成验证码
   const code = generateCode();
-  
+
   // 删除该邮箱之前的验证码
   await VerificationCode.deleteMany({ email });
-  
+
   // 存储新验证码（增加purpose字段区分用途）
   await VerificationCode.create({
     email,
     code,
-    purpose: purpose || 'sensitive',
-    expiresAt: new Date(Date.now() + 5 * 60 * 1000)
+    purpose: purpose || "sensitive",
+    expiresAt: new Date(Date.now() + 5 * 60 * 1000),
   });
 
   // 发送邮件
-  const subject = purpose === 'delete' ? '账号注销验证码' : '修改密码验证码';
+  const subject = purpose === "delete" ? "账号注销验证码" : "修改密码验证码";
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h2 style="color: #333;">${subject}</h2>
@@ -204,177 +200,181 @@ router.post('/send-sensitive-code', async (ctx) => {
       from: '"财务记账系统" <noreply@example.com>',
       to: email,
       subject: `${subject} - 财务记账系统`,
-      html: htmlContent
+      html: htmlContent,
     });
     console.log(`📧 ${subject}验证码已发送到 ${email}: ${code}`);
   } catch (error) {
-    console.error('发送邮件失败:', error);
+    console.error("发送邮件失败:", error);
   }
 
-  ctx.body = { message: '验证码已发送到您的邮箱' };
+  ctx.body = { message: "验证码已发送到您的邮箱" };
 });
 
 // 验证敏感操作验证码
-router.post('/verify-sensitive-code', async (ctx) => {
+router.post("/verify-sensitive-code", async (ctx) => {
   const { email, code, purpose } = ctx.request.body;
-  
+
   if (!email || !code) {
     ctx.status = 400;
-    ctx.body = { message: '请提供邮箱和验证码' };
+    ctx.body = { message: "请提供邮箱和验证码" };
     return;
   }
 
   // 查找验证码
-  const verification = await VerificationCode.findOne({ email, code, purpose: purpose || 'sensitive' });
-  
+  const verification = await VerificationCode.findOne({
+    email,
+    code,
+    purpose: purpose || "sensitive",
+  });
+
   if (!verification) {
     ctx.status = 400;
-    ctx.body = { message: '验证码错误' };
+    ctx.body = { message: "验证码错误" };
     return;
   }
 
   // 检查是否过期
   if (verification.expiresAt < new Date()) {
     ctx.status = 400;
-    ctx.body = { message: '验证码已过期，请重新获取' };
+    ctx.body = { message: "验证码已过期，请重新获取" };
     return;
   }
 
   // 验证成功，删除验证码
   await VerificationCode.deleteOne({ _id: verification._id });
 
-  ctx.body = { message: '验证成功' };
+  ctx.body = { message: "验证成功" };
 });
 
 // 注册（需要验证码）
-router.post('/register', async (ctx) => {
+router.post("/register", async (ctx) => {
   const { username, password, email, code } = ctx.request.body;
-  
+
   if (!username || !password || !email || !code) {
     ctx.status = 400;
-    ctx.body = { message: '请填写完整信息' };
+    ctx.body = { message: "请填写完整信息" };
     return;
   }
 
   // 验证验证码
   const verification = await VerificationCode.findOne({ email, code });
-  
+
   if (!verification) {
     ctx.status = 400;
-    ctx.body = { message: '验证码错误' };
+    ctx.body = { message: "验证码错误" };
     return;
   }
 
   if (verification.expiresAt < new Date()) {
     ctx.status = 400;
-    ctx.body = { message: '验证码已过期，请重新获取' };
+    ctx.body = { message: "验证码已过期，请重新获取" };
     return;
   }
 
   // 检查用户名是否已存在
   const existingUser = await User.findOne({ username });
-  
+
   if (existingUser) {
     ctx.status = 400;
-    ctx.body = { message: '用户名已存在' };
+    ctx.body = { message: "用户名已存在" };
     return;
   }
 
   // 加密密码
   const hashedPassword = await bcrypt.hash(password, 10);
-  
+
   // 创建用户
   const newUser = new User({
     username,
     password: hashedPassword,
     email,
     nickname: username,
-    role: 'user'
+    role: "user",
   });
-  
+
   await newUser.save();
 
   // 删除已使用的验证码
   await VerificationCode.deleteOne({ _id: verification._id });
 
   ctx.status = 201;
-  ctx.body = { message: '注册成功', userId: newUser._id };
+  ctx.body = { message: "注册成功", userId: newUser._id };
 });
 
 // 登录
-router.post('/login', async (ctx) => {
+router.post("/login", async (ctx) => {
   const { username, password } = ctx.request.body;
-  
+
   if (!username || !password) {
     ctx.status = 400;
-    ctx.body = { message: '请输入用户名和密码' };
+    ctx.body = { message: "请输入用户名和密码" };
     return;
   }
 
   const user = await User.findOne({ username });
   if (!user) {
     ctx.status = 401;
-    ctx.body = { message: '用户名或密码错误' };
+    ctx.body = { message: "用户名或密码错误" };
     return;
   }
 
   const isValid = await bcrypt.compare(password, user.password);
   if (!isValid) {
     ctx.status = 401;
-    ctx.body = { message: '用户名或密码错误' };
+    ctx.body = { message: "用户名或密码错误" };
     return;
   }
 
   const token = jwt.sign(
-    { 
-      id: user._id, 
-      username: user.username, 
+    {
+      id: user._id,
+      username: user.username,
       email: user.email,
-      role: user.role 
+      role: user.role,
     },
     JWT_SECRET,
-    { expiresIn: '24h' }
+    { expiresIn: "24h" },
   );
 
   ctx.body = {
-    message: '登录成功',
+    message: "登录成功",
     token,
     user: {
       id: user._id,
       username: user.username,
       email: user.email,
       nickname: user.nickname,
-      role: user.role
-    }
+      role: user.role,
+    },
   };
 });
 
 // 验证 token
-router.get('/verify', jwtMiddleware, async (ctx) => {
+router.get("/verify", jwtMiddleware, async (ctx) => {
   ctx.body = {
-    message: 'Token 验证成功',
-    user: ctx.state.user
+    message: "Token 验证成功",
+    user: ctx.state.user,
   };
 });
 
 // 获取当前用户信息
-router.get('/me', jwtMiddleware, async (ctx) => {
-  const user = await User.findById(ctx.state.user.id).select('-password');
+router.get("/me", jwtMiddleware, async (ctx) => {
+  const user = await User.findById(ctx.state.user.id).select("-password");
   if (!user) {
     ctx.status = 404;
-    ctx.body = { message: '用户不存在' };
+    ctx.body = { message: "用户不存在" };
     return;
   }
   ctx.body = { user };
 });
 
 // 忘记密码 - 发送验证码
-router.post('/forgot-password/send-code', async (ctx) => {
+router.post("/forgot-password/send-code", async (ctx) => {
   const { email } = ctx.request.body;
-  
+
   if (!email) {
     ctx.status = 400;
-    ctx.body = { message: '请输入邮箱地址' };
+    ctx.body = { message: "请输入邮箱地址" };
     return;
   }
 
@@ -382,7 +382,7 @@ router.post('/forgot-password/send-code', async (ctx) => {
   const user = await User.findOne({ email });
   if (!user) {
     ctx.status = 400;
-    ctx.body = { message: '该邮箱未注册' };
+    ctx.body = { message: "该邮箱未注册" };
     return;
   }
 
@@ -397,8 +397,8 @@ router.post('/forgot-password/send-code', async (ctx) => {
   await VerificationCode.create({
     email,
     code,
-    type: 'resetPassword',
-    expiresAt
+    type: "resetPassword",
+    expiresAt,
   });
 
   // 发送邮件
@@ -406,7 +406,7 @@ router.post('/forgot-password/send-code', async (ctx) => {
     await transporter.sendMail({
       from: emailConfig.from,
       to: email,
-      subject: '找回密码 - 财务记账系统',
+      subject: "找回密码 - 财务记账系统",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #667eea;">财务记账系统</h2>
@@ -419,39 +419,43 @@ router.post('/forgot-password/send-code', async (ctx) => {
             如果这不是您的操作，请忽略此邮件。
           </p>
         </div>
-      `
+      `,
     });
     console.log(`📧 找回密码验证码已发送到 ${email}: ${code}`);
   } catch (mailErr) {
-    console.error('📧 邮件发送失败:', mailErr.message);
+    console.error("📧 邮件发送失败:", mailErr.message);
   }
 
-  ctx.body = { message: '验证码已发送到您的邮箱' };
+  ctx.body = { message: "验证码已发送到您的邮箱" };
 });
 
 // 忘记密码 - 重置密码
-router.post('/forgot-password/reset', async (ctx) => {
+router.post("/forgot-password/reset", async (ctx) => {
   const { email, code, newPassword } = ctx.request.body;
-  
+
   if (!email || !code || !newPassword) {
     ctx.status = 400;
-    ctx.body = { message: '请填写完整信息' };
+    ctx.body = { message: "请填写完整信息" };
     return;
   }
 
   // 查找验证码
-  const verification = await VerificationCode.findOne({ email, code, type: 'resetPassword' });
-  
+  const verification = await VerificationCode.findOne({
+    email,
+    code,
+    type: "resetPassword",
+  });
+
   if (!verification) {
     ctx.status = 400;
-    ctx.body = { message: '验证码错误' };
+    ctx.body = { message: "验证码错误" };
     return;
   }
 
   // 检查是否过期
   if (verification.expiresAt < new Date()) {
     ctx.status = 400;
-    ctx.body = { message: '验证码已过期，请重新获取' };
+    ctx.body = { message: "验证码已过期，请重新获取" };
     return;
   }
 
@@ -459,7 +463,7 @@ router.post('/forgot-password/reset', async (ctx) => {
   const user = await User.findOne({ email });
   if (!user) {
     ctx.status = 400;
-    ctx.body = { message: '用户不存在' };
+    ctx.body = { message: "用户不存在" };
     return;
   }
 
@@ -471,51 +475,53 @@ router.post('/forgot-password/reset', async (ctx) => {
   // 删除已使用的验证码
   await VerificationCode.deleteOne({ _id: verification._id });
 
-  ctx.body = { message: '密码重置成功，请使用新密码登录' };
+  ctx.body = { message: "密码重置成功，请使用新密码登录" };
 });
 
 // 注销账号
-router.delete('/account', requireAuth, async (ctx) => {
+router.delete("/account", requireAuth, async (ctx) => {
   const userId = ctx.state.userId;
-  
+
   try {
     // 删除用户的所有交易记录
-    await Transaction.deleteMany({ userId: new mongoose.Types.ObjectId(userId) });
-    
+    await Transaction.deleteMany({
+      userId: new mongoose.Types.ObjectId(userId),
+    });
+
     // 删除用户的账户
     await Account.deleteMany({ userId: new mongoose.Types.ObjectId(userId) });
-    
+
     // 删除用户
     await User.deleteOne({ _id: new mongoose.Types.ObjectId(userId) });
-    
-    ctx.body = { message: '账号已注销' };
+
+    ctx.body = { message: "账号已注销" };
   } catch (error) {
     ctx.status = 500;
-    ctx.body = { message: '注销失败', error: error.message };
+    ctx.body = { message: "注销失败", error: error.message };
   }
 });
 
 // 修改密码
-router.post('/change-password', requireAuth, async (ctx) => {
+router.post("/change-password", requireAuth, async (ctx) => {
   const { password } = ctx.request.body;
   const userId = ctx.state.userId;
-  
+
   if (!password) {
     ctx.status = 400;
-    ctx.body = { message: '请提供新密码' };
+    ctx.body = { message: "请提供新密码" };
     return;
   }
-  
+
   try {
     await User.updateOne(
       { _id: new mongoose.Types.ObjectId(userId) },
-      { $set: { password } }
+      { $set: { password } },
     );
-    
-    ctx.body = { message: '密码修改成功' };
+
+    ctx.body = { message: "密码修改成功" };
   } catch (error) {
     ctx.status = 500;
-    ctx.body = { message: '密码修改失败', error: error.message };
+    ctx.body = { message: "密码修改失败", error: error.message };
   }
 });
 
