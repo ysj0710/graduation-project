@@ -127,9 +127,13 @@ router.post('/wechat', async (ctx) => {
     let importedCount = 0;
     
     // 微信格式：时间,类型,对方,商品,金额,支付方式,状态,备注
+    console.log('微信账单解析，数据条数:', data.length);
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      if (!row || row.length < 5) continue;
+      if (!row || row.length < 5) {
+        console.log('跳过第', i, '行: row为空或长度不足');
+        continue;
+      }
       
       // 处理XLSX对象格式
       let fields = Array.isArray(row) ? row : Object.values(row);
@@ -141,10 +145,18 @@ router.post('/wechat', async (ctx) => {
       const note = fields[3];
       let amountStr = String(fields[4]).replace(/[^\d.-]/g, '');
       
-      if (!dateStr || !amountStr) continue;
+      if (!dateStr || !amountStr) {
+        console.log('跳过第', i, '行: dateStr或amountStr为空', dateStr, amountStr);
+        continue;
+      }
       
       const amount = Math.abs(parseFloat(amountStr) || 0);
-      if (amount === 0) continue;
+      if (amount === 0) {
+        console.log('跳过第', i, '行: amount为0');
+        continue;
+      }
+      
+      console.log('处理第', i, '行:', dateStr, type, counterparty, note, amount);
       
       // 判断收入/支出 - note和counterparty都可能是二维码收款
       let transactionType = 'expense';
