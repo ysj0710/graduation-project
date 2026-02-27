@@ -160,9 +160,12 @@ router.delete('/:id', async (ctx) => {
 router.get('/statistics', async (ctx) => {
   try {
     const userId = ctx.state.userId;
-    const { startDate, endDate } = ctx.query;
+    const { startDate, endDate, type } = ctx.query;
     
     const match = { userId };
+    if (type) {
+      match.type = type;
+    }
     if (startDate || endDate) {
       match.date = {};
       if (startDate) match.date.$gte = new Date(startDate);

@@ -607,6 +607,7 @@ const fetchData = async () => {
     const statsRes = await axios.get(
       "http://localhost:3000/api/transactions/statistics",
       {
+        params: { type: categoryType.value },
         headers: { Authorization: `Bearer ${token}` },
       },
     );
