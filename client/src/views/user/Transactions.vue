@@ -305,13 +305,30 @@ const fetchAccounts = async () => {
 
 const handleCheckAllChange = (val) => {
   checkAll.value = val
-  selectedIds.value = val ? filteredRecords.value.map(r => r._id) : []
-  isIndeterminate.value = false
+  const currentIds = filteredRecords.value.map(r => r._id)
+  if (val) {
+    // 累加选中：合并当前页选中的ID
+    currentIds.forEach(id => {
+      if (!selectedIds.value.includes(id)) {
+        selectedIds.value.push(id)
+      }
+    })
+  } else {
+    // 取消选中当前页
+    selectedIds.value = selectedIds.value.filter(id => !currentIds.includes(id))
+  }
+  updateIndeterminate()
+}
+
+const updateIndeterminate = () => {
+  const currentIds = filteredRecords.value.map(r => r._id)
+  const selectedOnCurrentPage = currentIds.filter(id => selectedIds.value.includes(id))
+  checkAll.value = selectedOnCurrentPage.length === currentIds.length
+  isIndeterminate.value = selectedOnCurrentPage.length > 0 && selectedOnCurrentPage.length < currentIds.length
 }
 
 const handleSelectChange = () => {
-  checkAll.value = selectedIds.value.length === filteredRecords.value.length
-  isIndeterminate.value = selectedIds.value.length > 0 && selectedIds.value.length < filteredRecords.value.length
+  updateIndeterminate()
 }
 
 const handleSizeChange = (val) => {

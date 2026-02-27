@@ -9,8 +9,8 @@
     <div class="settings-section">
       <h3>选择主题</h3>
       <div class="theme-grid">
-        <div 
-          v-for="theme in themes" 
+        <div
+          v-for="theme in themes"
           :key="theme.id"
           class="theme-card"
           :class="{ active: currentTheme === theme.id }"
@@ -22,13 +22,13 @@
             </div>
           </div>
           <div class="theme-colors">
-            <div 
+            <div
               class="color-bar"
               :style="{ background: theme.gradient }"
             ></div>
             <div class="color-slots">
-              <span 
-                v-for="color in theme.colors" 
+              <span
+                v-for="color in theme.colors"
                 :key="color"
                 class="color-slot"
                 :style="{ background: color }"
@@ -44,16 +44,19 @@
       <h3>毛玻璃效果</h3>
       <div class="glass-control">
         <div class="glass-preview">
-          <div class="glass-box" :style="{ backdropFilter: `blur(${glassBlur}px)` }">
+          <div
+            class="glass-box"
+            :style="{ backdropFilter: `blur(${glassBlur}px)` }"
+          >
             <span>{{ glassBlur }}px</span>
           </div>
         </div>
         <div class="slider-control">
-          <input 
-            type="range" 
-            v-model="glassBlur" 
-            min="0" 
-            max="40" 
+          <input
+            type="range"
+            v-model="glassBlur"
+            min="0"
+            max="40"
             step="5"
             @change="updateGlassEffect"
           />
@@ -64,100 +67,106 @@
         </div>
       </div>
     </div>
-
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import { useUserStore } from '../../stores/user'
-import { ElMessage } from 'element-plus'
+import { ref, reactive } from "vue";
+import { useUserStore } from "../../stores/user";
+import { ElMessage } from "element-plus";
 
-const userStore = useUserStore()
+const userStore = useUserStore();
 
-const currentTheme = ref('aurora')
-const glassBlur = ref(20)
+const currentTheme = ref("aurora");
+const glassBlur = ref(20);
 
 const budget = reactive({
   monthly: userStore.budget.monthly || 5000,
-  alertThreshold: userStore.budget.alertThreshold || 80
-})
+  alertThreshold: userStore.budget.alertThreshold || 80,
+});
 
 const themes = [
   {
-    id: 'daishan',
-    name: '黛青山',
-    gradient: 'linear-gradient(90deg, #5A8A9F 0%, #8AC4D0 25%, #B8E0E8 50%, #D0EAF0 75%, #E8F8FA 100%)',
-    colors: ['#5A8A9F', '#8AC4D0', '#B8E0E8', '#D0EAF0', '#E8F8FA']
+    id: "daishan",
+    name: "黛青山",
+    gradient:
+      "linear-gradient(90deg, #5A8A9F 0%, #8AC4D0 25%, #B8E0E8 50%, #D0EAF0 75%, #E8F8FA 100%)",
+    colors: ["#5A8A9F", "#8AC4D0", "#B8E0E8", "#D0EAF0", "#E8F8FA"],
   },
   {
-    id: 'zi',
-    name: '紫',
-    gradient: 'linear-gradient(90deg, #A57DB4 0%, #C4A8D0 25%, #D8C8E0 50%, #E8E0F0 75%, #F0E8F4 100%)',
-    colors: ['#A57DB4', '#C4A8D0', '#D8C8E0', '#E8E0F0', '#F0E8F4']
+    id: "zi",
+    name: "紫",
+    gradient:
+      "linear-gradient(90deg, #A57DB4 0%, #C4A8D0 25%, #D8C8E0 50%, #E8E0F0 75%, #F0E8F4 100%)",
+    colors: ["#A57DB4", "#C4A8D0", "#D8C8E0", "#E8E0F0", "#F0E8F4"],
   },
   {
-    id: 'chuchun',
-    name: '初春',
-    gradient: 'linear-gradient(90deg, #A8D0A8 0%, #C8E0C8 25%, #D8F0D0 50%, #E8F8E0 75%, #F0FCF0 100%)',
-    colors: ['#A8D0A8', '#C8E0C8', '#D8F0D0', '#E8F8E0', '#F0FCF0']
+    id: "chuchun",
+    name: "初春",
+    gradient:
+      "linear-gradient(90deg, #A8D0A8 0%, #C8E0C8 25%, #D8F0D0 50%, #E8F8E0 75%, #F0FCF0 100%)",
+    colors: ["#A8D0A8", "#C8E0C8", "#D8F0D0", "#E8F8E0", "#F0FCF0"],
   },
   {
-    id: 'rulin',
-    name: '儒林苑',
-    gradient: 'linear-gradient(90deg, #F17156 0%, #F89878 25%, #FFB8A0 50%, #FFD0C0 75%, #FFE0D0 100%)',
-    colors: ['#F17156', '#F89878', '#FFB8A0', '#FFD0C0', '#FFE0D0']
+    id: "rulin",
+    name: "儒林苑",
+    gradient:
+      "linear-gradient(90deg, #F17156 0%, #F89878 25%, #FFB8A0 50%, #FFD0C0 75%, #FFE0D0 100%)",
+    colors: ["#F17156", "#F89878", "#FFB8A0", "#FFD0C0", "#FFE0D0"],
   },
   {
-    id: 'youzhu',
-    name: '幽竹清溪',
-    gradient: 'linear-gradient(90deg, #4DC7A4 0%, #78D0B8 25%, #A8E0D0 50%, #D0F0E0 75%, #E8F8F0 100%)',
-    colors: ['#4DC7A4', '#78D0B8', '#A8E0D0', '#D0F0E0', '#E8F8F0']
+    id: "youzhu",
+    name: "幽竹清溪",
+    gradient:
+      "linear-gradient(90deg, #4DC7A4 0%, #78D0B8 25%, #A8E0D0 50%, #D0F0E0 75%, #E8F8F0 100%)",
+    colors: ["#4DC7A4", "#78D0B8", "#A8E0D0", "#D0F0E0", "#E8F8F0"],
   },
   {
-    id: 'mo',
-    name: '墨色',
-    gradient: 'linear-gradient(90deg, #707070 0%, #909090 25%, #B0B0B0 50%, #D0D0D0 75%, #E8E8E8 100%)',
-    colors: ['#707070', '#909090', '#B0B0B0', '#D0D0D0', '#E8E8E8']
+    id: "mo",
+    name: "墨色",
+    gradient:
+      "linear-gradient(90deg, #707070 0%, #909090 25%, #B0B0B0 50%, #D0D0D0 75%, #E8E8E8 100%)",
+    colors: ["#707070", "#909090", "#B0B0B0", "#D0D0D0", "#E8E8E8"],
   },
   {
-    id: 'huangdou',
-    name: '黄豆沙',
-    gradient: 'linear-gradient(90deg, #B89090 0%, #D0A8A8 25%, #E0B8B8 50%, #F0D0D0 75%, #F8E0E0 100%)',
-    colors: ['#B89090', '#D0A8A8', '#E0B8B8', '#F0D0D0', '#F8E0E0']
+    id: "huangdou",
+    name: "黄豆沙",
+    gradient:
+      "linear-gradient(90deg, #B89090 0%, #D0A8A8 25%, #E0B8B8 50%, #F0D0D0 75%, #F8E0E0 100%)",
+    colors: ["#B89090", "#D0A8A8", "#E0B8B8", "#F0D0D0", "#F8E0E0"],
   },
   {
-    id: 'yuanmu',
-    name: '原木',
-    gradient: 'linear-gradient(90deg, #C8B890 0%, #E0D0A8 25%, #E8D8B8 50%, #F0E0C8 75%, #F8E8D0 100%)',
-    colors: ['#C8B890', '#E0D0A8', '#E8D8B8', '#F0E0C8', '#F8E8D0']
-  }
-]
+    id: "yuanmu",
+    name: "原木",
+    gradient:
+      "linear-gradient(90deg, #C8B890 0%, #E0D0A8 25%, #E8D8B8 50%, #F0E0C8 75%, #F8E8D0 100%)",
+    colors: ["#C8B890", "#E0D0A8", "#E8D8B8", "#F0E0C8", "#F8E8D0"],
+  },
+];
 
 const selectTheme = (theme) => {
-  currentTheme.value = theme.id
+  currentTheme.value = theme.id;
   userStore.updateTheme({
     background: theme.gradient,
-    glassBlur: glassBlur.value
-  })
-  ElMessage.success(`已切换至「${theme.name}」主题`)
-}
+    glassBlur: glassBlur.value,
+  });
+  ElMessage.success(`已切换至「${theme.name}」主题`);
+};
 
 const updateGlassEffect = () => {
   userStore.updateTheme({
-    background: themes.find(t => t.id === currentTheme.value)?.gradient,
-    glassBlur: glassBlur.value
-  })
-}
+    background: themes.find((t) => t.id === currentTheme.value)?.gradient,
+    glassBlur: glassBlur.value,
+  });
+};
 
 const updateBudget = () => {
   userStore.updateBudget({
     monthly: budget.monthly,
-    alertThreshold: budget.alertThreshold
-  })
-  ElMessage.success('预算设置已保存')
-}
+    alertThreshold: budget.alertThreshold,
+  });
+  ElMessage.success("预算设置已保存");
+};
 </script>
 
 <style scoped>
@@ -178,7 +187,7 @@ const updateBudget = () => {
 
 .subtitle {
   font-size: 14px;
-  color: #8E8E93;
+  color: #8e8e93;
   margin: 8px 0 0 0;
 }
 
@@ -216,7 +225,7 @@ const updateBudget = () => {
 }
 
 .theme-card.active {
-  border-color: #007AFF;
+  border-color: #007aff;
 }
 
 .theme-preview {
@@ -251,7 +260,7 @@ const updateBudget = () => {
   display: flex;
   gap: 6px;
   padding: 10px;
-  background: #F5F5F7;
+  background: #f5f5f7;
 }
 
 .color-bar {
@@ -314,7 +323,7 @@ const updateBudget = () => {
   width: 100%;
   height: 8px;
   -webkit-appearance: none;
-  background: #E5E5EA;
+  background: #e5e5ea;
   border-radius: 4px;
   outline: none;
 }
@@ -334,7 +343,7 @@ const updateBudget = () => {
   justify-content: space-between;
   margin-top: 8px;
   font-size: 12px;
-  color: #8E8E93;
+  color: #8e8e93;
 }
 
 /* 预算设置 */
@@ -349,7 +358,7 @@ const updateBudget = () => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: #F5F5F7;
+  background: #f5f5f7;
   border-radius: 14px;
 }
 
@@ -367,6 +376,6 @@ const updateBudget = () => {
 
 .setting-desc {
   font-size: 13px;
-  color: #8E8E93;
+  color: #8e8e93;
 }
 </style>
