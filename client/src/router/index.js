@@ -5,7 +5,6 @@ import Login from '../views/Login.vue'
 import Dashboard from '../views/user/Dashboard.vue'
 import Transactions from '../views/user/Transactions.vue'
 import Statistics from '../views/user/Statistics.vue'
-import Accounts from '../views/user/Accounts.vue'
 import Personal from '../views/user/Personal.vue'
 import Profile from '../views/user/Profile.vue'
 
@@ -101,12 +100,6 @@ const routes = [
     meta: { title: '统计分析' }
   },
   {
-    path: '/accounts',
-    name: 'Accounts',
-    component: Accounts,
-    beforeEnter: requireAuth,
-    meta: { title: '账户管理' }
-  },
   {
     path: '/personal',
     name: 'Personal',

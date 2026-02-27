@@ -22,12 +22,18 @@
             </div>
           </div>
           <div class="theme-colors">
-            <span 
-              v-for="color in theme.colors" 
-              :key="color"
-              class="color-dot"
-              :style="{ background: color }"
-            ></span>
+            <div 
+              class="color-bar"
+              :style="{ background: theme.gradient }"
+            ></div>
+            <div class="color-slots">
+              <span 
+                v-for="color in theme.colors" 
+                :key="color"
+                class="color-slot"
+                :style="{ background: color }"
+              ></span>
+            </div>
           </div>
         </div>
       </div>
@@ -99,52 +105,52 @@ const budget = reactive({
 
 const themes = [
   {
-    id: 'aurora',
-    name: '极光',
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-    colors: ['#667eea', '#764ba2', '#f093fb']
+    id: 'daishan',
+    name: '黛青山',
+    gradient: 'linear-gradient(90deg, #5A8A9F 0%, #8AC4D0 25%, #B8E0E8 50%, #D0EAF0 75%, #E8F8FA 100%)',
+    colors: ['#5A8A9F', '#8AC4D0', '#B8E0E8', '#D0EAF0', '#E8F8FA']
   },
   {
-    id: 'ocean',
-    name: '海洋',
-    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-    colors: ['#4facfe', '#00f2fe']
+    id: 'zi',
+    name: '紫',
+    gradient: 'linear-gradient(90deg, #A57DB4 0%, #C4A8D0 25%, #D8C8E0 50%, #E8E0F0 75%, #F0E8F4 100%)',
+    colors: ['#A57DB4', '#C4A8D0', '#D8C8E0', '#E8E0F0', '#F0E8F4']
   },
   {
-    id: 'sunset',
-    name: '日落',
-    gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-    colors: ['#fa709a', '#fee140']
+    id: 'chuchun',
+    name: '初春',
+    gradient: 'linear-gradient(90deg, #A8D0A8 0%, #C8E0C8 25%, #D8F0D0 50%, #E8F8E0 75%, #F0FCF0 100%)',
+    colors: ['#A8D0A8', '#C8E0C8', '#D8F0D0', '#E8F8E0', '#F0FCF0']
   },
   {
-    id: 'forest',
-    name: '森林',
-    gradient: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
-    colors: ['#11998e', '#38ef7d']
+    id: 'rulin',
+    name: '儒林苑',
+    gradient: 'linear-gradient(90deg, #F17156 0%, #F89878 25%, #FFB8A0 50%, #FFD0C0 75%, #FFE0D0 100%)',
+    colors: ['#F17156', '#F89878', '#FFB8A0', '#FFD0C0', '#FFE0D0']
   },
   {
-    id: 'midnight',
-    name: '午夜',
-    gradient: 'linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%)',
-    colors: ['#2c3e50', '#4ca1af']
+    id: 'youzhu',
+    name: '幽竹清溪',
+    gradient: 'linear-gradient(90deg, #4DC7A4 0%, #78D0B8 25%, #A8E0D0 50%, #D0F0E0 75%, #E8F8F0 100%)',
+    colors: ['#4DC7A4', '#78D0B8', '#A8E0D0', '#D0F0E0', '#E8F8F0']
   },
   {
-    id: 'candy',
-    name: '糖果',
-    gradient: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%)',
-    colors: ['#ff9a9e', '#fecfef']
+    id: 'mo',
+    name: '墨色',
+    gradient: 'linear-gradient(90deg, #707070 0%, #909090 25%, #B0B0B0 50%, #D0D0D0 75%, #E8E8E8 100%)',
+    colors: ['#707070', '#909090', '#B0B0B0', '#D0D0D0', '#E8E8E8']
   },
   {
-    id: 'nebula',
-    name: '星云',
-    gradient: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
-    colors: ['#0f0c29', '#302b63', '#24243e']
+    id: 'huangdou',
+    name: '黄豆沙',
+    gradient: 'linear-gradient(90deg, #B89090 0%, #D0A8A8 25%, #E0B8B8 50%, #F0D0D0 75%, #F8E0E0 100%)',
+    colors: ['#B89090', '#D0A8A8', '#E0B8B8', '#F0D0D0', '#F8E0E0']
   },
   {
-    id: 'peach',
-    name: '蜜桃',
-    gradient: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
-    colors: ['#ffecd2', '#fcb69f']
+    id: 'yuanmu',
+    name: '原木',
+    gradient: 'linear-gradient(90deg, #C8B890 0%, #E0D0A8 25%, #E8D8B8 50%, #F0E0C8 75%, #F8E8D0 100%)',
+    colors: ['#C8B890', '#E0D0A8', '#E8D8B8', '#F0E0C8', '#F8E8D0']
   }
 ]
 
@@ -267,11 +273,23 @@ const updateBudget = () => {
   background: #F5F5F7;
 }
 
-.color-dot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
+.color-bar {
+  width: 100%;
+  height: 24px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.color-slots {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.color-slot {
   flex: 1;
+  height: 16px;
+  border-radius: 3px;
 }
 
 /* 毛玻璃控制 */

@@ -389,7 +389,7 @@ import axios from "axios";
 // 引入子页面组件
 import Transactions from "./Transactions.vue";
 import Statistics from "./Statistics.vue";
-import Accounts from "./Accounts.vue";
+import ConsumptionAnalysis from "./ConsumptionAnalysis.vue";
 import Personal from "./Personal.vue";
 import Profile from "./Profile.vue";
 
@@ -405,7 +405,7 @@ const pageTitle = computed(() => {
     dashboard: "总览",
     transactions: "交易记录",
     statistics: "统计分析",
-    accounts: "账户管理",
+    consumption: "消费分析",
     personal: "个性设置",
     profile: "个人中心",
   };
@@ -416,7 +416,7 @@ const navItems = [
   { id: "dashboard", icon: "🏠", label: "总览" },
   { id: "transactions", icon: "📋", label: "交易记录" },
   { id: "statistics", icon: "📊", label: "统计分析" },
-  { id: "accounts", icon: "💳", label: "账户管理" },
+  { id: "consumption", icon: "📊", label: "消费分析" },
   { id: "personal", icon: "🎨", label: "个性设置" },
 ];
 
@@ -425,7 +425,7 @@ const components = {
   dashboard: null,
   transactions: Transactions,
   statistics: Statistics,
-  accounts: Accounts,
+  consumption: ConsumptionAnalysis,
   personal: Personal,
   profile: Profile,
 };
