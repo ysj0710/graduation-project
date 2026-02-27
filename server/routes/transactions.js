@@ -299,12 +299,13 @@ router.get('/month-stats', async (ctx) => {
     
     result.lastMonthIncome = lastMonthIncome;
     result.lastMonthExpense = lastMonthExpense;
+    // 计算环比变化，如果上月没有数据则显示为null（前端显示--）
     result.incomeChange = lastMonthIncome > 0 
       ? Math.round(((result.income - lastMonthIncome) / lastMonthIncome) * 100) 
-      : 0;
+      : (lastMonthIncome === 0 && result.income > 0 ? 100 : null);
     result.expenseChange = lastMonthExpense > 0 
       ? Math.round(((result.expense - lastMonthExpense) / lastMonthExpense) * 100) 
-      : 0;
+      : (lastMonthExpense === 0 && result.expense > 0 ? 100 : null);
     
     ctx.body = result;
   } catch (error) {

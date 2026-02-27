@@ -65,8 +65,8 @@
         <div class="stat-card expense-card">
           <div class="stat-header">
             <span class="stat-label">本月支出</span>
-            <span class="stat-trend" :class="expenseChange >= 0 ? 'up' : 'down'">
-              {{ expenseChange >= 0 ? '↑' : '↓' }} {{ Math.abs(expenseChange) }}%
+            <span class="stat-trend" :class="expenseChange > 0 ? 'up' : (expenseChange < 0 ? 'down' : '')">
+              {{ expenseChange !== null ? (expenseChange > 0 ? '↑' : (expenseChange < 0 ? '↓' : '-')) : '--' }} {{ expenseChange !== null ? Math.abs(expenseChange) + '%' : '' }}
             </span>
           </div>
           <div class="stat-amount">¥{{ formatNumber(statistics.expense) }}</div>
@@ -78,15 +78,15 @@
         <div class="stat-card income-card">
           <div class="stat-header">
             <span class="stat-label">本月收入</span>
-            <span class="stat-trend" :class="incomeChange >= 0 ? 'up' : 'down'">
-              {{ incomeChange >= 0 ? '↑' : '↓' }} {{ Math.abs(incomeChange) }}%
+            <span class="stat-trend" :class="incomeChange > 0 ? 'up' : (incomeChange < 0 ? 'down' : '')">
+              {{ incomeChange !== null ? (incomeChange > 0 ? '↑' : (incomeChange < 0 ? '↓' : '-')) : '--' }} {{ incomeChange !== null ? Math.abs(incomeChange) + '%' : '' }}
             </span>
           </div>
           <div class="stat-amount income">
             ¥{{ formatNumber(statistics.income) }}
           </div>
           <div class="stat-budget">
-            较上月 {{ incomeChange >= 0 ? '+' : '' }}{{ incomeChange }}%
+            较上月 {{ incomeChange !== null ? (incomeChange >= 0 ? '+' : '') + incomeChange + '%' : '--' }}
           </div>
         </div>
 
