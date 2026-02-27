@@ -11,6 +11,29 @@ const Account = require('../models/Account');
 const { jwtMiddleware, JWT_SECRET } = require('../middleware/jwt');
 const emailConfig = require('../config/email');
 
+
+// 用户鉴权中间件
+const jwt = require("jsonwebtoken");
+const { JWT_SECRET } = require("../middleware/jwt"));
+
+const requireAuth = async (ctx, next) => {
+  const token = ctx.headers.authorization?.replace("Bearer ", "");
+  if (!token) {
+    ctx.status = 401;
+    ctx.body = { message: "未授权" };
+    return;
+  }
+  
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    ctx.state.userId = decoded.id;
+    await next();
+  } catch (error) {
+    ctx.status = 401;
+    ctx.body = { message: "无效的令牌" };
+  }
+};
+
 const router = new Router();
 
 // 创建邮件发送器
