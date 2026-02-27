@@ -167,24 +167,24 @@ router.post('/send-sensitive-code', async (ctx) => {
 
   // 发送邮件
   const subject = purpose === 'delete' ? '账号注销验证码' : '修改密码验证码';
-  const htmlContent = \`
+  const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #333;">\${subject}</h2>
+      <h2 style="color: #333;">${subject}</h2>
       <p>您好，您的验证码是：</p>
-      <span style="font-size: 32px; font-weight: bold; color: #667eea;">\${code}</span>
+      <span style="font-size: 32px; font-weight: bold; color: #667eea;">${code}</span>
       <p>验证码有效期为 5 分钟，请尽快完成操作。</p>
       <p style="color: #999; font-size: 12px;">如果这不是您的操作，请忽略此邮件。</p>
     </div>
-  \`;
+  `;
 
   try {
     await transporter.sendMail({
       from: '"财务记账系统" <noreply@example.com>',
       to: email,
-      subject: \`\${subject} - 财务记账系统\`,
+      subject: `${subject} - 财务记账系统`,
       html: htmlContent
     });
-    console.log(\`📧 \${subject}验证码已发送到 \${email}: \${code}\`);
+    console.log(`📧 ${subject}验证码已发送到 ${email}: ${code}`);
   } catch (error) {
     console.error('发送邮件失败:', error);
   }
