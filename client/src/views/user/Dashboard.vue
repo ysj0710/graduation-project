@@ -579,6 +579,7 @@ const fetchData = async () => {
       expense: res.data.expense || 0,
       balance: res.data.balance || 0,
     };
+    console.log('month-stats response:', res.data);
 
     // 计算预算剩余
     budgetRemaining.value = userStore.budget.monthly - statistics.value.expense;
@@ -590,8 +591,8 @@ const fetchData = async () => {
         : 0;
     
     // 计算收入和支出变化百分比
-    incomeChange.value = res.data.incomeChange || 0;
-    expenseChange.value = res.data.expenseChange || 0;
+    incomeChange.value = res.data.incomeChange !== undefined ? res.data.incomeChange : 0;
+    expenseChange.value = res.data.expenseChange !== undefined ? res.data.expenseChange : 0;
 
     // 获取最近交易
     const recordsRes = await axios.get(
