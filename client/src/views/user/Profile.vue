@@ -52,6 +52,41 @@
       </div>
     </div>
   </div>
+
+  <!-- 验证码确认对话框 -->
+  <el-dialog 
+    v-model="verifyDialogVisible" 
+    :title="verifyPurpose === 'password' ? '修改密码' : '注销账号'"
+    width="400px"
+    :close-on-click-modal="false"
+  >
+    <el-form label-width="80px">
+      <el-form-item label="邮箱">
+        <el-input v-model="verifyForm.email" disabled />
+      </el-form-item>
+      <el-form-item label="验证码">
+        <div class="code-input-wrapper">
+          <el-input v-model="verifyForm.code" placeholder="请输入验证码" />
+          <el-button 
+            @click="sendVerifyCode" 
+            :disabled="countdown > 0"
+            :loading="sendCodeLoading"
+          >
+            {{ countdown > 0 ? `${countdown}s` : '发送验证码' }}
+          </el-button>
+        </div>
+      </el-form-item>
+      <el-form-item v-if="verifyPurpose === 'password'" label="新密码">
+        <el-input v-model="verifyForm.newPassword" type="password" placeholder="请输入新密码" show-password />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="verifyDialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="handleVerify" :loading="verifyLoading">
+        {{ verifyPurpose === 'password' ? '确认修改' : '确认注销' }}
+      </el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -66,6 +101,19 @@ const userStore = useUserStore()
 const userInfo = reactive({
   nickname: userStore.profile.nickname || ''
 })
+
+// 验证码相关状态
+const verifyDialogVisible = ref(false)
+const verifyPurpose = ref('') // 'password' or 'delete'
+const verifyForm = reactive({
+  email: '',
+  code: '',
+  newPassword: ''
+})
+const verifyLoading = ref(false)
+const sendCodeLoading = ref(false)
+const countdown = ref(0)
+let countdownTimer = null
 
 const budget = reactive({
   monthly: userStore.budget?.monthly || 5000,
@@ -152,7 +200,11 @@ const handleFileChange = (file) => {
 }
 
 const changePassword = () => {
-  ElMessage.info('密码修改功能开发中')
+  verifyPurpose.value = 'password'
+  verifyForm.email = userStore.profile.email || ''
+  verifyForm.code = ''
+  verifyForm.newPassword = ''
+  verifyDialogVisible.value = true
 }
 
 const clearCache = () => {
@@ -172,24 +224,94 @@ const handleLogout = () => {
 }
 
 const handleDeleteAccount = () => {
-  ElMessageBox.confirm('注销账号将清除所有数据且不可恢复，是否确定注销？', '注销账号', {
-    confirmButtonText: '确定注销',
-    cancelButtonText: '取消',
-    type: 'error'
-  }).then(async () => {
-    try {
+  verifyPurpose.value = 'delete'
+  verifyForm.email = userStore.profile.email || ''
+  verifyForm.code = ''
+  verifyDialogVisible.value = true
+}
+
+const sendVerifyCode = async () => {
+  if (!verifyForm.email) {
+    ElMessage.warning('请输入邮箱地址')
+    return
+  }
+  
+  sendCodeLoading.value = true
+  try {
+    await axios.post('http://localhost:3000/api/auth/send-sensitive-code', {
+      email: verifyForm.email,
+      purpose: verifyPurpose.value
+    })
+    ElMessage.success('验证码已发送到邮箱')
+    
+    // 开始倒计时
+    countdown.value = 60
+    if (countdownTimer) clearInterval(countdownTimer)
+    countdownTimer = setInterval(() => {
+      countdown.value--
+      if (countdown.value <= 0) {
+        clearInterval(countdownTimer)
+      }
+    }, 1000)
+  } catch (error) {
+    ElMessage.error('发送验证码失败')
+  } finally {
+    sendCodeLoading.value = false
+  }
+}
+
+const handleVerify = async () => {
+  if (!verifyForm.code) {
+    ElMessage.warning('请输入验证码')
+    return
+  }
+  
+  verifyLoading.value = true
+  try {
+    // 先验证验证码
+    await axios.post('http://localhost:3000/api/auth/verify-sensitive-code', {
+      email: verifyForm.email,
+      code: verifyForm.code,
+      purpose: verifyPurpose.value
+    })
+    
+    if (verifyPurpose.value === 'password') {
+      // 修改密码
+      if (!verifyForm.newPassword) {
+        ElMessage.warning('请输入新密码')
+        verifyLoading.value = false
+        return
+      }
       const token = localStorage.getItem('token')
-      await axios.delete('http://localhost:3000/api/users/account', {
+      await axios.post('http://localhost:3000/api/auth/change-password', {
+        password: verifyForm.newPassword
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      ElMessage.success('密码修改成功')
+      verifyDialogVisible.value = false
+    } else if (verifyPurpose.value === 'delete') {
+      // 确认注销
+      const confirm = await ElMessageBox.confirm(
+        '账号注销后将清除所有数据且不可恢复，是否确定？',
+        '确认注销',
+        { confirmButtonText: '确定注销', cancelButtonText: '取消', type: 'error' }
+      )
+      
+      const token = localStorage.getItem('token')
+      await axios.delete('http://localhost:3000/api/auth/account', {
         headers: { Authorization: `Bearer ${token}` }
       })
       ElMessage.success('账号已注销')
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       router.push('/login')
-    } catch (error) {
-      ElMessage.error('注销失败')
     }
-  })
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '操作失败')
+  } finally {
+    verifyLoading.value = false
+  }
 }
 </script>
 
@@ -531,5 +653,14 @@ const handleDeleteAccount = () => {
 .menu-arrow {
   color: #C7C7CC;
   font-size: 18px;
+}
+
+.code-input-wrapper {
+  display: flex;
+  gap: 8px;
+}
+
+.code-input-wrapper .el-input {
+  flex: 1;
 }
 </style>

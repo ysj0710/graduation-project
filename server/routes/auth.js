@@ -3,8 +3,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const proxyAgent = require('proxy-agent');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const VerificationCode = require('../models/VerificationCode');
+const Transaction = require('../models/Transaction');
+const Account = require('../models/Account');
 const { jwtMiddleware, JWT_SECRET } = require('../middleware/jwt');
 const emailConfig = require('../config/email');
 
@@ -136,6 +139,89 @@ router.post('/verify-code', async (ctx) => {
   await VerificationCode.deleteOne({ _id: verification._id });
 
   ctx.body = { message: '验证码验证成功' };
+});
+
+// 发送敏感操作验证码（修改密码/注销账号）
+router.post('/send-sensitive-code', async (ctx) => {
+  const { email, purpose } = ctx.request.body;
+  
+  if (!email) {
+    ctx.status = 400;
+    ctx.body = { message: '请提供邮箱' };
+    return;
+  }
+
+  // 生成验证码
+  const code = generateCode();
+  
+  // 删除该邮箱之前的验证码
+  await VerificationCode.deleteMany({ email });
+  
+  // 存储新验证码（增加purpose字段区分用途）
+  await VerificationCode.create({
+    email,
+    code,
+    purpose: purpose || 'sensitive',
+    expiresAt: new Date(Date.now() + 5 * 60 * 1000)
+  });
+
+  // 发送邮件
+  const subject = purpose === 'delete' ? '账号注销验证码' : '修改密码验证码';
+  const htmlContent = \`
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #333;">\${subject}</h2>
+      <p>您好，您的验证码是：</p>
+      <span style="font-size: 32px; font-weight: bold; color: #667eea;">\${code}</span>
+      <p>验证码有效期为 5 分钟，请尽快完成操作。</p>
+      <p style="color: #999; font-size: 12px;">如果这不是您的操作，请忽略此邮件。</p>
+    </div>
+  \`;
+
+  try {
+    await transporter.sendMail({
+      from: '"财务记账系统" <noreply@example.com>',
+      to: email,
+      subject: \`\${subject} - 财务记账系统\`,
+      html: htmlContent
+    });
+    console.log(\`📧 \${subject}验证码已发送到 \${email}: \${code}\`);
+  } catch (error) {
+    console.error('发送邮件失败:', error);
+  }
+
+  ctx.body = { message: '验证码已发送到您的邮箱' };
+});
+
+// 验证敏感操作验证码
+router.post('/verify-sensitive-code', async (ctx) => {
+  const { email, code, purpose } = ctx.request.body;
+  
+  if (!email || !code) {
+    ctx.status = 400;
+    ctx.body = { message: '请提供邮箱和验证码' };
+    return;
+  }
+
+  // 查找验证码
+  const verification = await VerificationCode.findOne({ email, code, purpose: purpose || 'sensitive' });
+  
+  if (!verification) {
+    ctx.status = 400;
+    ctx.body = { message: '验证码错误' };
+    return;
+  }
+
+  // 检查是否过期
+  if (verification.expiresAt < new Date()) {
+    ctx.status = 400;
+    ctx.body = { message: '验证码已过期，请重新获取' };
+    return;
+  }
+
+  // 验证成功，删除验证码
+  await VerificationCode.deleteOne({ _id: verification._id });
+
+  ctx.body = { message: '验证成功' };
 });
 
 // 注册（需要验证码）
@@ -364,6 +450,51 @@ router.post('/forgot-password/reset', async (ctx) => {
   await VerificationCode.deleteOne({ _id: verification._id });
 
   ctx.body = { message: '密码重置成功，请使用新密码登录' };
+});
+
+// 注销账号
+router.delete('/account', requireAuth, async (ctx) => {
+  const userId = ctx.state.userId;
+  
+  try {
+    // 删除用户的所有交易记录
+    await Transaction.deleteMany({ userId: new mongoose.Types.ObjectId(userId) });
+    
+    // 删除用户的账户
+    await Account.deleteMany({ userId: new mongoose.Types.ObjectId(userId) });
+    
+    // 删除用户
+    await User.deleteOne({ _id: new mongoose.Types.ObjectId(userId) });
+    
+    ctx.body = { message: '账号已注销' };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = { message: '注销失败', error: error.message };
+  }
+});
+
+// 修改密码
+router.post('/change-password', requireAuth, async (ctx) => {
+  const { password } = ctx.request.body;
+  const userId = ctx.state.userId;
+  
+  if (!password) {
+    ctx.status = 400;
+    ctx.body = { message: '请提供新密码' };
+    return;
+  }
+  
+  try {
+    await User.updateOne(
+      { _id: new mongoose.Types.ObjectId(userId) },
+      { $set: { password } }
+    );
+    
+    ctx.body = { message: '密码修改成功' };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = { message: '密码修改失败', error: error.message };
+  }
 });
 
 module.exports = router;
