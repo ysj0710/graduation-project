@@ -316,11 +316,17 @@ const handleSelectChange = () => {
 
 const handleSizeChange = (val) => {
   pageSize.value = val
+  selectedIds.value = []  // 切换每页数量清空选择
+  checkAll.value = false
+  isIndeterminate.value = false
   fetchRecords()
 }
 
 const handleCurrentChange = (val) => {
   currentPage.value = val
+  selectedIds.value = []  // 切换页面清空选择
+  checkAll.value = false
+  isIndeterminate.value = false
   fetchRecords()
 }
 
@@ -520,7 +526,7 @@ onMounted(() => {
 .pagination-wrapper {
   margin-top: 20px;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .transactions-list {
