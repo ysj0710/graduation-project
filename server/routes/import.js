@@ -149,11 +149,27 @@ router.post('/wechat', requireAuth, async (ctx) => {
       let fields = Array.isArray(row) ? row : Object.values(row);
       fields = fields.map(f => String(f || '').trim());
       
-      const dateStr = fields[0];
-      const type = fields[1];
-      const counterparty = fields[2];
-      const note = fields[3];
-      let amountStr = String(fields[4]).replace(/[^\d.-]/g, '');
+      // 微信xlsx格式：时间,类型,对方,商品,金额(元),支付方式,状态,备注
+      // 尝试找到金额字段（通常是数字）
+      let dateStr = fields[0];
+      let type = fields[1];
+      let counterparty = fields[2];
+      let note = fields[3];
+      let amountStr = '';
+      
+      // 金额可能在第4或第5列
+      for (let j = 4; j < fields.length; j++) {
+        const val = String(fields[j] || '').replace(/[^\d.-]/g, '');
+        if (val && !isNaN(parseFloat(val))) {
+          amountStr = val;
+          break;
+        }
+      }
+      
+      // 如果第4列是数字，直接用
+      if (!amountStr && fields[4]) {
+        amountStr = String(fields[4]).replace(/[^\d.-]/g, '');
+      }
       
       if (!dateStr || !amountStr) {
         console.log('跳过第', i, '行: dateStr或amountStr为空', dateStr, amountStr);
@@ -166,7 +182,7 @@ router.post('/wechat', requireAuth, async (ctx) => {
         continue;
       }
       
-      console.log('处理第', i, '行:', dateStr, type, counterparty, note, amount);
+      console.log('处理第', i, '行: fields=', fields.slice(0, 6));
       
       // 判断收入/支出 - note和counterparty都可能是二维码收款
       let transactionType = 'expense';
