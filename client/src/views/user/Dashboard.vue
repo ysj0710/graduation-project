@@ -406,7 +406,7 @@ const navItems = [
   { id: "dashboard", icon: "🏠", label: "总览" },
   { id: "transactions", icon: "📋", label: "交易记录" },
   { id: "statistics", icon: "📊", label: "统计分析" },
-  { id: "consumption", icon: "📊", label: "消费分析" },
+  { id: "consumption", icon: "📈", label: "消费分析" },
   { id: "personal", icon: "🎨", label: "个性设置" },
 ];
 
