@@ -282,14 +282,18 @@ const updateBudget = () => {
 
 .color-slots {
   display: flex;
-  gap: 4px;
+  gap: 3px;
   margin-top: 8px;
+  padding: 4px;
+  background: #f5f5f7;
+  border-radius: 6px;
 }
 
 .color-slot {
   flex: 1;
-  height: 16px;
-  border-radius: 3px;
+  height: 14px;
+  border-radius: 2px;
+  min-width: 0;
 }
 
 /* 毛玻璃控制 */

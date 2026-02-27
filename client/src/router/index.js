@@ -100,7 +100,6 @@ const routes = [
     meta: { title: '统计分析' }
   },
   {
-  {
     path: '/personal',
     name: 'Personal',
     component: Personal,
