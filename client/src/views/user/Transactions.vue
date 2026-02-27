@@ -42,9 +42,8 @@
         :class="{ selected: selectedIds.includes(record._id) }"
       >
         <el-checkbox 
-          v-model="selectedIds" 
-          :label="record._id" 
-          @change="handleSelectChange"
+          :model-value="selectedIds.includes(record._id)"
+          @change="(val) => toggleSelect(record._id, val)"
         />
         <div class="transaction-icon" :style="{ background: record.type === 'income' ? '#34C75915' : '#FF3B3015', color: record.type === 'income' ? '#34C759' : '#FF3B30' }">
           {{ getCategoryIcon(record.category) }}
@@ -325,6 +324,17 @@ const updateIndeterminate = () => {
   const selectedOnCurrentPage = currentIds.filter(id => selectedIds.value.includes(id))
   checkAll.value = selectedOnCurrentPage.length === currentIds.length
   isIndeterminate.value = selectedOnCurrentPage.length > 0 && selectedOnCurrentPage.length < currentIds.length
+}
+
+const toggleSelect = (id, checked) => {
+  if (checked) {
+    if (!selectedIds.value.includes(id)) {
+      selectedIds.value.push(id)
+    }
+  } else {
+    selectedIds.value = selectedIds.value.filter(i => i !== id)
+  }
+  updateIndeterminate()
 }
 
 const handleSelectChange = () => {
