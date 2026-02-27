@@ -120,7 +120,11 @@
           <!-- 分类占比 -->
           <div class="ios-card">
             <div class="card-header">
-              <h3>🥧 支出分类</h3>
+              <h3>🥧 {{ categoryType === 'expense' ? '支出分类' : '收入分类' }}</h3>
+              <el-radio-group v-model="categoryType" size="small">
+                <el-radio-button value="expense">支出</el-radio-button>
+                <el-radio-button value="income">收入</el-radio-button>
+              </el-radio-group>
             </div>
             <div class="category-grid">
               <div
@@ -449,6 +453,7 @@ const budgetRemaining = ref(5000);
 const incomeChange = ref(1840);
 const savingsRate = ref(49.7);
 const recentRecords = ref([]);
+const categoryType = ref('expense');
 const categoryList = ref([]);
 
 const record = ref({
@@ -610,16 +615,15 @@ const fetchData = async () => {
       },
     );
 
-    const expenseCats = statsRes.data.byCategory?.expense || [];
-    const totalExpense = expenseCats.reduce((sum, cat) => sum + cat.total, 0);
+    const expenseCats = statsRes.data.byCategory?.[categoryType.value] || [];
+    const totalAmount = expenseCats.reduce((sum, cat) => sum + cat.total, 0);
 
     categoryList.value = expenseCats.slice(0, 6).map((cat) => ({
       name: cat.category,
       amount: cat.total,
-      percent:
-        totalExpense > 0 ? Math.round((cat.total / totalExpense) * 100) : 0,
+      percent: totalAmount > 0 ? Math.round((cat.total / totalAmount) * 100) : 0,
       icon: getCategoryIcon(cat.category),
-      color: "#FF3B30",
+      color: categoryType.value === 'expense' ? "#FF3B30" : "#34C759",
     }));
 
     await nextTick();

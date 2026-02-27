@@ -19,6 +19,13 @@
     
     <!-- 筛选器 -->
     <div class="filter-bar">
+      <el-checkbox 
+        :indeterminate="isIndeterminate" 
+        v-model="checkAll" 
+        @change="handleCheckAllChange"
+      >
+        全选
+      </el-checkbox>
       <el-radio-group v-model="filterType" size="small">
         <el-radio-button value="all">全部</el-radio-button>
         <el-radio-button value="expense">支出</el-radio-button>
@@ -57,6 +64,19 @@
       </div>
       
       <el-empty v-if="filteredRecords.length === 0" description="暂无记录" />
+    </div>
+
+    <!-- 分页 -->
+    <div class="pagination-wrapper" v-if="total > 0">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="total"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
     </div>
 
     <!-- 导入账单对话框 -->
@@ -199,6 +219,11 @@ import axios from 'axios'
 const records = ref([])
 const filterType = ref('all')
 const selectedIds = ref([])
+const checkAll = ref(false)
+const isIndeterminate = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 // 导入相关
 const showImportDialog = ref(false)
@@ -253,9 +278,14 @@ const fetchRecords = async () => {
   try {
     const token = localStorage.getItem('token')
     const res = await axios.get('http://localhost:3000/api/transactions', {
+      params: {
+        page: currentPage.value,
+        pageSize: pageSize.value
+      },
       headers: { Authorization: `Bearer ${token}` }
     })
     records.value = res.data.transactions || []
+    total.value = res.data.total || 0
   } catch (error) {
     console.error('获取记录失败:', error)
   }
@@ -273,8 +303,25 @@ const fetchAccounts = async () => {
   }
 }
 
+const handleCheckAllChange = (val) => {
+  checkAll.value = val
+  selectedIds.value = val ? filteredRecords.value.map(r => r._id) : []
+  isIndeterminate.value = false
+}
+
 const handleSelectChange = () => {
-  // Checkbox change handler
+  checkAll.value = selectedIds.value.length === filteredRecords.value.length
+  isIndeterminate.value = selectedIds.value.length > 0 && selectedIds.value.length < filteredRecords.value.length
+}
+
+const handleSizeChange = (val) => {
+  pageSize.value = val
+  fetchRecords()
+}
+
+const handleCurrentChange = (val) => {
+  currentPage.value = val
+  fetchRecords()
 }
 
 const handleFileChange = (file) => {
@@ -462,6 +509,12 @@ onMounted(() => {
 
 .filter-bar {
   margin-bottom: 20px;
+}
+
+.pagination-wrapper {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
 }
 
 .transactions-list {
