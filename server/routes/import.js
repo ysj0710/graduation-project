@@ -106,6 +106,7 @@ function parseFile(content, filename) {
 router.post('/wechat', requireAuth, async (ctx) => {
   try {
     const { csvContent, xlsxContent, accountId } = ctx.request.body;
+    console.log('收到导入请求, xlsxContent:', xlsxContent ? '有内容' : '空', 'csvContent:', csvContent ? '有内容' : '空');
     const userId = new mongoose.Types.ObjectId(ctx.state.userId);
     
     if (!csvContent && !xlsxContent) {
@@ -117,10 +118,19 @@ router.post('/wechat', requireAuth, async (ctx) => {
     // 判断文件类型并解析
     let data = [];
     if (xlsxContent) {
+      console.log('开始解析xlsx...');
       const buffer = Buffer.from(xlsxContent, 'base64');
       data = parseFile(buffer, 'wechat.xlsx');
+      console.log('xlsx解析结果, data长度:', data.length);
     } else {
+      console.log('开始解析csv...');
       data = parseFile(csvContent, 'wechat.csv');
+      console.log('csv解析结果, data长度:', data.length);
+    }
+    
+    if (data.length === 0) {
+      ctx.body = { message: '成功导入 0 笔交易', count: 0 };
+      return;
     }
     
     const transactions = [];
