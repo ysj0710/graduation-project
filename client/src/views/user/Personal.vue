@@ -65,25 +65,6 @@
       </div>
     </div>
 
-    <!-- 预算提醒 -->
-    <div class="settings-section">
-      <h3>预算提醒</h3>
-      <div class="budget-setting">
-        <div class="setting-item">
-          <div class="setting-info">
-            <span class="setting-label">月度预算</span>
-            <span class="setting-desc">设置每月支出上限</span>
-          </div>
-          <el-input-number v-model="budget.monthly" :min="0" :step="500" size="large" @change="updateBudget" />
-        </div>
-        <div class="setting-item">
-          <div class="setting-info">
-            <span class="setting-label">预警阈值</span>
-            <span class="setting-desc">达到预算的{{ budget.alertThreshold }}%时提醒</span>
-          </div>
-          <el-slider v-model="budget.alertThreshold" :min="50" :max="100" :step="5" style="width: 200px" @change="updateBudget" />
-        </div>
-      </div>
     </div>
   </div>
 </template>
