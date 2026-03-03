@@ -276,7 +276,7 @@ const getCategoryIcon = (category) => {
 const fetchRecords = async () => {
   try {
     const token = localStorage.getItem('token')
-    const res = await axios.get('http://localhost:3000/api/transactions', {
+    const res = await axios.get('https://ysj0710.xyz/api/transactions', {
       params: {
         page: currentPage.value,
         pageSize: pageSize.value
@@ -293,7 +293,7 @@ const fetchRecords = async () => {
 const fetchAccounts = async () => {
   try {
     const token = localStorage.getItem('token')
-    const res = await axios.get('http://localhost:3000/api/accounts', {
+    const res = await axios.get('https://ysj0710.xyz/api/accounts', {
       headers: { Authorization: `Bearer ${token}` }
     })
     accounts.value = res.data || []
@@ -394,7 +394,7 @@ const doImport = async () => {
       ? '/api/import/wechat' 
       : '/api/import/alipay'
     
-    const res = await axios.post(`http://localhost:3000${endpoint}`, {
+    const res = await axios.post(`https://ysj0710.xyz${endpoint}`, {
       csvContent: csvContent.value || undefined,
       xlsxContent: xlsxContent.value || undefined,
       accountId: importAccountId.value || undefined
@@ -440,7 +440,7 @@ const saveEdit = async () => {
   saving.value = true
   try {
     const token = localStorage.getItem('token')
-    await axios.put(`http://localhost:3000/api/import/${editForm.value.id}`, {
+    await axios.put(`https://ysj0710.xyz/api/import/${editForm.value.id}`, {
       type: editForm.value.type,
       amount: editForm.value.amount,
       category: editForm.value.category,
@@ -469,7 +469,7 @@ const deleteRecord = async (id) => {
     })
     
     const token = localStorage.getItem('token')
-    await axios.delete(`http://localhost:3000/api/import/${id}`, {
+    await axios.delete(`https://ysj0710.xyz/api/import/${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     ElMessage.success('删除成功')
@@ -492,7 +492,7 @@ const batchDelete = async () => {
     })
     
     const token = localStorage.getItem('token')
-    await axios.post('http://localhost:3000/api/import/batch-delete', {
+    await axios.post('https://ysj0710.xyz/api/import/batch-delete', {
       ids: selectedIds.value
     }, {
       headers: { Authorization: `Bearer ${token}` }

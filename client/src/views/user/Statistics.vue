@@ -86,7 +86,7 @@ const fetchData = async () => {
     const { startDate, endDate } = getDateRange()
     
     // 获取统计数据
-    const statsRes = await axios.get('http://localhost:3000/api/transactions/statistics', {
+    const statsRes = await axios.get('https://ysj0710.xyz/api/transactions/statistics', {
       params: { startDate, endDate },
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -98,7 +98,7 @@ const fetchData = async () => {
     }
     
     // 获取每日数据（趋势图）
-    const dailyRes = await axios.get('http://localhost:3000/api/transactions/daily-stats', {
+    const dailyRes = await axios.get('https://ysj0710.xyz/api/transactions/daily-stats', {
       params: { range: timeRange.value },
       headers: { Authorization: `Bearer ${token}` }
     })

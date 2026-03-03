@@ -86,7 +86,7 @@ const formatNumber = (num) => Number(num || 0).toFixed(2).replace(/\B(?=(\d{3})+
 const fetchAccounts = async () => {
   try {
     const token = localStorage.getItem('token')
-    const res = await axios.get('http://localhost:3000/api/accounts', {
+    const res = await axios.get('https://ysj0710.xyz/api/accounts', {
       headers: { Authorization: `Bearer ${token}` }
     })
     accounts.value = res.data || []
@@ -135,10 +135,10 @@ const saveAccount = async () => {
     }
 
     if (isEdit.value) {
-      await axios.put(`http://localhost:3000/api/accounts/${editId.value}`, data, config)
+      await axios.put(`https://ysj0710.xyz/api/accounts/${editId.value}`, data, config)
       ElMessage.success('账户更新成功')
     } else {
-      await axios.post('http://localhost:3000/api/accounts', data, config)
+      await axios.post('https://ysj0710.xyz/api/accounts', data, config)
       ElMessage.success('账户添加成功')
     }
     
@@ -158,7 +158,7 @@ const deleteAccount = async (id) => {
     })
     
     const token = localStorage.getItem('token')
-    await axios.delete(`http://localhost:3000/api/accounts/${id}`, {
+    await axios.delete(`https://ysj0710.xyz/api/accounts/${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     ElMessage.success('删除成功')

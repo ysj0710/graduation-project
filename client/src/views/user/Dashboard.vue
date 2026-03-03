@@ -585,7 +585,7 @@ const fetchData = async () => {
   try {
     const token = localStorage.getItem("token");
     const res = await axios.get(
-      "http://localhost:3000/api/transactions/month-stats",
+      "https://ysj0710.xyz/api/transactions/month-stats",
       {
         headers: { Authorization: `Bearer ${token}` },
       },
@@ -612,7 +612,7 @@ const fetchData = async () => {
 
     // 获取最近交易
     const recordsRes = await axios.get(
-      "http://localhost:3000/api/transactions",
+      "https://ysj0710.xyz/api/transactions",
       {
         params: { pageSize: 10 },
         headers: { Authorization: `Bearer ${token}` },
@@ -622,7 +622,7 @@ const fetchData = async () => {
 
     // 获取分类统计
     const statsRes = await axios.get(
-      "http://localhost:3000/api/transactions/statistics",
+      "https://ysj0710.xyz/api/transactions/statistics",
       {
         params: { type: categoryType.value },
         headers: { Authorization: `Bearer ${token}` },
@@ -723,7 +723,7 @@ const renderChart = async () => {
     
     // 从 API 获取每日消费数据
     const res = await axios.get(
-      `http://localhost:3000/api/transactions/daily-stats?range=${range}`,
+      `https://ysj0710.xyz/api/transactions/daily-stats?range=${range}`,
       {
         headers: { Authorization: `Bearer ${token}` },
       }

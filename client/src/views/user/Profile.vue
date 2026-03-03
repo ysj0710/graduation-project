@@ -238,7 +238,7 @@ const sendVerifyCode = async () => {
   
   sendCodeLoading.value = true
   try {
-    await axios.post('http://localhost:3000/api/auth/send-sensitive-code', {
+    await axios.post('https://ysj0710.xyz/api/auth/send-sensitive-code', {
       email: verifyForm.email,
       purpose: verifyPurpose.value
     })
@@ -269,7 +269,7 @@ const handleVerify = async () => {
   verifyLoading.value = true
   try {
     // 先验证验证码
-    await axios.post('http://localhost:3000/api/auth/verify-sensitive-code', {
+    await axios.post('https://ysj0710.xyz/api/auth/verify-sensitive-code', {
       email: verifyForm.email,
       code: verifyForm.code,
       purpose: verifyPurpose.value
@@ -283,7 +283,7 @@ const handleVerify = async () => {
         return
       }
       const token = localStorage.getItem('token')
-      await axios.post('http://localhost:3000/api/auth/change-password', {
+      await axios.post('https://ysj0710.xyz/api/auth/change-password', {
         password: verifyForm.newPassword
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -299,7 +299,7 @@ const handleVerify = async () => {
       )
       
       const token = localStorage.getItem('token')
-      await axios.delete('http://localhost:3000/api/auth/account', {
+      await axios.delete('https://ysj0710.xyz/api/auth/account', {
         headers: { Authorization: `Bearer ${token}` }
       })
       ElMessage.success('账号已注销')

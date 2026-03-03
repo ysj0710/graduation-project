@@ -168,7 +168,7 @@ router.get('/statistics', async (ctx) => {
     const userId = ctx.state.userId;
     const { startDate, endDate, type } = ctx.query;
     
-    const match = { userId };
+    const match = { userId: new mongoose.Types.ObjectId(userId) };
     if (type) {
       match.type = type;
     }

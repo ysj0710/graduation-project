@@ -252,7 +252,7 @@ const fetchData = async () => {
     const { startDate, endDate } = getTimeRange()
     
     // 获取支出数据
-    const res = await axios.get('http://localhost:3000/api/transactions', {
+    const res = await axios.get('https://ysj0710.xyz/api/transactions', {
       params: {
         page: 1,
         pageSize: 10000,
@@ -269,7 +269,7 @@ const fetchData = async () => {
     avgExpense.value = records.value.length > 0 ? totalExpense.value / records.value.length : 0
     
     // 获取收入数据（用于恩格尔系数）
-    const incomeRes = await axios.get('http://localhost:3000/api/transactions', {
+    const incomeRes = await axios.get('https://ysj0710.xyz/api/transactions', {
       params: {
         page: 1,
         pageSize: 10000,
@@ -286,7 +286,7 @@ const fetchData = async () => {
     // 获取最近6个月的所有数据（用于月度对比）
     const now = new Date()
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1)
-    const allRes = await axios.get('http://localhost:3000/api/transactions', {
+    const allRes = await axios.get('https://ysj0710.xyz/api/transactions', {
       params: {
         page: 1,
         pageSize: 10000,
