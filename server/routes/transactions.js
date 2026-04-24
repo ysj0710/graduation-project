@@ -105,6 +105,11 @@ router.post('/', async (ctx) => {
     
     await transaction.save();
     
+    // 如果是支出，检查预算预警
+    if (type === 'expense') {
+      await checkAndCreateBudgetAlert(userId);
+    }
+    
     ctx.status = 201;
     ctx.body = { message: '记账成功', transaction };
   } catch (error) {
@@ -112,6 +117,78 @@ router.post('/', async (ctx) => {
     ctx.body = { message: '记账失败', error: error.message };
   }
 });
+
+// 检查并创建预算预警
+async function checkAndCreateBudgetAlert(userId) {
+  try {
+    const UserConfig = require('../models/UserConfig');
+    const Notification = require('../models/Notification');
+    
+    // 获取用户配置
+    const config = await UserConfig.findOne({ userId });
+    if (!config || !config.notification?.budgetAlert) {
+      return;
+    }
+    
+    const budget = config.budget?.monthly || 5000;
+    const threshold = config.budget?.alertThreshold || 80;
+    
+    // 获取本月支出
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const expenseResult = await Transaction.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId),
+          type: 'expense',
+          date: { $gte: startOfMonth }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' }
+        }
+      }
+    ]);
+    
+    const spent = expenseResult[0]?.total || 0;
+    const usageRate = (spent / budget * 100);
+    
+    // 检查是否超过预警阈值
+    if (usageRate >= threshold) {
+      // 检查今天是否已经发送过预警
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const existingAlert = await Notification.findOne({
+        userId: new mongoose.Types.ObjectId(userId),
+        type: 'budget_alert',
+        createdAt: { $gte: today }
+      });
+      
+      if (!existingAlert) {
+        // 创建预警通知
+        const notification = new Notification({
+          userId: new mongoose.Types.ObjectId(userId),
+          type: 'budget_alert',
+          title: '预算预警提醒',
+          content: `您本月的支出已达到预算的 ${usageRate.toFixed(1)}%（¥${spent.toFixed(2)} / ¥${budget.toFixed(2)}），请注意控制消费。`,
+          data: {
+            budget,
+            spent,
+            usageRate: usageRate.toFixed(2)
+          }
+        });
+        
+        await notification.save();
+      }
+    }
+  } catch (error) {
+    console.error('检查预算预警失败:', error);
+  }
+}
 
 // 更新记账
 router.put('/:id', async (ctx) => {

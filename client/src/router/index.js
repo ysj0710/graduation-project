@@ -7,6 +7,7 @@ import Transactions from '../views/user/Transactions.vue'
 import Statistics from '../views/user/Statistics.vue'
 import Personal from '../views/user/Personal.vue'
 import Profile from '../views/user/Profile.vue'
+import Notifications from '../views/user/Notifications.vue'
 
 // 管理员端页面
 import AdminLayout from '../views/admin/AdminLayout.vue'
@@ -112,6 +113,13 @@ const routes = [
     component: Profile,
     beforeEnter: requireAuth,
     meta: { title: '个人中心' }
+  },
+  {
+    path: '/notifications',
+    name: 'Notifications',
+    component: Notifications,
+    beforeEnter: requireAuth,
+    meta: { title: '消息中心' }
   },
   // 管理员端路由
   {

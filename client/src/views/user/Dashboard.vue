@@ -22,6 +22,9 @@
         >
           <span class="nav-icon">{{ item.icon }}</span>
           <span class="nav-label">{{ item.label }}</span>
+          <span v-if="item.id === 'notifications' && unreadCount > 0" class="nav-badge">
+            {{ unreadCount }}
+          </span>
         </div>
       </nav>
 
@@ -61,42 +64,114 @@
 
       <!-- 首页内容 -->
       <div v-show="!showContent">
+      <!-- 统计卡片 - 升级版 -->
       <div class="stats-grid">
         <div class="stat-card expense-card">
-          <div class="stat-header">
-            <span class="stat-label">本月支出</span>
-            <span class="stat-trend" :class="expenseChange > 0 ? 'up' : (expenseChange < 0 ? 'down' : '')">
-              {{ expenseChange !== null ? (expenseChange > 0 ? '↑' : (expenseChange < 0 ? '↓' : '-')) : '--' }} {{ expenseChange !== null ? Math.abs(expenseChange) + '%' : '' }}
-            </span>
-          </div>
-          <div class="stat-amount">¥{{ formatNumber(statistics.expense) }}</div>
-          <div class="stat-budget">
-            预算剩余 ¥{{ formatNumber(budgetRemaining) }}
+          <div class="stat-card-bg"></div>
+          <div class="stat-card-content">
+            <div class="stat-icon expense-icon">
+              <span class="icon-text">💳</span>
+            </div>
+            <div class="stat-info">
+              <div class="stat-header">
+                <span class="stat-label">本月支出</span>
+                <span class="stat-trend" :class="expenseChange > 0 ? 'up' : (expenseChange < 0 ? 'down' : '')">
+                  {{ expenseChange !== null ? (expenseChange > 0 ? '↑' : (expenseChange < 0 ? '↓' : '-')) : '--' }} {{ expenseChange !== null ? Math.abs(expenseChange) + '%' : '' }}
+                </span>
+              </div>
+              <div class="stat-amount expense-amount">¥{{ formatNumber(statistics.expense) }}</div>
+              <div class="stat-budget-bar">
+                <div class="budget-progress">
+                  <div class="budget-fill" :style="{ width: budgetUsagePercent + '%' }"></div>
+                </div>
+                <span class="budget-text">预算已用 {{ budgetUsagePercent }}%</span>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="stat-card income-card">
-          <div class="stat-header">
-            <span class="stat-label">本月收入</span>
-            <span class="stat-trend" :class="incomeChange > 0 ? 'up' : (incomeChange < 0 ? 'down' : '')">
-              {{ incomeChange !== null ? (incomeChange > 0 ? '↑' : (incomeChange < 0 ? '↓' : '-')) : '--' }} {{ incomeChange !== null ? Math.abs(incomeChange) + '%' : '' }}
-            </span>
-          </div>
-          <div class="stat-amount income">
-            ¥{{ formatNumber(statistics.income) }}
-          </div>
-          <div class="stat-budget">
-            较上月 {{ incomeChange !== null ? (incomeChange >= 0 ? '+' : '') + incomeChange + '%' : '--' }}
+          <div class="stat-card-bg"></div>
+          <div class="stat-card-content">
+            <div class="stat-icon income-icon">
+              <span class="icon-text">💰</span>
+            </div>
+            <div class="stat-info">
+              <div class="stat-header">
+                <span class="stat-label">本月收入</span>
+                <span class="stat-trend" :class="incomeChange > 0 ? 'up' : (incomeChange < 0 ? 'down' : '')">
+                  {{ incomeChange !== null ? (incomeChange > 0 ? '↑' : (incomeChange < 0 ? '↓' : '-')) : '--' }} {{ incomeChange !== null ? Math.abs(incomeChange) + '%' : '' }}
+                </span>
+              </div>
+              <div class="stat-amount income-amount">¥{{ formatNumber(statistics.income) }}</div>
+              <div class="stat-budget-bar">
+                <span class="budget-text income-text">较上月 {{ incomeChange !== null ? (incomeChange >= 0 ? '+' : '') + incomeChange + '%' : '--' }}</span>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="stat-card balance-card">
-          <div class="stat-header">
-            <span class="stat-label">本月结余</span>
-            <span class="stat-badge">健康</span>
+          <div class="stat-card-bg"></div>
+          <div class="stat-card-content">
+            <div class="stat-icon balance-icon">
+              <span class="icon-text">📊</span>
+            </div>
+            <div class="stat-info">
+              <div class="stat-header">
+                <span class="stat-label">本月结余</span>
+                <span class="stat-badge" :class="statistics.balance >= 0 ? 'positive' : 'negative'">{{ statistics.balance >= 0 ? '健康' : '超支' }}</span>
+              </div>
+              <div class="stat-amount balance-amount">¥{{ formatNumber(statistics.balance) }}</div>
+              <div class="stat-budget-bar">
+                <div class="budget-progress">
+                  <div class="budget-fill savings" :style="{ width: Math.min(savingsRate, 100) + '%' }"></div>
+                </div>
+                <span class="budget-text">储蓄率 {{ savingsRate }}%</span>
+              </div>
+            </div>
           </div>
-          <div class="stat-amount balance">¥{{ formatNumber(statistics.balance) }}</div>
-          <div class="stat-budget">储蓄率 {{ savingsRate }}%</div>
+        </div>
+      </div>
+
+      <!-- 消费热力图 -->
+      <div class="heatmap-card ios-card" v-if="dailyExpenseData.length > 0">
+        <div class="card-header">
+          <h3>🗓️ 消费热力图</h3>
+          <div class="heatmap-controls">
+            <el-button size="small" circle @click="prevMonth" :icon="ArrowLeftBold" />
+            <span class="heatmap-month">{{ heatmapYear }}年{{ heatmapMonth }}月</span>
+            <el-button size="small" circle @click="nextMonth" :icon="ArrowRightBold" />
+          </div>
+          <div class="heatmap-legend">
+            <span>少</span>
+            <div class="legend-bar">
+              <div class="legend-cell" style="background: #E8F5E9"></div>
+              <div class="legend-cell" style="background: #A5D6A7"></div>
+              <div class="legend-cell" style="background: #66BB6A"></div>
+              <div class="legend-cell" style="background: #2E7D32"></div>
+              <div class="legend-cell" style="background: #1B5E20"></div>
+            </div>
+            <span>多</span>
+          </div>
+        </div>
+        <div class="heatmap-grid">
+          <div class="heatmap-weekday">日</div>
+          <div class="heatmap-weekday">一</div>
+          <div class="heatmap-weekday">二</div>
+          <div class="heatmap-weekday">三</div>
+          <div class="heatmap-weekday">四</div>
+          <div class="heatmap-weekday">五</div>
+          <div class="heatmap-weekday">六</div>
+          <div
+            v-for="cell in heatmapCells"
+            :key="cell.date"
+            class="heatmap-cell"
+            :class="cell.class"
+            :title="cell.date + ': ¥' + cell.amount"
+          >
+            <span class="cell-day">{{ cell.day }}</span>
+          </div>
         </div>
       </div>
 
@@ -373,6 +448,7 @@ import { ref, computed, onMounted, nextTick, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useUserStore } from "../../stores/user";
 import { Search, Bell } from "@element-plus/icons-vue";
+import { ArrowLeftBold, ArrowRightBold } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
 import axios from "axios";
 
@@ -382,6 +458,7 @@ import Statistics from "./Statistics.vue";
 import ConsumptionAnalysis from "./ConsumptionAnalysis.vue";
 import Personal from "./Personal.vue";
 import Profile from "./Profile.vue";
+import Notifications from "./Notifications.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -398,6 +475,7 @@ const pageTitle = computed(() => {
     consumption: "消费分析",
     personal: "个性设置",
     profile: "个人中心",
+    notifications: "消息中心",
   };
   return titles[currentView.value] || "总览";
 });
@@ -408,6 +486,7 @@ const navItems = [
   { id: "statistics", icon: "📊", label: "统计分析" },
   { id: "consumption", icon: "📈", label: "消费分析" },
   { id: "personal", icon: "🎨", label: "个性设置" },
+  { id: "notifications", icon: "🔔", label: "消息中心" },
 ];
 
 // 组件映射
@@ -418,6 +497,7 @@ const components = {
   consumption: ConsumptionAnalysis,
   personal: Personal,
   profile: Profile,
+  notifications: Notifications,
 };
 
 const currentComponent = computed(() => components[currentView.value]);
@@ -435,15 +515,121 @@ const showAddSheet = ref(false);
 const trendChartRef = ref(null);
 const categoryPieRef = ref(null);
 
+// 热力图当前选中的年月
+const now = new Date();
+const heatmapYear = ref(now.getFullYear());
+const heatmapMonth = ref(now.getMonth() + 1);
+
 const statistics = ref({ income: 0, expense: 0, balance: 0 });
 const budgetRemaining = ref(5000);
 const incomeChange = ref(0);
 const savingsRate = ref(49.7);
 const expenseChange = ref(0);
 const recentRecords = ref([]);
+const dailyExpenseData = ref([]);
 const categoryType = ref('expense');
 const categoryList = ref([]);
 let categoryPieChart = null;
+
+// 预算使用百分比
+const budgetUsagePercent = computed(() => {
+  const budget = userStore.budget.monthly || 0;
+  if (budget === 0) return 0;
+  return Math.min(Math.round((statistics.value.expense / budget) * 100), 100);
+});
+
+// 热力图数据
+const heatmapCells = computed(() => {
+  const year = heatmapYear.value;
+  const month = heatmapMonth.value - 1; // 0-indexed
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // 计算每日最大支出用于颜色分级
+  const maxDaily = Math.max(...dailyExpenseData.value.map(d => d.amount), 1);
+
+  const cells = [];
+
+  // 获取该月1号是周几
+  const firstDay = new Date(year, month, 1).getDay();
+
+  // 填充空白（该月1号之前的空白格）
+  for (let i = 0; i < firstDay; i++) {
+    cells.push({ date: '', day: '', amount: 0, class: 'empty' });
+  }
+
+  // 填充该月每一天
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const daily = dailyExpenseData.value.find(d => d.date === dateStr);
+    const amount = daily?.amount || 0;
+
+    // 根据支出金额分级
+    let colorClass = 'low';
+    if (amount === 0) {
+      colorClass = 'zero';
+    } else if (amount / maxDaily > 0.75) {
+      colorClass = 'high';
+    } else if (amount / maxDaily > 0.5) {
+      colorClass = 'medium-high';
+    } else if (amount / maxDaily > 0.25) {
+      colorClass = 'medium';
+    } else {
+      colorClass = 'low';
+    }
+
+    cells.push({
+      date: dateStr,
+      day: day,
+      amount: Math.round(amount * 100) / 100,
+      class: colorClass
+    });
+  }
+
+  return cells;
+});
+
+// 切换月份
+const prevMonth = () => {
+  heatmapMonth.value--;
+  if (heatmapMonth.value < 1) {
+    heatmapMonth.value = 12;
+    heatmapYear.value--;
+  }
+  fetchHeatmapData();
+};
+
+const nextMonth = () => {
+  const now = new Date();
+  if (heatmapYear.value === now.getFullYear() && heatmapMonth.value === now.getMonth() + 1) return; // 不能超过当前月
+  heatmapMonth.value++;
+  if (heatmapMonth.value > 12) {
+    heatmapMonth.value = 1;
+    heatmapYear.value++;
+  }
+  fetchHeatmapData();
+};
+
+// 获取指定月份的热力图数据
+const fetchHeatmapData = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    const year = heatmapYear.value;
+    const month = heatmapMonth.value;
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
+
+    const res = await axios.get(
+      `https://ysj0710.xyz/api/transactions/daily-stats`,
+      {
+        params: { startDate, endDate },
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    dailyExpenseData.value = res.data || [];
+  } catch (error) {
+    console.error('获取热力图数据失败:', error);
+  }
+};
 
 const record = ref({
   type: "expense",
@@ -520,6 +706,22 @@ const getCategoryIcon = (category) => {
     其他收入: "💵",
   };
   return icons[category] || "💰";
+};
+
+// 未读消息数量
+const unreadCount = ref(0);
+
+// 获取未读消息数量
+const fetchUnreadCount = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    const res = await axios.get('/api/notifications/unread-count', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    unreadCount.value = res.data.count || 0;
+  } catch (error) {
+    console.error('获取未读数量失败:', error);
+  }
 };
 
 const navigate = (item) => {
@@ -639,6 +841,16 @@ const fetchData = async () => {
       icon: getCategoryIcon(cat.category),
       color: categoryType.value === 'expense' ? "#FF3B30" : "#34C759",
     }));
+
+    // 获取本月每日支出数据（用于热力图）
+    const dailyRes = await axios.get(
+      "https://ysj0710.xyz/api/transactions/daily-stats",
+      {
+        params: { range: 'month' },
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    dailyExpenseData.value = dailyRes.data || [];
     
     // 渲染饼图
     await nextTick();
@@ -673,26 +885,31 @@ const renderCategoryPie = () => {
   categoryPieChart.setOption({
     tooltip: {
       trigger: 'item',
-      formatter: '{b}: ¥{c} ({d}%)'
+      formatter: '{b}: ¥{c} ({d}%)',
+      backgroundColor: 'rgba(255,255,255,0.95)',
+      borderColor: '#eee',
+      borderWidth: 1,
+      textStyle: { color: '#333', fontSize: 13 }
     },
     legend: {
       orient: 'vertical',
-      right: 10,
+      right: '5%',
       top: 'center',
-      textStyle: {
-        fontSize: 12
-      }
+      textStyle: { fontSize: 12, color: '#666' },
+      itemWidth: 12,
+      itemHeight: 12,
+      itemGap: 10
     },
     series: [
       {
         type: 'pie',
-        radius: ['40%', '70%'],
-        center: ['35%', '50%'],
+        radius: ['45%', '75%'],
+        center: ['38%', '50%'],
         avoidLabelOverlap: false,
         itemStyle: {
-          borderRadius: 6,
+          borderRadius: 8,
           borderColor: '#fff',
-          borderWidth: 2
+          borderWidth: 3
         },
         label: {
           show: false
@@ -700,15 +917,19 @@ const renderCategoryPie = () => {
         emphasis: {
           label: {
             show: true,
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: 'bold'
-          }
+          },
+          scaleSize: 8
         },
         labelLine: {
           show: false
         },
         data: chartData,
-        color: colors
+        color: colors,
+        animationType: 'scale',
+        animationEasing: 'elasticOut',
+        animationDelay: (idx) => idx * 80
       }
     ]
   });
@@ -766,24 +987,68 @@ const renderChart = async () => {
     const chart = echarts.init(trendChartRef.value);
 
     chart.setOption({
-      tooltip: { trigger: "axis" },
-      grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
+      tooltip: {
+        trigger: "axis",
+        backgroundColor: "rgba(255,255,255,0.95)",
+        borderColor: "#eee",
+        borderWidth: 1,
+        textStyle: { color: "#333", fontSize: 13 },
+        formatter: params => {
+          const val = params[0]?.value || 0;
+          return `${params[0]?.axisValue}<br/><b>支出: ¥${formatNumber(val)}</b>`;
+        }
+      },
+      grid: { left: "3%", right: "4%", bottom: "3%", top: "8%", containLabel: true },
       xAxis: {
         type: "category",
         data: days,
-        axisLabel: { fontSize: 10 },
+        axisLabel: { fontSize: 11, color: "#8E8E93" },
+        axisLine: { lineStyle: { color: "#E5E5EA" } },
+        axisTick: { show: false }
       },
-      yAxis: { type: "value" },
+      yAxis: {
+        type: "value",
+        axisLabel: {
+          fontSize: 11,
+          color: "#8E8E93",
+          formatter: val => val >= 1000 ? `¥${(val / 1000).toFixed(1)}k` : `¥${val}`
+        },
+        splitLine: { lineStyle: { color: "#F0F0F5", type: "dashed" } },
+        axisLine: { show: false },
+        axisTick: { show: false }
+      },
       series: [
         {
           type: "bar",
           data: chartData,
+          barWidth: "55%",
           itemStyle: {
-            color: "#007AFF",
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: "#FF6B6B" },
+              { offset: 0.5, color: "#FF3B30" },
+              { offset: 1, color: "#E84545" }
+            ]),
+            borderRadius: [6, 6, 0, 0]
           },
-          barWidth: "60%",
-        },
-      ],
+          emphasis: {
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: "#FF8E8E" },
+                { offset: 1, color: "#FF6B6B" }
+              ]),
+              shadowBlur: 10,
+              shadowColor: "rgba(255, 59, 48, 0.3)"
+            }
+          },
+          showBackground: true,
+          backgroundStyle: {
+            color: "#F5F5F7",
+            borderRadius: [6, 6, 0, 0]
+          },
+          animationDuration: 1000,
+          animationEasing: "cubicOut"
+        }
+      ]
     });
   } catch (error) {
     console.error("获取图表数据失败:", error);
@@ -793,6 +1058,10 @@ const renderChart = async () => {
 onMounted(() => {
   userStore.fetchProfile();
   fetchData();
+  fetchUnreadCount();
+  
+  // 每30秒刷新一次未读消息数量
+  setInterval(fetchUnreadCount, 30000);
 });
 
 // 监听页面切换，切换回总览时重新加载数据
@@ -896,6 +1165,20 @@ watch(
   font-weight: 500;
 }
 
+.nav-badge {
+  margin-left: auto;
+  font-size: 11px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #FF3B30;
+  color: white;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .sidebar-footer {
   padding: 20px;
   border-top: 1px solid #e5e5ea;
@@ -972,7 +1255,7 @@ watch(
   overflow-y: auto;
 }
 
-/* 统计卡片 */
+/* 统计卡片 - 升级版 */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -981,60 +1264,162 @@ watch(
 }
 
 .stat-card {
-  background: white;
+  position: relative;
   border-radius: 20px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s, box-shadow 0.3s;
+  min-height: 160px;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0.95;
+  z-index: 0;
+}
+
+.expense-card .stat-card-bg {
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF3B30 50%, #E84545 100%);
+}
+
+.income-card .stat-card-bg {
+  background: linear-gradient(135deg, #50C878 0%, #34C759 50%, #28A745 100%);
+}
+
+.balance-card .stat-card-bg {
+  background: linear-gradient(135deg, #6C8FFF 0%, #007AFF 50%, #0056D6 100%);
+}
+
+.stat-card-content {
+  position: relative;
+  z-index: 1;
   padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+}
+
+.icon-text {
+  font-size: 28px;
+}
+
+.stat-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .stat-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .stat-label {
-  font-size: 14px;
-  color: #8e8e93;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
 }
 
 .stat-trend {
   font-size: 12px;
   font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .stat-trend.up {
-  color: #34c759;
+  color: #FFEB3B;
+}
+
+.stat-trend.down {
+  color: #C8E6C9;
 }
 
 .stat-amount {
-  font-size: 32px;
-  font-weight: 700;
-  color: #ff3b30;
+  font-size: 30px;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 12px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.stat-amount.income {
-  color: #34c759;
+.expense-amount { color: #FFFFFF; }
+.income-amount { color: #FFFFFF; }
+.balance-amount { color: #FFFFFF; }
+
+.stat-budget-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.stat-amount.balance {
-  color: #007aff;
+.budget-progress {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
-.stat-budget {
-  font-size: 13px;
-  color: #8e8e93;
-  margin-top: 8px;
+.budget-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FFE066 0%, #FFD93D 50%, #FFC107 100%);
+  border-radius: 3px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
+}
+
+.budget-fill.savings {
+  background: linear-gradient(90deg, #C8E6C9 0%, #81C784 50%, #4CAF50 100%);
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+}
+
+.budget-text {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
 }
 
 .stat-badge {
-  background: #34c75915;
-  color: #34c759;
-  padding: 4px 10px;
+  padding: 3px 10px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+}
+
+.stat-badge.positive {
+  background: rgba(200, 230, 201, 0.3);
+  color: #E8F5E9;
+}
+
+.stat-badge.negative {
+  background: rgba(255, 205, 210, 0.3);
+  color: #FFE0E0;
 }
 
 /* 内容区 */
@@ -1075,6 +1460,111 @@ watch(
   font-weight: 600;
   color: #000;
   margin: 0;
+}
+
+/* 热力图 */
+.heatmap-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.heatmap-month {
+  font-size: 14px;
+  font-weight: 600;
+  color: #000;
+  min-width: 100px;
+  text-align: center;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #8E8E93;
+}
+
+.legend-bar {
+  display: flex;
+  gap: 3px;
+}
+
+.legend-cell {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.heatmap-weekday {
+  text-align: center;
+  font-size: 12px;
+  color: #8E8E93;
+  font-weight: 500;
+  padding-bottom: 4px;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  color: #fff;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.heatmap-cell.empty {
+  background: transparent;
+  cursor: default;
+}
+
+.heatmap-cell.empty:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.heatmap-cell.zero {
+  background: #F5F5F7;
+  color: #C7C7CC;
+}
+
+.heatmap-cell.low {
+  background: #E8F5E9;
+  color: #2E7D32;
+}
+
+.heatmap-cell.medium {
+  background: #A5D6A7;
+  color: #1B5E20;
+}
+
+.heatmap-cell.medium-high {
+  background: #66BB6A;
+  color: #fff;
+}
+
+.heatmap-cell.high {
+  background: #1B5E20;
+  color: #fff;
+}
+
+.cell-day {
+  font-size: 11px;
 }
 
 .chart-container {
