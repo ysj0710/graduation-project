@@ -27,6 +27,7 @@ import CategoryManage from '../views/admin/CategoryManage.vue'
 import MessageTemplate from '../views/admin/MessageTemplate.vue'
 import OperationLog from '../views/admin/OperationLog.vue'
 import NotificationCenter from '../views/admin/NotificationCenter.vue'
+import SendNotification from '../views/admin/SendNotification.vue'
 
 const requireAuth = (to, from, next) => {
   const token = localStorage.getItem('token')
@@ -147,7 +148,8 @@ const routes = [
       { path: 'settings-category', name: 'CategoryManage', component: CategoryManage, meta: { title: '分类管理' } },
       { path: 'settings-message', name: 'MessageTemplate', component: MessageTemplate, meta: { title: '消息模板' } },
       { path: 'settings-log', name: 'OperationLog', component: OperationLog, meta: { title: '操作日志' } },
-      { path: 'notifications', name: 'NotificationCenter', component: NotificationCenter, meta: { title: '消息中心' } }
+      { path: 'notifications', name: 'NotificationCenter', component: NotificationCenter, meta: { title: '消息中心' } },
+      { path: 'send-notification', name: 'SendNotification', component: SendNotification, meta: { title: '发送通知' } }
     ]
   }
 ]
