@@ -9,6 +9,8 @@ const transactionRouter = require('./routes/transactions');
 const accountRouter = require('./routes/accounts');
 const importRouter = require('./routes/import');
 const notificationRouter = require('./routes/notifications');
+const userRouter = require('./routes/user');
+const { startScheduler } = require('./scheduler');
 
 const app = new Koa();
 const router = new Router();
@@ -19,6 +21,7 @@ const MONGO_URI = 'mongodb://127.0.0.1:27017/finance_db';
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB 连接成功');
+    startScheduler(); // 启动自动预算提醒定时任务
   })
   .catch(err => {
     console.error('❌ MongoDB 连接失败:', err);
@@ -42,6 +45,7 @@ router.use('/api/transactions', transactionRouter.routes(), transactionRouter.al
 router.use('/api/accounts', accountRouter.routes(), accountRouter.allowedMethods());
 router.use('/api/import', importRouter.routes(), importRouter.allowedMethods());
 router.use('/api/notifications', notificationRouter.routes(), notificationRouter.allowedMethods());
+router.use('/api/user', userRouter.routes(), userRouter.allowedMethods());
 
 app.use(router.routes());
 app.use(router.allowedMethods());

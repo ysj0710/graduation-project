@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xxd)",
+      "Bash(sed -i '' 's|<h3>📤 数据导出</h3>|<h3>数据导出</h3>|' ExportCenter.vue)",
+      "Bash(sed -i '' 's|<h3>🔔 消息中心</h3>|<h3>消息中心</h3>|' NotificationCenter.vue)",
+      "Bash(sed -i '' 's|<h3>📊 每日消费柱状图</h3>|<h3>每日消费柱状图</h3>|' FinanceStats.vue)",
+      "Bash(sed -i '' 's|<h3>📁 分类支出明细</h3>|<h3>分类支出明细</h3>|' FinanceStats.vue)",
+      "Bash(sed -i '' 's|<h3>📝 消息模板设置</h3>|<h3>消息模板设置</h3>|' MessageTemplate.vue)",
+      "Bash(npx vite *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(grep -E \"\\\\.\\(js|ts|vue\\)$\")",
+      "Bash(npm start *)",
+      "Bash(lsof -ti:3000)",
+      "Bash(xargs kill *)",
+      "Bash(curl -s http://localhost:3000/api/auth/system-info)",
+      "Bash(node --check app.js)",
+      "Bash(node -e \"require\\('./routes/auth.js'\\); console.log\\('auth OK'\\)\")",
+      "Bash(node -e \"require\\('./routes/admin.js'\\); console.log\\('admin OK'\\)\")",
+      "Bash(node -e \"require\\('./routes/user.js'\\); console.log\\('user OK'\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(brew install *)",
+      "Bash(pip3 install *)",
+      "Bash(curl -sL \"https://minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com/ccv2%2F2026-04-25%2FMiniMax-M2.7%2F2021228959408070944%2Ff1a9d372f8a9c81697cbfb7efbe0bdfbb4e4974dfd36eee7403bec8ea5c7d5b2..png?Expires=1777206130&OSSAccessKeyId=LTAI5tGLnRTkBjLuYPjNcKQ8&Signature=dXLbFbGlxKTXsVEISxxdJK15i2E%3D\" -o /tmp/img1.png)"
+    ]
+  }
+}

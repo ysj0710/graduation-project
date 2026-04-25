@@ -36,9 +36,12 @@ export const useUserStore = defineStore('user', {
     let savedTheme = {
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
       primaryColor: '#667eea',
-      glassBlur: 20
+      glassBlur: 20,
+      pattern: 'dots',
+      presetId: 'aurora',
+      customBgUrl: ''
     }
-    
+
     try {
       const localTheme = localStorage.getItem('user_theme')
       if (localTheme) {
@@ -63,21 +66,22 @@ export const useUserStore = defineStore('user', {
       },
       categories: {
         income: [
-          { id: 'salary', name: '工资', icon: '💰', color: '#34C759' },
-          { id: 'bonus', name: '奖金', icon: '🎁', color: '#34C759' },
-          { id: 'investment', name: '理财', icon: '📈', color: '#34C759' },
-          { id: 'parttime', name: '兼职', icon: '💼', color: '#34C759' },
-          { id: 'other_income', name: '其他', icon: '💵', color: '#34C759' }
+          { id: 'salary', name: '工资', color: '#34C759' },
+          { id: 'bonus', name: '奖金', color: '#34C759' },
+          { id: 'investment', name: '理财', color: '#34C759' },
+          { id: 'parttime', name: '兼职', color: '#34C759' },
+          { id: 'other_income', name: '其他', color: '#34C759' }
         ],
         expense: [
-          { id: 'food', name: '餐饮', icon: '🍜', color: '#FF3B30' },
-          { id: 'transport', name: '交通', icon: '🚗', color: '#FF9500' },
-          { id: 'shopping', name: '购物', icon: '🛍️', color: '#007AFF' },
-          { id: 'entertainment', name: '娱乐', icon: '🎮', color: '#AF52DE' },
-          { id: 'housing', name: '住房', icon: '🏠', color: '#34C759' },
-          { id: 'medical', name: '医疗', icon: '💊', color: '#FF2D55' },
-          { id: 'education', name: '教育', icon: '📚', color: '#5856D6' },
-          { id: 'other_expense', name: '其他', icon: '📦', color: '#8E8E93' }
+          { id: 'food', name: '餐饮', color: '#FF3B30' },
+          { id: 'transport', name: '交通', color: '#FF9500' },
+          { id: 'shopping', name: '购物', color: '#007AFF' },
+          { id: 'entertainment', name: '娱乐', color: '#AF52DE' },
+          { id: 'housing', name: '住房', color: '#34C759' },
+          { id: 'medical', name: '医疗', color: '#FF2D55' },
+          { id: 'education', name: '教育', color: '#5856D6' },
+          { id: 'phone', name: '通讯', color: '#F59E0B' },
+          { id: 'other_expense', name: '其他', color: '#8E8E93' }
         ]
       }
     }
@@ -86,18 +90,54 @@ export const useUserStore = defineStore('user', {
   actions: {
     async fetchProfile() {
       try {
-        const userStr = localStorage.getItem('user')
-        if (userStr) {
-          const user = JSON.parse(userStr)
-          this.profile = {
-            id: user._id || user.id,
-            username: user.username,
-            nickname: user.nickname || user.username,
-            email: user.email
-          }
+        // 先从API获取最新数据
+        const response = await api.get('/auth/me')
+        const userData = response.data.user
+
+        // 保存到本地存储
+        localStorage.setItem('user', JSON.stringify(userData))
+
+        // 更新store状态
+        this.profile = {
+          id: userData._id || userData.id,
+          username: userData.username,
+          nickname: userData.nickname || userData.username,
+          avatar: userData.avatar || '',
+          email: userData.email
         }
       } catch (error) {
-        console.error('Failed to fetch profile:', error)
+        // 如果API失败，尝试从本地存储加载
+        console.error('Failed to fetch profile from API:', error)
+        try {
+          const userStr = localStorage.getItem('user')
+          if (userStr) {
+            const user = JSON.parse(userStr)
+            this.profile = {
+              id: user._id || user.id,
+              username: user.username,
+              nickname: user.nickname || user.username,
+              avatar: user.avatar || '',
+              email: user.email
+            }
+          }
+        } catch (e) {
+          console.error('Failed to load profile from localStorage:', e)
+        }
+      }
+    },
+
+    async fetchCategories() {
+      try {
+        const response = await api.get('/admin/categories')
+        const cats = response.data.categories || []
+        this.categories.expense = cats
+          .filter(c => c.type === 'expense')
+          .map(c => ({ id: c.iconId || c.name, name: c.name, color: c.color }))
+        this.categories.income = cats
+          .filter(c => c.type === 'income')
+          .map(c => ({ id: c.iconId || c.name, name: c.name, color: c.color }))
+      } catch (error) {
+        // ignore - use defaults
       }
     },
 
@@ -109,6 +149,21 @@ export const useUserStore = defineStore('user', {
     updateTheme(theme) {
       this.theme = { ...this.theme, ...theme }
       localStorage.setItem('user_theme', JSON.stringify(this.theme))
+    },
+
+    // 从API加载主题设置
+    applyThemeSettings(settings) {
+      const theme = settings.theme || {}
+      const fullTheme = {
+        background: theme.background || 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+        primaryColor: theme.primaryColor || '#667eea',
+        glassBlur: theme.glassBlur || 20,
+        pattern: theme.pattern || 'dots',
+        presetId: theme.presetId || 'aurora',
+        customBgUrl: theme.customBgUrl || ''
+      }
+      this.theme = fullTheme
+      localStorage.setItem('user_theme', JSON.stringify(fullTheme))
     },
 
     updateBudget(budget) {

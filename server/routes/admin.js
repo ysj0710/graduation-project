@@ -5,6 +5,10 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const UserConfig = require('../models/UserConfig');
 const Notification = require('../models/Notification');
+const SystemSettings = require('../models/SystemSettings');
+const Category = require('../models/Category');
+const MessageTemplate = require('../models/MessageTemplate');
+const OperationLog = require('../models/OperationLog');
 const { JWT_SECRET } = require('../middleware/jwt');
 const { 
   calculateRiskFactors, 
@@ -105,42 +109,70 @@ router.get('/dashboard-stats', async (ctx) => {
 // 获取消费趋势数据（用于图表）
 router.get('/trend-data', async (ctx) => {
   try {
-    const { months = 6 } = ctx.query;
+    const { months = 6, year } = ctx.query;
     const now = new Date();
+    const targetYear = year ? parseInt(year) : now.getFullYear();
     const result = [];
-    
-    for (let i = months - 1; i >= 0; i--) {
-      const year = now.getFullYear();
-      const month = now.getMonth() - i;
-      const startDate = new Date(year, month, 1);
-      const endDate = new Date(year, month + 1, 0, 23, 59, 59);
-      
-      const monthStats = await Transaction.aggregate([
-        {
-          $match: {
-            date: { $gte: startDate, $lte: endDate }
-          }
-        },
-        {
-          $group: {
-            _id: '$type',
-            total: { $sum: '$amount' },
-            count: { $sum: 1 }
-          }
-        }
-      ]);
-      
-      const income = monthStats.find(s => s._id === 'income')?.total || 0;
-      const expense = monthStats.find(s => s._id === 'expense')?.total || 0;
-      
-      result.push({
-        month: `${startDate.getFullYear()}年${startDate.getMonth() + 1}月`,
-        income,
-        expense,
-        balance: income - expense
-      });
+
+    if (year) {
+      // 指定年份：返回该年12个月数据
+      for (let m = 0; m < 12; m++) {
+        const startDate = new Date(targetYear, m, 1);
+        const endDate = new Date(targetYear, m + 1, 0, 23, 59, 59);
+        const monthStats = await Transaction.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: '$type', total: { $sum: '$amount' }, count: { $sum: 1 } } }
+        ]);
+        const income = monthStats.find(s => s._id === 'income')?.total || 0;
+        const expense = monthStats.find(s => s._id === 'expense')?.total || 0;
+        result.push({
+          month: `${targetYear}年${m + 1}月`,
+          monthIndex: m,
+          income,
+          expense,
+          balance: income - expense
+        });
+      }
+    } else {
+      // 默认：返回过去N个月
+      for (let i = months - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const startDate = new Date(d.getFullYear(), d.getMonth(), 1);
+        const endDate = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+        const monthStats = await Transaction.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: '$type', total: { $sum: '$amount' }, count: { $sum: 1 } } }
+        ]);
+        const income = monthStats.find(s => s._id === 'income')?.total || 0;
+        const expense = monthStats.find(s => s._id === 'expense')?.total || 0;
+        result.push({
+          month: `${startDate.getFullYear()}年${startDate.getMonth() + 1}月`,
+          monthIndex: startDate.getMonth(),
+          income,
+          expense,
+          balance: income - expense
+        });
+      }
     }
-    
+
+    // 计算环比增长率
+    for (let i = 0; i < result.length; i++) {
+      if (i === 0) {
+        result[i].expenseGrowth = null;
+        result[i].incomeGrowth = null;
+      } else {
+        const prev = result[i - 1];
+        const prevTotal = prev.income + prev.expense;
+        if (prevTotal > 0) {
+          result[i].expenseGrowth = parseFloat(((result[i].expense - prev.expense) / prev.expense * 100).toFixed(1));
+          result[i].incomeGrowth = parseFloat(((result[i].income - prev.income) / prev.income * 100).toFixed(1));
+        } else {
+          result[i].expenseGrowth = null;
+          result[i].incomeGrowth = null;
+        }
+      }
+    }
+
     ctx.body = result;
   } catch (error) {
     ctx.status = 500;
@@ -225,6 +257,57 @@ router.get('/risk-users', async (ctx) => {
     ctx.body = { message: '获取风险用户失败', error: error.message };
   }
 });
+
+// 获取各风险等级用户数量
+router.get('/risk-counts', async (ctx) => {
+  try {
+    const counts = { high: 0, medium: 0, low: 0 }
+    const configs = await UserConfig.find({})
+
+    for (const config of configs) {
+      await updateUserFinancialHealth(config.userId)
+    }
+
+    // 重新读取最新的
+    const freshConfigs = await UserConfig.find({}, 'financialHealth')
+    freshConfigs.forEach(config => {
+      const level = config.financialHealth?.riskLevel || 'low'
+      if (counts[level] !== undefined) counts[level]++
+    })
+    ctx.body = counts
+  } catch (error) {
+    ctx.status = 500
+    ctx.body = { message: '获取风险统计失败', error: error.message }
+  }
+})
+
+// 获取指定风险等级的全部用户（不过分页，用于批量操作）
+router.get('/risk-users-all', async (ctx) => {
+  try {
+    const { level } = ctx.query
+    if (!level || level === 'all') {
+      ctx.status = 400
+      ctx.body = { message: '请指定风险等级（high/medium/low）' }
+      return
+    }
+
+    const configs = await UserConfig.find({ 'financialHealth.riskLevel': level })
+      .populate('userId', 'username nickname email')
+
+    const users = configs
+      .filter(c => c.userId)
+      .map(c => ({
+        _id: c.userId._id,
+        name: c.userId.nickname || c.userId.username,
+        email: c.userId.email
+      }))
+
+    ctx.body = { users }
+  } catch (error) {
+    ctx.status = 500
+    ctx.body = { message: '获取用户列表失败', error: error.message }
+  }
+})
 
 // 获取风险分布数据（用于饼图）
 router.get('/risk-distribution', async (ctx) => {
@@ -349,9 +432,9 @@ router.get('/statistics', async (ctx) => {
 router.get('/users', async (ctx) => {
   try {
     const { page = 1, pageSize = 10, search = '', status = '' } = ctx.query;
-    
-    const query = {};
-    
+
+    const query = { role: { $ne: 'admin' } }; // 过滤掉管理员用户
+
     // 搜索
     if (search) {
       query.$or = [
@@ -359,7 +442,7 @@ router.get('/users', async (ctx) => {
         { email: { $regex: search, $options: 'i' } }
       ];
     }
-    
+
     // 状态筛选
     if (status === 'inactive') {
       query.isActive = false;
@@ -374,12 +457,33 @@ router.get('/users', async (ctx) => {
       .skip((page - 1) * pageSize)
       .limit(parseInt(pageSize));
     
-    // 获取用户的配置信息
+    // 获取用户的配置信息和本月消费
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const usersWithConfig = await Promise.all(users.map(async (user) => {
       const config = await UserConfig.findOne({ userId: user._id });
+
+      // 获取本月支出
+      const monthlyExpense = await Transaction.aggregate([
+        {
+          $match: {
+            userId: user._id,
+            type: 'expense',
+            date: { $gte: startOfMonth }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$amount' }
+          }
+        }
+      ]);
+
       return {
         ...user.toObject(),
-        config: config || {}
+        config: config || {},
+        monthlySpent: monthlyExpense[0]?.total || 0
       };
     }));
     
@@ -541,6 +645,62 @@ router.post('/users/batch', async (ctx) => {
   }
 });
 
+// ==================== 发送通知记录 ====================
+
+// GET /api/admin/sent-notifications — 分页获取已发送的通知记录
+router.get('/sent-notifications', async (ctx) => {
+  try {
+    const page = parseInt(ctx.query.page) || 1;
+    const pageSize = 10;
+
+    // 按 title + content + scope + 秒级时间 去重（忽略毫秒差异）
+    const aggregation = await Notification.aggregate([
+      { $match: { type: { $in: ['system', 'risk_warning'] } } },
+      {
+        $group: {
+          _id: {
+            title: '$title',
+            content: '$content',
+            scope: { $ifNull: ['$scope', 'all'] },
+            // 截取 createdAt 到秒级，避免同一秒内创建的被分开
+            createdSec: { $substr: [{ $dateToString: { format: '%Y-%m-%d %H:%M:%S', date: '$createdAt' } }, 0, 19] }
+          },
+          sentCount: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.createdSec': -1 } },
+      { $facet: {
+        data: [
+          { $skip: (page - 1) * pageSize },
+          { $limit: pageSize }
+        ],
+        total: [{ $count: 'count' }]
+      }}
+    ]);
+
+    const logs = aggregation[0].data.map(item => ({
+      title: item._id.title,
+      content: item._id.content,
+      scope: item._id.scope,
+      createdAt: item._id.createdSec,
+      sentCount: item.sentCount
+    }));
+
+    const total = aggregation[0].total[0]?.count || 0;
+
+    ctx.body = {
+      logs,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize)
+    };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = { message: '获取发送记录失败', error: error.message };
+  }
+});
+
 // ==================== 辅助函数 ====================
 
 // 计算风险用户数量
@@ -623,6 +783,754 @@ async function updateUserFinancialHealth(userId) {
     console.error('计算财务健康评分失败:', error);
     return null;
   }
+}
+
+// ==================== 新增统计接口 ====================
+
+// 获取财务统计数据
+router.get('/finance-stats', async (ctx) => {
+  try {
+    const { timeRange = 'month', year, month } = ctx.query;
+    const now = new Date();
+    let startDate, endDate;
+
+    switch (timeRange) {
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        endDate = now;
+        break;
+      case 'year':
+        const y = year ? parseInt(year) : now.getFullYear();
+        startDate = new Date(y, 0, 1);
+        endDate = new Date(y, 11, 31, 23, 59, 59);
+        break;
+      default: // month
+        const ym = year ? parseInt(year) : now.getFullYear();
+        const mm = month ? parseInt(month) : now.getMonth() + 1;
+        startDate = new Date(ym, mm - 1, 1);
+        endDate = new Date(ym, mm, 0, 23, 59, 59);
+    }
+
+    const transactions = await Transaction.find({
+      date: { $gte: startDate, $lte: endDate }
+    });
+
+    const totalIncome = transactions.filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const totalExpense = transactions.filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const balance = totalIncome - totalExpense;
+    const transactionCount = transactions.length;
+
+    ctx.body = {
+      success: true,
+      stats: {
+        totalIncome,
+        totalExpense,
+        balance,
+        transactionCount
+      }
+    };
+  } catch (error) {
+    console.error('获取财务统计错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// 获取每日趋势数据
+router.get('/daily-trend', async (ctx) => {
+  try {
+    let { startDate, endDate, timeRange = 'month', year, month } = ctx.query;
+    const now = new Date();
+
+    if (!startDate || !endDate) {
+      switch (timeRange) {
+        case 'week':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          endDate = now;
+          break;
+        case 'year':
+          const y = year ? parseInt(year) : now.getFullYear();
+          startDate = new Date(y, 0, 1);
+          endDate = new Date(y, 11, 31, 23, 59, 59);
+          break;
+        default: // month
+          const ym = year ? parseInt(year) : now.getFullYear();
+          const mm = month ? parseInt(month) : now.getMonth() + 1;
+          startDate = new Date(ym, mm - 1, 1);
+          endDate = new Date(ym, mm, 0, 23, 59, 59);
+      }
+    } else {
+      startDate = new Date(startDate);
+      endDate = new Date(endDate);
+    }
+
+    const transactions = await Transaction.find({
+      date: { $gte: startDate, $lte: endDate }
+    }).sort({ date: 1 });
+
+    // 按日期分组统计
+    const dailyStats = {};
+    transactions.forEach(t => {
+      const dateKey = t.date.toISOString().split('T')[0];
+      if (!dailyStats[dateKey]) {
+        dailyStats[dateKey] = { date: dateKey, income: 0, expense: 0, amount: 0 };
+      }
+      if (t.type === 'income') {
+        dailyStats[dateKey].income += t.amount;
+        dailyStats[dateKey].amount += t.amount;
+      } else {
+        dailyStats[dateKey].expense += t.amount;
+        dailyStats[dateKey].amount -= t.amount;
+      }
+    });
+
+    const result = Object.values(dailyStats).sort((a, b) =>
+      new Date(a.date) - new Date(b.date)
+    );
+
+    ctx.body = {
+      success: true,
+      data: result
+    };
+  } catch (error) {
+    console.error('获取每日趋势错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// 获取分类明细统计
+router.get('/category-breakdown', async (ctx) => {
+  try {
+    const { timeRange = 'month', year, month } = ctx.query;
+    const now = new Date();
+    let startDate, endDate;
+
+    switch (timeRange) {
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        endDate = now;
+        break;
+      case 'year':
+        const y = year ? parseInt(year) : now.getFullYear();
+        startDate = new Date(y, 0, 1);
+        endDate = new Date(y, 11, 31, 23, 59, 59);
+        break;
+      default: // month
+        const ym = year ? parseInt(year) : now.getFullYear();
+        const mm = month ? parseInt(month) : now.getMonth() + 1;
+        startDate = new Date(ym, mm - 1, 1);
+        endDate = new Date(ym, mm, 0, 23, 59, 59);
+    }
+
+    const transactions = await Transaction.find({
+      date: { $gte: startDate, $lte: endDate },
+      type: 'expense'
+    });
+
+    // 按分类统计
+    const categoryStats = {};
+    const totalExpense = transactions.reduce((sum, t) => sum + t.amount, 0);
+
+    transactions.forEach(t => {
+      if (!categoryStats[t.category]) {
+        categoryStats[t.category] = { name: t.category, count: 0, amount: 0 };
+      }
+      categoryStats[t.category].count++;
+      categoryStats[t.category].amount += t.amount;
+    });
+
+    // 转换为数组并计算百分比
+    const categories = Object.values(categoryStats)
+      .map(c => ({
+        name: c.name,
+        iconId: c.name,
+        count: c.count,
+        amount: c.amount,
+        percent: totalExpense > 0 ? Math.round((c.amount / totalExpense) * 100) : 0,
+        color: getCategoryColor(c.name)
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
+    ctx.body = {
+      success: true,
+      categories
+    };
+  } catch (error) {
+    console.error('获取分类明细错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// 获取分类分析数据（支持多时间范围）
+router.get('/category-analysis', async (ctx) => {
+  try {
+    const { timeRange = 'month', year, month, quarter } = ctx.query;
+    const now = new Date();
+    let startDate, endDate;
+
+    switch (timeRange) {
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        endDate = now;
+        break;
+      case 'quarter':
+        const q = quarter ? parseInt(quarter) : Math.floor(now.getMonth() / 3) + 1;
+        const qy = year ? parseInt(year) : now.getFullYear();
+        startDate = new Date(qy, (q - 1) * 3, 1);
+        endDate = new Date(qy, q * 3, 0, 23, 59, 59);
+        break;
+      case 'year':
+        const y = year ? parseInt(year) : now.getFullYear();
+        startDate = new Date(y, 0, 1);
+        endDate = new Date(y, 11, 31, 23, 59, 59);
+        break;
+      default: // month
+        const ym = year ? parseInt(year) : now.getFullYear();
+        const mm = month ? parseInt(month) : now.getMonth() + 1;
+        startDate = new Date(ym, mm - 1, 1);
+        endDate = new Date(ym, mm, 0, 23, 59, 59);
+    }
+
+    const transactions = await Transaction.find({
+      date: { $gte: startDate, $lte: endDate }
+    });
+
+    // 按分类统计支出
+    const expenseByCategory = {};
+    const incomeByCategory = {};
+    const expenseTransactions = transactions.filter(t => t.type === 'expense');
+    const incomeTransactions = transactions.filter(t => t.type === 'income');
+    const totalExpense = expenseTransactions.reduce((sum, t) => sum + t.amount, 0);
+    const totalIncome = incomeTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+    expenseTransactions.forEach(t => {
+      if (!expenseByCategory[t.category]) expenseByCategory[t.category] = 0;
+      expenseByCategory[t.category] += t.amount;
+    });
+    incomeTransactions.forEach(t => {
+      if (!incomeByCategory[t.category]) incomeByCategory[t.category] = 0;
+      incomeByCategory[t.category] += t.amount;
+    });
+
+    // 支出饼图
+    const expensePieData = Object.entries(expenseByCategory)
+      .map(([name, value]) => ({
+        name,
+        value,
+        color: getCategoryColor(name),
+        percent: totalExpense > 0 ? ((value / totalExpense) * 100).toFixed(1) : 0
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    // 收入饼图
+    const incomePieData = Object.entries(incomeByCategory)
+      .map(([name, value]) => ({
+        name,
+        value,
+        color: '#10B981',
+        percent: totalIncome > 0 ? ((value / totalIncome) * 100).toFixed(1) : 0
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    // 柱状图（top分类）
+    const barData = expensePieData.slice(0, 8).map(item => ({
+      category: item.name,
+      value: item.value,
+      color: item.color
+    }));
+
+    ctx.body = {
+      success: true,
+      expensePieData,
+      incomePieData,
+      barData,
+      totalExpense,
+      totalIncome,
+      hasData: transactions.length > 0
+    };
+  } catch (error) {
+    console.error('获取分类分析错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// 获取指定用户的消费汇总（支持月/季度/年）
+router.get('/user-consumption', async (ctx) => {
+  try {
+    const { userId, timeRange = 'month', year, month } = ctx.query;
+    if (!userId) {
+      ctx.status = 400;
+      ctx.body = { message: '缺少用户ID' };
+      return;
+    }
+
+    const now = new Date();
+    let startDate, endDate, label;
+
+    switch (timeRange) {
+      case 'year':
+        const y = year ? parseInt(year) : now.getFullYear();
+        startDate = new Date(y, 0, 1);
+        endDate = new Date(y, 11, 31, 23, 59, 59);
+        label = `${y}年`;
+        break;
+      case 'quarter':
+        const q = Math.floor(now.getMonth() / 3) + 1;
+        const qy = year ? parseInt(year) : now.getFullYear();
+        startDate = new Date(qy, (q - 1) * 3, 1);
+        endDate = new Date(qy, q * 3, 0, 23, 59, 59);
+        label = `${qy}年第${q}季度`;
+        break;
+      default: // month
+        const ym = year ? parseInt(year) : now.getFullYear();
+        const mm = month ? parseInt(month) : now.getMonth() + 1;
+        startDate = new Date(ym, mm - 1, 1);
+        endDate = new Date(ym, mm, 0, 23, 59, 59);
+        label = `${ym}年${mm}月`;
+    }
+
+    const config = await UserConfig.findOne({ userId: new mongoose.Types.ObjectId(userId) });
+    const isYearly = timeRange === 'year'
+    const budget = isYearly
+      ? (config?.budget?.yearly || config?.budget?.monthly * 12 || 60000)
+      : (config?.budget?.monthly || 5000)
+
+    // 按月聚合该用户在时间范围内的数据
+    const monthlyStats = await Transaction.aggregate([
+      { $match: { userId: new mongoose.Types.ObjectId(userId), date: { $gte: startDate, $lte: endDate } } },
+      { $group: {
+        _id: { year: { $year: '$date' }, month: { $month: '$date' }, type: '$type' },
+        total: { $sum: '$amount' },
+        count: { $sum: 1 }
+      }}
+    ]);
+
+    // 整理成月份数组
+    const statsByMonth = {};
+    monthlyStats.forEach(s => {
+      const key = `${s._id.year}-${String(s._id.month).padStart(2, '0')}`;
+      if (!statsByMonth[key]) statsByMonth[key] = { income: 0, expense: 0 };
+      if (s._id.type === 'income') statsByMonth[key].income = s.total;
+      else statsByMonth[key].expense = s.total;
+    });
+
+    // 总计
+    let totalIncome = 0, totalExpense = 0;
+    Object.values(statsByMonth).forEach(s => {
+      totalIncome += s.income;
+      totalExpense += s.expense;
+    });
+
+    // 全部时间范围总计
+    const allStats = await Transaction.aggregate([
+      { $match: { userId: new mongoose.Types.ObjectId(userId), date: { $gte: startDate, $lte: endDate }, type: { $in: ['income', 'expense'] } } },
+      { $group: { _id: '$type', total: { $sum: '$amount' } } }
+    ]);
+
+    const incomeAgg = allStats.find(s => s._id === 'income')?.total || 0;
+    const expenseAgg = allStats.find(s => s._id === 'expense')?.total || 0;
+
+    ctx.body = {
+      success: true,
+      userId,
+      timeRange,
+      label,
+      income: incomeAgg,
+      expense: expenseAgg,
+      balance: incomeAgg - expenseAgg,
+      budget,
+      usageRate: budget > 0 ? ((expenseAgg / budget) * 100).toFixed(1) : 0,
+      monthlyData: Object.entries(statsByMonth)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, s]) => ({
+          label: key,
+          income: s.income,
+          expense: s.expense,
+          balance: s.income - s.expense
+        }))
+    };
+  } catch (error) {
+    console.error('获取用户消费汇总错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// 用户排行榜（消费最多/最少、储蓄最多/最少）
+router.get('/user-rankings', async (ctx) => {
+  try {
+    const { timeRange = 'month', year, month, limit = 5 } = ctx.query;
+    const now = new Date();
+    let startDate, endDate;
+
+    switch (timeRange) {
+      case 'year':
+        const y = year ? parseInt(year) : now.getFullYear();
+        startDate = new Date(y, 0, 1);
+        endDate = new Date(y, 11, 31, 23, 59, 59);
+        break;
+      case 'quarter':
+        const q = Math.floor(now.getMonth() / 3) + 1;
+        const qy = year ? parseInt(year) : now.getFullYear();
+        startDate = new Date(qy, (q - 1) * 3, 1);
+        endDate = new Date(qy, q * 3, 0, 23, 59, 59);
+        break;
+      default: // month
+        const ym = year ? parseInt(year) : now.getFullYear();
+        const mm = month ? parseInt(month) : now.getMonth() + 1;
+        startDate = new Date(ym, mm - 1, 1);
+        endDate = new Date(ym, mm, 0, 23, 59, 59);
+    }
+
+    const rankings = await Transaction.aggregate([
+      { $match: { date: { $gte: startDate, $lte: endDate } } },
+      { $group: {
+        _id: { userId: '$userId', type: '$type' },
+        total: { $sum: '$amount' }
+      }},
+      { $group: {
+        _id: '$_id.userId',
+        income: { $sum: { $cond: [{ $eq: ['$_id.type', 'income'] }, '$total', 0] } },
+        expense: { $sum: { $cond: [{ $eq: ['$_id.type', 'expense'] }, '$total', 0] } }
+      }},
+      { $addFields: { balance: { $subtract: ['$income', '$expense'] } } },
+      { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } },
+      { $unwind: { path: '$user', preserveNullAndEmpty: true } },
+      { $project: { _id: 1, income: 1, expense: 1, balance: 1, name: { $ifNull: ['$user.nickname', { $ifNull: ['$user.username', '未知用户'] }] } } }
+    ]);
+
+    const sortedByExpense = [...rankings].sort((a, b) => b.expense - a.expense);
+    const sortedByBalance = [...rankings].sort((a, b) => b.balance - a.balance);
+
+    ctx.body = {
+      success: true,
+      topSpenders: sortedByExpense.slice(0, parseInt(limit)).map((r, i) => ({
+        rank: i + 1,
+        name: r.name,
+        expense: r.expense,
+        title: i === 0 ? '消费狂魔' : i === 1 ? '败家子' : i === 2 ? '剁手族' : '消费达人'
+      })),
+      topSavers: sortedByBalance.slice(0, parseInt(limit)).map((r, i) => ({
+        rank: i + 1,
+        name: r.name,
+        balance: r.balance,
+        title: i === 0 ? '储蓄巨鳄' : i === 1 ? '理财高手' : i === 2 ? '省钱达人' : '精打细算'
+      }))
+    };
+  } catch (error) {
+    console.error('获取排行榜错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// ==================== 系统设置API ====================
+
+// 获取系统设置
+router.get('/system-settings', async (ctx) => {
+  try {
+    let settings = await SystemSettings.findOne();
+    if (!settings) {
+      settings = await SystemSettings.create({});
+    }
+    ctx.body = {
+      success: true,
+      settings: {
+        systemName: settings.systemName,
+        currency: settings.currency,
+        defaultBudget: settings.defaultBudget
+      }
+    };
+  } catch (error) {
+    console.error('获取系统设置错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// 更新系统设置
+router.put('/system-settings', async (ctx) => {
+  try {
+    const { systemName, currency, defaultBudget } = ctx.request.body;
+
+    let settings = await SystemSettings.findOne();
+    if (!settings) {
+      settings = new SystemSettings({});
+    }
+
+    if (systemName !== undefined) settings.systemName = systemName;
+    if (currency !== undefined) settings.currency = currency;
+    if (defaultBudget !== undefined) settings.defaultBudget = defaultBudget;
+
+    await settings.save();
+
+    ctx.body = {
+      success: true,
+      message: '系统设置已保存',
+      settings: {
+        systemName: settings.systemName,
+        currency: settings.currency,
+        defaultBudget: settings.defaultBudget
+      }
+    };
+  } catch (error) {
+    console.error('更新系统设置错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// ==================== 分类管理API ====================
+
+// 获取分类列表
+router.get('/categories', async (ctx) => {
+  try {
+    const { type } = ctx.query;
+    const query = {};
+    if (type) query.type = type;
+
+    let categories = await Category.find(query).sort({ type: 1, createdAt: 1 });
+
+    // 如果没有分类，插入默认分类
+    if (categories.length === 0) {
+      const defaultCategories = [
+        { name: '工资', iconId: 'salary', color: '#10B981', type: 'income', isDefault: true },
+        { name: '奖金', iconId: 'bonus', color: '#34D399', type: 'income', isDefault: true },
+        { name: '理财', iconId: 'investment', color: '#6EE7D0', type: 'income', isDefault: true },
+        { name: '兼职', iconId: 'parttime', color: '#A7F3D0', type: 'income', isDefault: true },
+        { name: '其他收入', iconId: 'other_income', color: '#34D399', type: 'income', isDefault: true },
+        { name: '餐饮', iconId: 'food', color: '#EF4444', type: 'expense', isDefault: true },
+        { name: '交通', iconId: 'transport', color: '#F97316', type: 'expense', isDefault: true },
+        { name: '购物', iconId: 'shopping', color: '#6366F1', type: 'expense', isDefault: true },
+        { name: '娱乐', iconId: 'entertainment', color: '#8B5CF6', type: 'expense', isDefault: true },
+        { name: '住房', iconId: 'housing', color: '#EC4899', type: 'expense', isDefault: true },
+        { name: '医疗', iconId: 'medical', color: '#F43F5E', type: 'expense', isDefault: true },
+        { name: '教育', iconId: 'education', color: '#5856D6', type: 'expense', isDefault: true },
+        { name: '通讯', iconId: 'communication', color: '#14B8A6', type: 'expense', isDefault: true },
+        { name: '其他', iconId: 'other', color: '#8E8E93', type: 'expense', isDefault: true }
+      ];
+      await Category.insertMany(defaultCategories);
+      categories = await Category.find(query).sort({ type: 1, createdAt: 1 });
+    }
+
+    ctx.body = { success: true, categories };
+  } catch (error) {
+    console.error('获取分类错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// 新增分类
+router.post('/categories', async (ctx) => {
+  try {
+    const { name, iconId, color, type } = ctx.request.body;
+
+    if (!name || !type) {
+      ctx.status = 400;
+      ctx.body = { message: '分类名称和类型不能为空' };
+      return;
+    }
+
+    const existing = await Category.findOne({ name, type });
+    if (existing) {
+      ctx.status = 400;
+      ctx.body = { message: '该分类已存在' };
+      return;
+    }
+
+    const category = new Category({
+      name,
+      iconId: iconId || name,
+      color: color || '#6366F1',
+      type
+    });
+    await category.save();
+
+    // 记录操作日志
+    await OperationLog.create({
+      userId: ctx.state.adminUser._id,
+      action: '新增分类',
+      details: `新增${type === 'income' ? '收入' : '支出'}分类：${name}`
+    });
+
+    ctx.body = { success: true, message: '分类创建成功', category };
+  } catch (error) {
+    console.error('创建分类错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// 更新分类
+router.put('/categories/:id', async (ctx) => {
+  try {
+    const { name, iconId, color } = ctx.request.body;
+    const category = await Category.findByIdAndUpdate(
+      ctx.params.id,
+      {
+        ...(name && { name }),
+        ...(iconId && { iconId }),
+        ...(color && { color })
+      },
+      { new: true }
+    );
+
+    if (!category) {
+      ctx.status = 404;
+      ctx.body = { message: '分类不存在' };
+      return;
+    }
+
+    await OperationLog.create({
+      userId: ctx.state.adminUser._id,
+      action: '更新分类',
+      details: `更新分类：${category.name}`
+    });
+
+    ctx.body = { success: true, message: '分类更新成功', category };
+  } catch (error) {
+    console.error('更新分类错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// 删除分类
+router.delete('/categories/:id', async (ctx) => {
+  try {
+    const category = await Category.findById(ctx.params.id);
+    if (!category) {
+      ctx.status = 404;
+      ctx.body = { message: '分类不存在' };
+      return;
+    }
+
+    await Category.deleteOne({ _id: ctx.params.id });
+
+    await OperationLog.create({
+      userId: ctx.state.adminUser._id,
+      action: '删除分类',
+      details: `删除分类：${category.name}`
+    });
+
+    ctx.body = { success: true, message: '分类已删除' };
+  } catch (error) {
+    console.error('删除分类错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// ==================== 消息模板API ====================
+
+// 获取消息模板
+router.get('/message-templates', async (ctx) => {
+  try {
+    let templates = await MessageTemplate.findOne();
+    if (!templates) {
+      templates = await MessageTemplate.create({});
+    }
+    ctx.body = {
+      success: true,
+      templates: {
+        low: templates.low || '您的消费状况良好，请继续保持理性消费习惯。',
+        medium: templates.medium || '本月消费状况可控，但已接近预算阈值，建议适当控制支出。',
+        high: templates.high || '本月消费过高，已严重超出预算，请立即调整消费行为，避免财务风险。'
+      }
+    };
+  } catch (error) {
+    console.error('获取消息模板错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// 更新消息模板
+router.put('/message-templates', async (ctx) => {
+  try {
+    const { low, medium, high } = ctx.request.body;
+
+    let templates = await MessageTemplate.findOne();
+    if (!templates) {
+      templates = new MessageTemplate({});
+    }
+
+    if (low !== undefined) templates.low = low;
+    if (medium !== undefined) templates.medium = medium;
+    if (high !== undefined) templates.high = high;
+
+    await templates.save();
+
+    await OperationLog.create({
+      userId: ctx.state.adminUser._id,
+      action: '更新消息模板',
+      details: '修改了风险提醒消息模板'
+    });
+
+    ctx.body = { success: true, message: '消息模板已保存', templates };
+  } catch (error) {
+    console.error('更新消息模板错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// ==================== 操作日志API ====================
+
+// 获取操作日志
+router.get('/operation-logs', async (ctx) => {
+  try {
+    const { page = 1, pageSize = 20 } = ctx.query;
+    const skip = (parseInt(page) - 1) * parseInt(pageSize);
+
+    const logs = await OperationLog.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(pageSize))
+      .populate('userId', 'username nickname');
+
+    const total = await OperationLog.countDocuments();
+
+    ctx.body = {
+      success: true,
+      logs: logs.map(log => ({
+        id: log._id,
+        time: log.createdAt.toISOString().replace('T', ' ').substring(0, 16),
+        user: log.userId?.nickname || log.userId?.username || '管理员',
+        action: log.action,
+        details: log.details
+      })),
+      total,
+      page: parseInt(page),
+      pageSize: parseInt(pageSize)
+    };
+  } catch (error) {
+    console.error('获取操作日志错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
+// ==================== 辅助函数 ====================
+function getCategoryColor(category) {
+  const colorMap = {
+    '餐饮': '#FF6B6B',
+    '交通': '#4ECDC4',
+    '购物': '#FFE66D',
+    '娱乐': '#95E1D3',
+    '医疗': '#F38181',
+    '教育': '#AA96DA',
+    '居住': '#FCBAD3',
+    '通讯': '#A8D8EA',
+    '其他支出': '#C9B1FF'
+  };
+  return colorMap[category] || '#6C5CE7';
 }
 
 module.exports = router;

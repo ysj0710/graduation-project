@@ -1,69 +1,114 @@
 <template>
-  <div class="user-page">
-    <div class="page-header">
-      <h2>🎨 个性设置</h2>
-      <p class="subtitle">自定义你的记账页面风格</p>
-    </div>
+  <div class="page-container">
+    <!-- 主题设置卡片 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <Palette :size="18" :stroke-width="1.5" />
+          <span>主题设置</span>
+        </div>
+      </div>
+      <div class="card-body">
 
-    <!-- 主题设置 -->
-    <div class="settings-section">
-      <h3>选择主题</h3>
-      <div class="theme-grid">
-        <div
-          v-for="theme in themes"
-          :key="theme.id"
-          class="theme-card"
-          :class="{ active: currentTheme === theme.id }"
-          @click="selectTheme(theme)"
-        >
-          <div class="theme-preview" :style="{ background: theme.gradient }">
-            <div class="theme-overlay">
-              <span class="theme-name">{{ theme.name }}</span>
-            </div>
-          </div>
-          <div class="theme-colors">
+        <!-- 主题预设 -->
+        <div class="settings-section">
+          <div class="section-title">选择主题</div>
+          <div class="section-desc">多种风格任你挑选，切换主题后自动应用</div>
+          <div class="theme-grid">
             <div
-              class="color-bar"
-              :style="{ background: theme.gradient }"
-            ></div>
-            <div class="color-slots">
-              <span
-                v-for="color in theme.colors"
-                :key="color"
-                class="color-slot"
-                :style="{ background: color }"
-              ></span>
+              v-for="theme in themePresets"
+              :key="theme.id"
+              class="theme-card"
+              :class="{ active: selectedPreset === theme.id }"
+              @click="selectPreset(theme)"
+            >
+              <div class="theme-preview" :style="getThemePreviewStyle(theme)">
+                <div class="theme-check" v-if="selectedPreset === theme.id">
+                  <CheckCircle :size="16" :stroke-width="2" />
+                </div>
+              </div>
+              <div class="theme-info">
+                <div class="theme-name">{{ theme.name }}</div>
+                <div class="theme-desc">{{ theme.description }}</div>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- 自定义主题配色 -->
+        <div class="settings-section">
+          <div class="section-title">自定义主题配色</div>
+          <div class="section-desc">完全独立的配色方案，不影响上方已选主题</div>
+          <div class="customizer-layout">
+            <div class="customizer-left">
+              <div class="custom-color-label">选择主色调</div>
+              <ColorPicker v-model="customPrimaryColor" />
+            </div>
+            <div class="customizer-right">
+              <div class="preview-box">
+                <div class="preview-label">效果预览</div>
+                <div class="preview-theme-card" :style="customPreviewStyle">
+                  <div class="preview-mood">
+                    <div class="mood-icon" :style="{ background: customPrimaryColor + '22', color: customPrimaryColor }">
+                      <Wallet :size="20" />
+                    </div>
+                    <div class="mood-text" :style="{ color: customPrimaryColor }">记账</div>
+                  </div>
+                  <div class="mood-stats">
+                    <div class="mood-stat">
+                      <div class="mood-label">收入</div>
+                      <div class="mood-value income">+¥3,200</div>
+                    </div>
+                    <div class="mood-stat">
+                      <div class="mood-label">支出</div>
+                      <div class="mood-value expense">-¥1,850</div>
+                    </div>
+                  </div>
+                </div>
+                <button class="btn primary small" @click="applyCustomColor" :disabled="themeLoading || !isCustomColorChanged">
+                  <Palette :size="14" />
+                  {{ themeLoading ? '保存中...' : '应用自定义配色' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
-    <!-- 背景透明度 -->
-    <div class="settings-section">
-      <h3>毛玻璃效果</h3>
-      <div class="glass-control">
-        <div class="glass-preview">
-          <div
-            class="glass-box"
-            :style="{ backdropFilter: `blur(${glassBlur}px)` }"
-          >
-            <span>{{ glassBlur }}px</span>
-          </div>
+    <!-- 预算设置卡片 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <Settings :size="18" :stroke-width="1.5" />
+          <span>预算管理</span>
         </div>
-        <div class="slider-control">
-          <input
-            type="range"
-            v-model="glassBlur"
-            min="0"
-            max="40"
-            step="5"
-            @change="updateGlassEffect"
-          />
-          <div class="slider-labels">
-            <span>清晰</span>
-            <span>模糊</span>
+      </div>
+      <div class="card-body">
+        <div class="budget-form">
+          <div class="form-group">
+            <label class="form-label">每月预算</label>
+            <input v-model.number="budget.monthly" type="number" step="100" class="form-input" placeholder="5000" />
+            <span class="form-hint">设定每月消费预算上限</span>
           </div>
+          <div class="form-group">
+            <label class="form-label">每年预算</label>
+            <input v-model.number="budget.yearly" type="number" step="1000" class="form-input" placeholder="60000" />
+            <span class="form-hint">设定每年消费预算上限（用于年视图统计）</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">提醒阈值</label>
+            <div class="threshold-row">
+              <input v-model.number="budget.alertThreshold" type="number" min="50" max="100" step="5" class="form-input" />
+              <span class="threshold-suffix">%</span>
+            </div>
+            <span class="form-hint">当消费达到预算的 {{ budget.alertThreshold }}% 时发送提醒</span>
+          </div>
+          <button class="btn primary" @click="updateBudget" :disabled="budgetLoading">
+            <Save :size="16" :stroke-width="2" />
+            {{ budgetLoading ? '保存中...' : '保存预算设置' }}
+          </button>
         </div>
       </div>
     </div>
@@ -71,311 +116,352 @@
 </template>
 
 <script setup>
-import { ref, reactive } from "vue";
-import { useUserStore } from "../../stores/user";
-import { ElMessage } from "element-plus";
+import { ref, computed, onMounted, reactive, watch } from 'vue'
+import { useUserStore } from '../../stores/user'
+import { ElMessage } from 'element-plus'
+import { Palette, CheckCircle, Wallet, Settings, Save } from 'lucide-vue-next'
+import axios from 'axios'
+import { THEME_PRESETS } from '../../styles/themes.js'
+import ColorPicker from '../../components/ColorPicker.vue'
 
-const userStore = useUserStore();
+const userStore = useUserStore()
 
-const currentTheme = ref("aurora");
-const glassBlur = ref(20);
+const themeLoading = ref(false)
+const budgetLoading = ref(false)
+const selectedPreset = ref('')  // 当前选中主题，空=自定义配色
+const savedPresetId = ref('')          // 已保存的主题ID
+const savedPrimaryColor = ref('')     // 已保存的主色调（用于判断自定义配色是否变化）
+const customPrimaryColor = ref('#667eea')
+
+// 自定义配色是否已变化（与上次保存的值不同）
+const isCustomColorChanged = computed(() => {
+  return customPrimaryColor.value !== savedPrimaryColor.value
+})
 
 const budget = reactive({
-  monthly: userStore.budget.monthly || 5000,
-  alertThreshold: userStore.budget.alertThreshold || 80,
-});
+  monthly: 5000,
+  yearly: 60000,
+  alertThreshold: 80
+})
 
-const themes = [
-  {
-    id: "daishan",
-    name: "黛青山",
-    gradient:
-      "linear-gradient(90deg, #5A8A9F 0%, #8AC4D0 25%, #B8E0E8 50%, #D0EAF0 75%, #E8F8FA 100%)",
-    colors: ["#5A8A9F", "#8AC4D0", "#B8E0E8", "#D0EAF0", "#E8F8FA"],
-  },
-  {
-    id: "zi",
-    name: "紫",
-    gradient:
-      "linear-gradient(90deg, #A57DB4 0%, #C4A8D0 25%, #D8C8E0 50%, #E8E0F0 75%, #F0E8F4 100%)",
-    colors: ["#A57DB4", "#C4A8D0", "#D8C8E0", "#E8E0F0", "#F0E8F4"],
-  },
-  {
-    id: "chuchun",
-    name: "初春",
-    gradient:
-      "linear-gradient(90deg, #A8D0A8 0%, #C8E0C8 25%, #D8F0D0 50%, #E8F8E0 75%, #F0FCF0 100%)",
-    colors: ["#A8D0A8", "#C8E0C8", "#D8F0D0", "#E8F8E0", "#F0FCF0"],
-  },
-  {
-    id: "rulin",
-    name: "儒林苑",
-    gradient:
-      "linear-gradient(90deg, #F17156 0%, #F89878 25%, #FFB8A0 50%, #FFD0C0 75%, #FFE0D0 100%)",
-    colors: ["#F17156", "#F89878", "#FFB8A0", "#FFD0C0", "#FFE0D0"],
-  },
-  {
-    id: "youzhu",
-    name: "幽竹清溪",
-    gradient:
-      "linear-gradient(90deg, #4DC7A4 0%, #78D0B8 25%, #A8E0D0 50%, #D0F0E0 75%, #E8F8F0 100%)",
-    colors: ["#4DC7A4", "#78D0B8", "#A8E0D0", "#D0F0E0", "#E8F8F0"],
-  },
-  {
-    id: "mo",
-    name: "墨色",
-    gradient:
-      "linear-gradient(90deg, #707070 0%, #909090 25%, #B0B0B0 50%, #D0D0D0 75%, #E8E8E8 100%)",
-    colors: ["#707070", "#909090", "#B0B0B0", "#D0D0D0", "#E8E8E8"],
-  },
-  {
-    id: "huangdou",
-    name: "黄豆沙",
-    gradient:
-      "linear-gradient(90deg, #B89090 0%, #D0A8A8 25%, #E0B8B8 50%, #F0D0D0 75%, #F8E0E0 100%)",
-    colors: ["#B89090", "#D0A8A8", "#E0B8B8", "#F0D0D0", "#F8E0E0"],
-  },
-  {
-    id: "yuanmu",
-    name: "原木",
-    gradient:
-      "linear-gradient(90deg, #C8B890 0%, #E0D0A8 25%, #E8D8B8 50%, #F0E0C8 75%, #F8E8D0 100%)",
-    colors: ["#C8B890", "#E0D0A8", "#E8D8B8", "#F0E0C8", "#F8E8D0"],
-  },
-];
+const themePresets = THEME_PRESETS
 
-const selectTheme = (theme) => {
-  currentTheme.value = theme.id;
+const formatNumber = (num) => Number(num || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+
+// 自定义颜色预览
+const customPreviewStyle = computed(() => ({
+  background: `linear-gradient(135deg, ${customPrimaryColor.value}33, ${customPrimaryColor.value}11)`,
+  borderColor: `${customPrimaryColor.value}44`
+}))
+
+function getThemePreviewStyle(theme) {
+  return { background: theme.gradient, backgroundSize: 'cover', backgroundPosition: 'center' }
+}
+
+function selectPreset(theme) {
+  selectedPreset.value = theme.id
+  customPrimaryColor.value = theme.primaryColor
+  // 仅切换主题预览，不自动保存配色
   userStore.updateTheme({
     background: theme.gradient,
-    glassBlur: glassBlur.value,
-  });
-  ElMessage.success(`已切换至「${theme.name}」主题`);
-};
+    primaryColor: theme.primaryColor,
+    pattern: 'dots',
+    presetId: theme.id,
+    customBgUrl: ''
+  })
+}
 
-const updateGlassEffect = () => {
-  userStore.updateTheme({
-    background: themes.find((t) => t.id === currentTheme.value)?.gradient,
-    glassBlur: glassBlur.value,
-  });
-};
+function applyCustomColor() {
+  const gradient = `linear-gradient(135deg, ${customPrimaryColor.value} 0%, ${customPrimaryColor.value}99 100%)`
+  // 清空主题选中状态（自定义配色与预设主题互斥）
+  selectedPreset.value = ''
+  savedPresetId.value = ''
+  savedPrimaryColor.value = customPrimaryColor.value
+  saveTheme({
+    name: '自定义配色',
+    id: 'custom',
+    gradient,
+    primaryColor: customPrimaryColor.value
+  })
+}
 
-const updateBudget = () => {
-  userStore.updateBudget({
-    monthly: budget.monthly,
-    alertThreshold: budget.alertThreshold,
-  });
-  ElMessage.success("预算设置已保存");
-};
+async function saveTheme(theme) {
+  themeLoading.value = true
+  try {
+    const token = localStorage.getItem('token')
+    await axios.put('/api/user/settings/theme', {
+      background: theme.gradient,
+      primaryColor: theme.primaryColor || customPrimaryColor.value,
+      pattern: 'dots',
+      presetId: theme.id,
+      customBgUrl: ''
+    }, { headers: { Authorization: `Bearer ${token}` } })
+
+    userStore.updateTheme({
+      background: theme.gradient,
+      primaryColor: theme.primaryColor || customPrimaryColor.value,
+      pattern: 'dots',
+      presetId: theme.id,
+      customBgUrl: ''
+    })
+    savedPresetId.value = theme.id
+    savedPrimaryColor.value = theme.primaryColor || customPrimaryColor.value
+    ElMessage.success('配色已保存')
+  } catch (error) {
+    ElMessage.error('主题切换失败')
+  } finally {
+    themeLoading.value = false
+  }
+}
+
+async function fetchSettings() {
+  try {
+    const token = localStorage.getItem('token')
+    const response = await axios.get('/api/user/settings', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+
+    const settings = response.data.settings
+    const theme = settings.theme || {}
+
+    budget.monthly = settings.budget?.monthly || 5000
+    budget.yearly = settings.budget?.yearly || 60000
+    budget.alertThreshold = settings.budget?.alertThreshold || 80
+
+    if (theme.presetId && themePresets.find(t => t.id === theme.presetId)) {
+      selectedPreset.value = theme.presetId
+      savedPresetId.value = theme.presetId
+    } else if (theme.presetId === 'custom' || theme.primaryColor) {
+      // 自定义配色：presetId为custom或不在预设列表中
+      selectedPreset.value = ''
+      savedPresetId.value = ''
+    }
+    if (theme.primaryColor) {
+      customPrimaryColor.value = theme.primaryColor
+      savedPrimaryColor.value = theme.primaryColor
+    }
+
+    userStore.applyThemeSettings(settings)
+  } catch (error) {
+    budget.monthly = 5000
+    budget.alertThreshold = 80
+  }
+}
+
+async function updateBudget() {
+  if (budget.monthly < 0) {
+    ElMessage.warning('预算金额不能为负数')
+    return
+  }
+  if (budget.alertThreshold < 0 || budget.alertThreshold > 100) {
+    ElMessage.warning('提醒阈值必须在 0-100 之间')
+    return
+  }
+
+  budgetLoading.value = true
+  try {
+    const token = localStorage.getItem('token')
+    await axios.put('/api/user/settings/budget', {
+      monthly: budget.monthly,
+      yearly: budget.yearly,
+      alertThreshold: budget.alertThreshold
+    }, { headers: { Authorization: `Bearer ${token}` } })
+
+    userStore.updateBudget({ monthly: budget.monthly, yearly: budget.yearly, alertThreshold: budget.alertThreshold })
+    ElMessage.success('预算设置已保存')
+  } catch (error) {
+    ElMessage.error('保存预算失败')
+  } finally {
+    budgetLoading.value = false
+  }
+}
+
+onMounted(async () => {
+  await fetchSettings()
+})
 </script>
 
 <style scoped>
-.user-page {
-  padding: 24px;
+.page-container { display: flex; flex-direction: column; gap: 24px; }
+
+/* 通用卡片 */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
 }
 
-.page-header {
-  margin-bottom: 32px;
+.card-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.page-header h2 {
-  font-size: 28px;
-  font-weight: 700;
-  color: #000;
-  margin: 0;
-}
+.card-title { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; color: var(--color-text-primary); }
+.card-body { padding: 24px; }
 
-.subtitle {
-  font-size: 14px;
-  color: #8e8e93;
-  margin: 8px 0 0 0;
-}
+.settings-section { margin-bottom: 36px; }
+.settings-section:last-child { margin-bottom: 0; }
 
-.settings-section {
-  background: white;
-  border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-}
+.section-title { font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 6px; }
+.section-desc { font-size: 13px; color: var(--color-text-muted); margin-bottom: 16px; }
 
-.settings-section h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #000;
-  margin: 0 0 20px 0;
-}
-
+/* 主题网格 */
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 12px;
 }
 
 .theme-card {
   cursor: pointer;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  border: 3px solid transparent;
-  transition: all 0.3s;
+  border: 2px solid var(--color-border);
+  transition: all 0.2s ease;
 }
 
-.theme-card:hover {
-  transform: translateY(-4px);
-}
-
-.theme-card.active {
-  border-color: #007aff;
-}
+.theme-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--color-text-muted); }
+.theme-card.active { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-soft); }
 
 .theme-preview {
-  height: 80px;
+  height: 72px;
   position: relative;
-}
-
-.theme-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.theme-card:hover .theme-overlay,
-.theme-card.active .theme-overlay {
-  opacity: 1;
-}
-
-.theme-name {
-  color: white;
-  font-size: 14px;
-  font-weight: 600;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.theme-colors {
-  display: flex;
-  gap: 6px;
-  padding: 10px;
-  background: #f5f5f7;
-}
-
-.color-bar {
-  width: 100%;
-  height: 24px;
-  border-radius: 4px;
   overflow: hidden;
 }
 
-.color-slots {
-  display: flex;
-  gap: 3px;
-  margin-top: 8px;
-  padding: 4px;
-  background: #f5f5f7;
-  border-radius: 6px;
-}
-
-.color-slot {
-  flex: 1;
-  height: 14px;
-  border-radius: 2px;
-  min-width: 0;
-}
-
-/* 毛玻璃控制 */
-.glass-control {
-  display: flex;
-  align-items: center;
-  gap: 32px;
-}
-
-.glass-preview {
-  width: 120px;
-  height: 120px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.glass-box {
-  width: 80px;
-  height: 80px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: #666;
-}
-
-.slider-control {
-  flex: 1;
-}
-
-.slider-control input[type="range"] {
-  width: 100%;
-  height: 8px;
-  -webkit-appearance: none;
-  background: #e5e5ea;
-  border-radius: 4px;
-  outline: none;
-}
-
-.slider-control input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 24px;
-  height: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.theme-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  background: var(--color-primary);
   border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-
-.slider-labels {
   display: flex;
-  justify-content: space-between;
-  margin-top: 8px;
-  font-size: 12px;
-  color: #8e8e93;
-}
-
-/* 预算设置 */
-.budget-setting {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.setting-item {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  background: #f5f5f7;
-  border-radius: 14px;
+  justify-content: center;
+  color: white;
 }
 
-.setting-info {
+.theme-info { padding: 10px 12px; background: var(--color-surface-hover); }
+.theme-name { font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
+.theme-desc { font-size: 11px; color: var(--color-text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 自定义颜色布局 */
+.customizer-layout {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 24px;
+  align-items: start;
+}
+
+.customizer-left { flex: 1; }
+
+.customizer-right {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 12px;
 }
 
-.setting-label {
-  font-size: 15px;
+.preview-box {
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preview-label {
+  font-size: 11px;
   font-weight: 600;
-  color: #000;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.setting-desc {
-  font-size: 13px;
-  color: #8e8e93;
+.preview-theme-card {
+  border-radius: var(--radius-md);
+  padding: 14px;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.preview-mood {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mood-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mood-text { font-size: 16px; font-weight: 700; transition: color 0.3s ease; }
+
+.mood-stats { display: flex; gap: 12px; }
+.mood-stat { flex: 1; background: rgba(255,255,255,0.5); border-radius: var(--radius-sm); padding: 8px 10px; }
+.mood-label { font-size: 11px; color: rgba(0,0,0,0.5); margin-bottom: 2px; }
+.mood-value { font-size: 14px; font-weight: 700; }
+.mood-value.income { color: #059669; }
+.mood-value.expense { color: #DC2626; }
+
+/* 预算表单 */
+.budget-form { display: flex; flex-direction: column; gap: 20px; max-width: 480px; }
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-label { font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
+.threshold-row { display: flex; align-items: center; gap: 8px; }
+.threshold-suffix { font-size: 16px; font-weight: 600; color: var(--color-text-secondary); }
+.form-hint { font-size: 12px; color: var(--color-text-muted); }
+
+/* 输入框 */
+.form-input {
+  padding: 10px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  outline: none;
+  transition: all var(--transition-fast);
+  font-family: var(--font-ui);
+}
+
+.form-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-soft); }
+
+/* 按钮 */
+.btn {
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+}
+
+.btn.primary { background: var(--color-primary); color: white; }
+.btn.primary:hover { background: var(--color-primary-dark); }
+.btn.primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn.primary.small { padding: 8px 14px; font-size: 13px; }
+
+@media (max-width: 768px) {
+  .theme-grid { grid-template-columns: repeat(2, 1fr); }
+  .customizer-layout { grid-template-columns: 1fr; }
+  .customizer-right { order: -1; }
 }
 </style>

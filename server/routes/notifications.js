@@ -28,10 +28,10 @@ const requireAuth = async (ctx, next) => {
   }
 };
 
-router.use(requireAuth);
+// 各路由单独挂载 requireAuth，不再用 router.use() 全局
 
 // 获取用户通知列表
-router.get('/', async (ctx) => {
+router.get('/', requireAuth, async (ctx) => {
   try {
     const userId = ctx.state.userId;
     const { page = 1, pageSize = 10, type, isRead } = ctx.query;
@@ -72,7 +72,7 @@ router.get('/', async (ctx) => {
 });
 
 // 获取未读通知数量
-router.get('/unread-count', async (ctx) => {
+router.get('/unread-count', requireAuth, async (ctx) => {
   try {
     const userId = ctx.state.userId;
     const count = await Notification.countDocuments({
@@ -88,7 +88,7 @@ router.get('/unread-count', async (ctx) => {
 });
 
 // 标记通知为已读
-router.put('/:id/read', async (ctx) => {
+router.put('/:id/read', requireAuth, async (ctx) => {
   try {
     const userId = ctx.state.userId;
     const notification = await Notification.findOneAndUpdate(
@@ -111,7 +111,7 @@ router.put('/:id/read', async (ctx) => {
 });
 
 // 标记所有通知为已读
-router.put('/read-all', async (ctx) => {
+router.put('/read-all', requireAuth, async (ctx) => {
   try {
     const userId = ctx.state.userId;
     
@@ -131,7 +131,7 @@ router.put('/read-all', async (ctx) => {
 });
 
 // 删除通知
-router.delete('/:id', async (ctx) => {
+router.delete('/:id', requireAuth, async (ctx) => {
   try {
     const userId = ctx.state.userId;
     const notification = await Notification.findOneAndDelete({
@@ -153,7 +153,7 @@ router.delete('/:id', async (ctx) => {
 });
 
 // 批量删除通知
-router.post('/batch-delete', async (ctx) => {
+router.post('/batch-delete', requireAuth, async (ctx) => {
   try {
     const userId = ctx.state.userId;
     const { ids } = ctx.request.body;
@@ -182,7 +182,7 @@ router.post('/batch-delete', async (ctx) => {
 // ==================== 自动通知功能 ====================
 
 // 检查预算预警（定时任务调用或交易后调用）
-router.post('/check-budget-alert', async (ctx) => {
+router.post('/check-budget-alert', requireAuth, async (ctx) => {
   try {
     const userId = ctx.state.userId;
     
@@ -268,46 +268,47 @@ router.post('/check-budget-alert', async (ctx) => {
 });
 
 // 管理员发送系统通知（仅管理员）
-router.post('/system', async (ctx) => {
+router.post('/system', requireAuth, async (ctx) => {
   try {
-    // 检查是否为管理员
     if (ctx.state.userRole !== 'admin') {
       ctx.status = 403;
       ctx.body = { message: '权限不足' };
       return;
     }
-    
+
     const { userIds, title, content } = ctx.request.body;
-    
+
     if (!title || !content) {
       ctx.status = 400;
       ctx.body = { message: '请提供标题和内容' };
       return;
     }
-    
-    // 发送给指定用户或所有用户
+
+    const senderId = new mongoose.Types.ObjectId(ctx.state.userId);
+
     if (userIds && Array.isArray(userIds) && userIds.length > 0) {
       const notifications = userIds.map(userId => ({
         userId: new mongoose.Types.ObjectId(userId),
+        senderId,
         type: 'system',
         title,
         content,
-        data: { sentBy: ctx.state.userId }
+        scope: 'selected',
+        targetUserIds: userIds.map(id => new mongoose.Types.ObjectId(id))
       }));
-      
       await Notification.insertMany(notifications);
       ctx.body = { message: `成功发送给 ${userIds.length} 位用户` };
     } else {
-      // 发送给所有用户
       const users = await mongoose.model('User').find({ role: 'user' }).select('_id');
       const notifications = users.map(user => ({
         userId: user._id,
+        senderId,
         type: 'system',
         title,
         content,
-        data: { sentBy: ctx.state.userId }
+        scope: 'all',
+        targetUserIds: []
       }));
-      
       await Notification.insertMany(notifications);
       ctx.body = { message: `成功发送给 ${users.length} 位用户` };
     }

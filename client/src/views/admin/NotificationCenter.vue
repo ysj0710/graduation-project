@@ -1,17 +1,58 @@
 <template>
   <div class="page-container">
-    <div class="ios-card">
-      <h3>🔔 消息中心</h3>
-      <div class="notification-list">
-        <div class="notification-item" v-for="notif in notifications" :key="notif.id">
-          <div class="notif-icon" :class="notif.level">{{ notif.icon }}</div>
-          <div class="notif-content">
-            <div class="notif-title">{{ notif.title }}</div>
-            <div class="notif-time">{{ notif.time }}</div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <Bell :size="18" :stroke-width="1.5" />
+          <span>消息中心</span>
+        </div>
+        <div class="header-actions">
+          <button class="btn-small" @click="markAllRead" v-if="unreadCount > 0">
+            全部标记已读
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="notification-list">
+          <div class="notification-item" v-for="notif in notifications" :key="notif.id">
+            <div class="notif-icon" :class="notif.level">
+              <AlertTriangle v-if="notif.level === 'danger'" :size="20" :stroke-width="1.5" />
+              <User v-else-if="notif.level === 'info'" :size="20" :stroke-width="1.5" />
+              <CheckCircle2 v-else :size="20" :stroke-width="1.5" />
+            </div>
+            <div class="notif-content">
+              <div class="notif-title">{{ notif.title }}</div>
+              <div class="notif-time">{{ notif.time }}</div>
+            </div>
+            <span class="notif-badge" :class="{ read: notif.read }">
+              {{ notif.read ? '已读' : '未读' }}
+            </span>
+            <div class="notif-actions">
+              <button v-if="!notif.read" class="btn-icon" @click="markRead(notif)">
+                <Check :size="16" :stroke-width="1.5" />
+              </button>
+              <button class="btn-icon" @click="deleteNotif(notif)">
+                <Trash2 :size="16" :stroke-width="1.5" />
+              </button>
+            </div>
           </div>
-          <el-tag :type="notif.read ? 'info' : 'primary'" size="small">
-            {{ notif.read ? '已读' : '未读' }}
-          </el-tag>
+
+          <div v-if="notifications.length === 0 && !loading" class="empty-state">
+            <div class="empty-icon"><Bell :size="48" :stroke-width="1" /></div>
+            <p>暂无消息</p>
+          </div>
+        </div>
+        <div v-if="total > pageSize" class="pagination-wrap">
+          <span class="page-indicator">第 {{ currentPage }} / {{ Math.ceil(total / pageSize) }} 页</span>
+          <div class="page-buttons">
+            <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--; fetchNotifications()">
+              <ChevronLeft :size="16" />
+            </button>
+            <span class="page-current">{{ currentPage }}</span>
+            <button class="page-btn" :disabled="currentPage >= Math.ceil(total / pageSize)" @click="currentPage++; fetchNotifications()">
+              <ChevronRight :size="16" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -19,77 +60,216 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Bell, AlertTriangle, User, CheckCircle2, Check, Trash2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import axios from 'axios'
 
-const notifications = ref([
-  { id: 1, icon: '⚠️', title: '用户 张三 消费超预算90%', time: '10分钟前', level: 'danger', read: false },
-  { id: 2, icon: '👤', title: '新用户注册：李四', time: '30分钟前', level: 'info', read: false },
-  { id: 3, icon: '📊', title: '月度统计报告已生成', time: '2小时前', level: 'success', read: true }
-])
+const notifications = ref([])
+const unreadCount = ref(0)
+const loading = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
+
+const fetchNotifications = async () => {
+  loading.value = true
+  try {
+    const token = localStorage.getItem('token')
+    const response = await axios.get('/api/notifications', {
+      headers: { Authorization: `Bearer ${token}` },
+      params: {
+        page: currentPage.value,
+        pageSize: pageSize.value
+      }
+    })
+
+    notifications.value = response.data.notifications.map(n => ({
+      id: n._id,
+      title: n.title,
+      time: formatTime(n.createdAt),
+      level: getNotificationLevel(n.type),
+      read: n.isRead
+    }))
+    unreadCount.value = response.data.unreadCount || 0
+    total.value = response.data.total || 0
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '获取消息列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const formatTime = (dateStr) => {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now - date
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes}分钟前`
+  if (hours < 24) return `${hours}小时前`
+  if (days < 7) return `${days}天前`
+  return date.toLocaleDateString('zh-CN')
+}
+
+const getNotificationLevel = (type) => {
+  const levelMap = {
+    budget_alert: 'danger',
+    risk_warning: 'danger',
+    system: 'info',
+    transaction: 'success'
+  }
+  return levelMap[type] || 'info'
+}
+
+const markRead = async (notif) => {
+  try {
+    const token = localStorage.getItem('token')
+    await axios.put(`/api/notifications/${notif.id}/read`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    notif.read = true
+    unreadCount.value = Math.max(0, unreadCount.value - 1)
+    ElMessage.success('已标记为已读')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '标记已读失败')
+  }
+}
+
+const markAllRead = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    await axios.put('/api/notifications/read-all', {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    notifications.value.forEach(n => n.read = true)
+    unreadCount.value = 0
+    ElMessage.success('已全部标记为已读')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '标记已读失败')
+  }
+}
+
+const deleteNotif = async (notif) => {
+  try {
+    const token = localStorage.getItem('token')
+    await axios.delete(`/api/notifications/${notif.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    notifications.value = notifications.value.filter(n => n.id !== notif.id)
+    if (!notif.read) {
+      unreadCount.value = Math.max(0, unreadCount.value - 1)
+    }
+    ElMessage.success('删除成功')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '删除失败')
+  }
+}
+
+onMounted(() => {
+  fetchNotifications()
+})
 </script>
 
 <style scoped>
-.page-container {
+.page-container { display: flex; flex-direction: column; gap: 24px; }
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+.card-header {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
 }
+.card-title { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; color: var(--color-text-primary); }
+.header-actions { display: flex; gap: 12px; }
+.card-body { padding: 24px; }
 
-.ios-card {
-  background: white;
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-}
-
-.ios-card h3 {
-  font-size: 16px;
+.btn-small {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
   font-weight: 600;
-  margin: 0 0 20px 0;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
+.btn-small:hover { background: var(--color-surface-hover); color: var(--color-primary); border-color: var(--color-primary); }
 
-.notification-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
+.notification-list { display: flex; flex-direction: column; gap: 12px; }
 .notification-item {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 16px;
-  background: #F5F5F7;
-  border-radius: 14px;
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-lg);
+  transition: background var(--transition-fast);
 }
+.notification-item:hover { background: var(--color-surface-active); }
 
 .notif-icon {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
 }
+.notif-icon.danger { background: var(--color-expense-bg); color: var(--color-expense); }
+.notif-icon.success { background: var(--color-income-bg); color: var(--color-income); }
+.notif-icon.info { background: var(--color-primary-soft); color: var(--color-primary); }
 
-.notif-icon.danger { background: rgba(255, 59, 48, 0.15); }
-.notif-icon.success { background: rgba(52, 199, 89, 0.15); }
-.notif-icon.info { background: rgba(0, 122, 255, 0.15); }
+.notif-content { flex: 1; }
+.notif-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+.notif-time { font-size: 12px; color: var(--color-text-muted); margin-top: 2px; }
 
-.notif-content {
-  flex: 1;
-}
-
-.notif-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #000;
-}
-
-.notif-time {
+.notif-badge {
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
   font-size: 12px;
-  color: #8E8E93;
-  margin-top: 2px;
+  font-weight: 600;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
+.notif-badge.read { background: var(--color-surface-hover); color: var(--color-text-muted); }
+
+.notif-actions { display: flex; gap: 8px; }
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+.btn-icon:hover { background: var(--color-surface-hover); color: var(--color-primary); border-color: var(--color-primary); }
+
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; }
+.empty-icon { color: var(--color-text-muted); opacity: 0.5; }
+.empty-state p { font-size: 14px; color: var(--color-text-muted); margin-top: 12px; }
+
+.pagination-wrap { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 16px 0 4px; }
+.page-indicator { font-size: 13px; color: var(--color-text-muted); white-space: nowrap; }
+.page-buttons { display: flex; align-items: center; gap: 8px; }
+.page-btn { width: 32px; height: 32px; border-radius: var(--radius-md); background: var(--color-surface); border: 1px solid var(--color-border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all var(--transition-fast); color: var(--color-text-secondary); }
+.page-btn:hover:not(:disabled) { background: var(--color-surface-hover); color: var(--color-text-primary); }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.page-current { font-size: 14px; font-weight: 600; color: var(--color-text-primary); min-width: 28px; text-align: center; }
 </style>

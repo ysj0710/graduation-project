@@ -13,6 +13,10 @@ const userConfigSchema = new mongoose.Schema({
       type: Number,
       default: 5000
     },
+    yearly: {
+      type: Number,
+      default: 60000
+    },
     alertThreshold: {
       type: Number,
       default: 80  // 百分比，默认80%预警
@@ -24,9 +28,25 @@ const userConfigSchema = new mongoose.Schema({
       type: String,
       default: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)'
     },
+    primaryColor: {
+      type: String,
+      default: '#007AFF'
+    },
     glassBlur: {
       type: Number,
       default: 20
+    },
+    pattern: {
+      type: String,
+      default: 'dots'  // dots, waves, stars, grid, rays, circuit, petals, cloud, leaves, none
+    },
+    presetId: {
+      type: String,
+      default: 'aurora'  // 主题预设ID
+    },
+    customBgUrl: {
+      type: String,
+      default: ''  // 用户自定义背景图片URL
     }
   },
   // 通知设置
@@ -71,9 +91,8 @@ const userConfigSchema = new mongoose.Schema({
 });
 
 // 更新时自动更新 updatedAt
-userConfigSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
+userConfigSchema.pre('save', async function() {
+  this.updatedAt = new Date();
 });
 
 module.exports = mongoose.model('UserConfig', userConfigSchema);

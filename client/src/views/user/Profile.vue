@@ -1,110 +1,260 @@
 <template>
-  <div class="user-page">
-    <div class="page-header">
-      <h2>👤 个人中心</h2>
-      <p class="subtitle">管理你的账户和关联服务</p>
+  <div class="page-container">
+    <!-- 财务概览卡片 -->
+    <div class="finance-overview">
+      <div class="finance-card income-card">
+        <div class="finance-icon">
+          <TrendingUp :size="20" :stroke-width="1.8" />
+        </div>
+        <div class="finance-info">
+          <div class="finance-label">总收入</div>
+          <div class="finance-value income">¥{{ formatNumber(financeStats.totalIncome) }}</div>
+        </div>
+      </div>
+      <div class="finance-card expense-card">
+        <div class="finance-icon">
+          <TrendingDown :size="20" :stroke-width="1.8" />
+        </div>
+        <div class="finance-info">
+          <div class="finance-label">总支出</div>
+          <div class="finance-value expense">¥{{ formatNumber(financeStats.totalExpense) }}</div>
+        </div>
+      </div>
+      <div class="finance-card balance-card">
+        <div class="finance-icon">
+          <Wallet :size="20" :stroke-width="1.8" />
+        </div>
+        <div class="finance-info">
+          <div class="finance-label">结余</div>
+          <div class="finance-value" :class="financeStats.balance >= 0 ? 'income' : 'expense'">
+            ¥{{ formatNumber(Math.abs(financeStats.balance)) }}
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- 用户信息 -->
-    <div class="user-card">
-      <div class="avatar-section">
-        <div class="avatar-wrapper">
-          <el-avatar :size="80" :src="userStore.profile.avatar">
-            {{ userStore.profile.nickname?.charAt(0) || 'U' }}
-          </el-avatar>
-          <button class="avatar-edit-btn" @click="changeAvatar">
-            <span>📷</span>
+    <!-- 用户信息卡片 -->
+    <div class="card profile-card">
+      <div class="card-body">
+        <div class="avatar-section">
+          <div class="avatar-wrapper">
+            <img v-if="userStore.profile.avatar" :src="userStore.profile.avatar" class="avatar-image" />
+            <div v-else class="avatar">{{ userStore.profile.username?.charAt(0) || 'U' }}</div>
+            <button class="avatar-edit-btn" @click="triggerAvatarUpload" :disabled="avatarLoading">
+              <Camera :size="14" :stroke-width="2" />
+            </button>
+            <input ref="avatarInput" type="file" accept="image/*" @change="handleAvatarChange" style="display: none" />
+          </div>
+          <div class="user-info">
+            <!-- 用户名（登录用，不可在线修改） -->
+            <div class="info-row">
+              <div class="info-display">
+                <span class="info-label">用户名</span>
+                <span class="info-value">{{ userStore.profile.username }}</span>
+              </div>
+              <span class="info-hint">用于登录</span>
+            </div>
+            <!-- 昵称（给自己看，随时可改） -->
+            <div class="info-row">
+              <div class="info-display">
+                <span class="info-label">昵称</span>
+                <span class="info-value secondary">{{ userStore.profile.nickname || '未设置' }}</span>
+              </div>
+              <button class="edit-btn" @click="openNicknameDialog">
+                <Edit3 :size="14" :stroke-width="2" />
+                编辑
+              </button>
+            </div>
+            <span class="user-email">{{ userStore.profile.email }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 修改昵称对话框 -->
+    <div v-if="showNicknameDialog" class="dialog-overlay" @click="showNicknameDialog = false">
+      <div class="dialog-container" @click.stop>
+        <div class="dialog-header">
+          <div class="dialog-title">修改昵称</div>
+          <button class="close-btn" @click="showNicknameDialog = false"><X :size="20" :stroke-width="2" /></button>
+        </div>
+        <div class="dialog-body">
+          <div class="form-group">
+            <label class="form-label">新昵称</label>
+            <input v-model="editNickname" class="form-input" placeholder="给自己取个好听的昵称" maxlength="20" />
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn secondary" @click="showNicknameDialog = false">取消</button>
+          <button class="btn primary" :disabled="!editNickname.trim() || nicknameLoading" @click="updateNickname">
+            {{ nicknameLoading ? '保存中...' : '保存' }}
           </button>
         </div>
-        <div class="user-info">
-          <input 
-            v-model="userInfo.nickname" 
-            class="nickname-input" 
-            placeholder="输入昵称"
-            @blur="updateNickname"
-          />
-          <span class="user-email">{{ userStore.profile.email }}</span>
+      </div>
+    </div>
+
+    <!-- 修改用户名对话框 -->
+    <div v-if="showUsernameDialog" class="dialog-overlay" @click="showUsernameDialog = false">
+      <div class="dialog-container" @click.stop>
+        <div class="dialog-header">
+          <div class="dialog-title">修改用户名</div>
+          <button class="close-btn" @click="showUsernameDialog = false"><X :size="20" :stroke-width="2" /></button>
+        </div>
+
+        <div class="dialog-body">
+          <div class="username-info">
+            <div class="current-username">
+              <span class="info-label">当前用户名</span>
+              <span class="info-value">{{ userStore.profile.username }}</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">新用户名</label>
+            <input v-model="newUsername" class="form-input" placeholder="输入新用户名（3-20个字符）" />
+          </div>
+
+          <div class="warning-box">
+            <AlertTriangle :size="16" :stroke-width="2" class="warning-icon" />
+            <span>确定要修改用户名？修改后下次登录需要输入新的用户名 <strong>{{ newUsername || '...' }}</strong></span>
+          </div>
+        </div>
+
+        <div class="dialog-footer">
+          <button class="btn secondary" @click="showUsernameDialog = false">取消</button>
+          <button class="btn primary" :disabled="!newUsername || newUsername === userStore.profile.username || usernameLoading" @click="updateUsername">
+            {{ usernameLoading ? '保存中...' : '确认修改' }}
+          </button>
         </div>
       </div>
     </div>
 
     <!-- 其他设置 -->
-    <div class="settings-section">
-      <h3>⚙️ 其他设置</h3>
-      <div class="menu-list">
-        <div class="menu-item" @click="changePassword">
-          <span class="menu-icon">🔐</span>
-          <span>修改密码</span>
-          <span class="menu-arrow">›</span>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <Settings :size="18" :stroke-width="1.5" />
+          <span>账户设置</span>
         </div>
-        
-        <div class="menu-item" @click="handleLogout">
-          <span class="menu-icon">🚪</span>
-          <span>退出登录</span>
-          <span class="menu-arrow">›</span>
+      </div>
+      <div class="card-body">
+        <div class="menu-list">
+          <div class="menu-item" @click="changePassword">
+            <KeyRound :size="18" :stroke-width="1.8" />
+            <span>修改密码</span>
+            <ArrowRight :size="16" :stroke-width="2" />
+          </div>
+
+          <div class="menu-item" @click="handleLogout">
+            <LogOut :size="18" :stroke-width="1.8" />
+            <span>退出登录</span>
+            <ArrowRight :size="16" :stroke-width="2" />
+          </div>
+
+          <div class="menu-item danger" @click="handleDeleteAccount">
+            <Trash2 :size="18" :stroke-width="1.8" />
+            <span>注销账号</span>
+            <ArrowRight :size="16" :stroke-width="2" />
+          </div>
         </div>
-        
-        <div class="menu-item" @click="handleDeleteAccount">
-          <span class="menu-icon">🗑️</span>
-          <span class="danger">注销账号</span>
-          <span class="menu-arrow">›</span>
+      </div>
+    </div>
+
+    <!-- 验证码确认对话框 -->
+    <div v-if="verifyDialogVisible" class="dialog-overlay" @click="verifyDialogVisible = false">
+      <div class="dialog-container" @click.stop>
+        <div class="dialog-header">
+          <div class="dialog-title">{{ verifyPurpose === 'password' ? '修改密码' : '注销账号' }}</div>
+          <button class="close-btn" @click="verifyDialogVisible = false"><X :size="20" :stroke-width="2" /></button>
+        </div>
+
+        <div class="dialog-body">
+          <div class="form-group">
+            <label class="form-label">邮箱</label>
+            <input v-model="verifyForm.email" type="email" class="form-input" disabled />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">验证码</label>
+            <div class="code-input-wrapper">
+              <input v-model="verifyForm.code" type="text" class="form-input" placeholder="请输入验证码" />
+              <button class="btn secondary small" :disabled="countdown > 0" :class="{ loading: sendCodeLoading }" @click="sendVerifyCode">
+                {{ countdown > 0 ? `${countdown}s` : '发送验证码' }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="verifyPurpose === 'password'" class="form-group">
+            <label class="form-label">新密码</label>
+            <input v-model="verifyForm.newPassword" type="password" class="form-input" placeholder="请输入新密码" />
+          </div>
+        </div>
+
+        <div class="dialog-footer">
+          <button class="btn secondary" @click="verifyDialogVisible = false">取消</button>
+          <button class="btn primary" :class="{ loading: verifyLoading }" @click="handleVerify">
+            {{ verifyPurpose === 'password' ? '确认修改' : '确认注销' }}
+          </button>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- 验证码确认对话框 -->
-  <el-dialog 
-    v-model="verifyDialogVisible" 
-    :title="verifyPurpose === 'password' ? '修改密码' : '注销账号'"
-    width="400px"
-    :close-on-click-modal="false"
-  >
-    <el-form label-width="80px">
-      <el-form-item label="邮箱">
-        <el-input v-model="verifyForm.email" disabled />
-      </el-form-item>
-      <el-form-item label="验证码">
-        <div class="code-input-wrapper">
-          <el-input v-model="verifyForm.code" placeholder="请输入验证码" />
-          <el-button 
-            @click="sendVerifyCode" 
-            :disabled="countdown > 0"
-            :loading="sendCodeLoading"
-          >
-            {{ countdown > 0 ? `${countdown}s` : '发送验证码' }}
-          </el-button>
-        </div>
-      </el-form-item>
-      <el-form-item v-if="verifyPurpose === 'password'" label="新密码">
-        <el-input v-model="verifyForm.newPassword" type="password" placeholder="请输入新密码" show-password />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button @click="verifyDialogVisible = false">取消</el-button>
-      <el-button type="primary" @click="handleVerify" :loading="verifyLoading">
-        {{ verifyPurpose === 'password' ? '确认修改' : '确认注销' }}
-      </el-button>
-    </template>
-  </el-dialog>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../../stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { User, KeyRound, LogOut, Trash2, Camera, Settings, ArrowRight, X, Edit3, AlertTriangle, TrendingUp, TrendingDown, Wallet } from 'lucide-vue-next'
+import axios from 'axios'
 
 const router = useRouter()
 const userStore = useUserStore()
 
-const userInfo = reactive({
-  nickname: userStore.profile.nickname || ''
-})
+const avatarLoading = ref(false)
+const avatarInput = ref(null)
 
-// 验证码相关状态
+// 财务概览
+const financeStats = ref({ totalIncome: 0, totalExpense: 0, balance: 0, loading: false })
+
+const fetchFinanceStats = async () => {
+  financeStats.value.loading = true
+  try {
+    const token = localStorage.getItem('token')
+    const now = new Date()
+    const startDate = `${now.getFullYear()}-01-01`
+    const endDate = `${now.getFullYear() + 1}-01-01`
+    const res = await axios.get('/api/transactions/statistics', {
+      params: { startDate, endDate },
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    const income = res.data.income?.total || 0
+    const expense = res.data.expense?.total || 0
+    financeStats.value.totalIncome = income
+    financeStats.value.totalExpense = expense
+    financeStats.value.balance = income - expense
+  } catch (e) {
+    console.error('获取财务统计失败', e)
+  } finally {
+    financeStats.value.loading = false
+  }
+}
+
+const formatNumber = (num) => Number(num || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+
+// 昵称修改
+const showNicknameDialog = ref(false)
+const editNickname = ref('')
+const nicknameLoading = ref(false)
+
+// 用户名修改
+const showUsernameDialog = ref(false)
+const newUsername = ref('')
+const usernameLoading = ref(false)
+
 const verifyDialogVisible = ref(false)
-const verifyPurpose = ref('') // 'password' or 'delete'
+const verifyPurpose = ref('')
 const verifyForm = reactive({
   email: '',
   code: '',
@@ -115,88 +265,134 @@ const sendCodeLoading = ref(false)
 const countdown = ref(0)
 let countdownTimer = null
 
-const budget = reactive({
-  monthly: userStore.budget?.monthly || 5000,
-  alertThreshold: userStore.budget?.alertThreshold || 80
-})
-
-const wechat = reactive({
-  linked: false,
-  account: '已关联'
-})
-
-const alipay = reactive({
-  linked: false,
-  account: '已关联'
-})
-
-const changeAvatar = () => {
-  ElMessage.info('头像修改功能开发中')
+const triggerAvatarUpload = () => {
+  avatarInput.value?.click()
 }
 
-const updateNickname = () => {
-  if (userInfo.nickname) {
+const handleAvatarChange = async (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  // 验证文件类型
+  if (!file.type.startsWith('image/')) {
+    ElMessage.warning('请选择图片文件')
+    return
+  }
+
+  // 验证文件大小（限制5MB）
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.warning('图片大小不能超过5MB')
+    return
+  }
+
+  avatarLoading.value = true
+  try {
+    // 读取文件并转为base64
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      const base64Image = e.target?.result
+
+      // 上传到服务器（这里使用base64模拟）
+      const token = localStorage.getItem('token')
+      await axios.post('/api/user/avatar', {
+        avatarUrl: base64Image
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+
+      ElMessage.success('头像修改成功')
+      userStore.profile.avatar = base64Image
+      localStorage.setItem('user', JSON.stringify(userStore.profile))
+    }
+    reader.readAsDataURL(file)
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '修改头像失败')
+  } finally {
+    avatarLoading.value = false
+    // 清空input，允许重复选择同一文件
+    if (avatarInput.value) {
+      avatarInput.value.value = ''
+    }
+  }
+}
+
+const openNicknameDialog = () => {
+  editNickname.value = userStore.profile.nickname || ''
+  showNicknameDialog.value = true
+}
+
+const updateNickname = async () => {
+  if (!editNickname.value || !editNickname.value.trim()) {
+    ElMessage.warning('昵称不能为空')
+    return
+  }
+
+  nicknameLoading.value = true
+  try {
+    const token = localStorage.getItem('token')
+    const response = await axios.put('/api/user/profile', {
+      nickname: editNickname.value.trim()
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+
     ElMessage.success('昵称已更新')
+    userStore.profile.nickname = response.data.user.nickname
+    localStorage.setItem('user', JSON.stringify(userStore.profile))
+    showNicknameDialog.value = false
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '更新昵称失败')
+  } finally {
+    nicknameLoading.value = false
   }
 }
 
-const updateBudget = () => {
-  userStore.updateBudget({
-    monthly: budget.monthly,
-    alertThreshold: budget.alertThreshold
-  })
-  ElMessage.success('预算设置已保存')
-}
+const updateUsername = async () => {
+  if (!newUsername.value || newUsername.value.trim().length < 3) {
+    ElMessage.warning('用户名长度需要在 3-20 个字符之间')
+    return
+  }
 
-const toggleWechat = () => {
-  if (wechat.linked) {
-    ElMessageBox.confirm('确定要解除微信关联吗？', '确认', {
-      confirmButtonText: '解除',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }).then(() => {
-      wechat.linked = false
-      ElMessage.success('已解除微信关联')
+  if (newUsername.value === userStore.profile.username) {
+    ElMessage.warning('新用户名不能与当前用户名相同')
+    return
+  }
+
+  // 确认对话框
+  try {
+    await ElMessageBox.confirm(
+      `确定要将用户名从「${userStore.profile.username}」修改为「${newUsername.value}」吗？\n\n修改后下次登录请使用新用户名「${newUsername.value}」登录。`,
+      '修改用户名',
+      {
+        confirmButtonText: '确认修改',
+        cancelButtonText: '取消',
+        type: 'warning',
+        dangerouslyUseHTMLString: false
+      }
+    )
+  } catch {
+    return // 用户取消
+  }
+
+  usernameLoading.value = true
+  try {
+    const token = localStorage.getItem('token')
+    const response = await axios.put('/api/user/username', {
+      username: newUsername.value.trim()
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
     })
-  } else {
-    // 模拟关联流程
-    ElMessage.info('正在跳转微信授权页面...')
-    setTimeout(() => {
-      wechat.linked = true
-      ElMessage.success('微信关联成功')
-    }, 1500)
+
+    ElMessage.success('用户名已修改，下次登录请使用新用户名')
+    userStore.profile.username = response.data.user.username
+    localStorage.setItem('user', JSON.stringify(userStore.profile))
+    showUsernameDialog.value = false
+    newUsername.value = ''
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '修改用户名失败')
+  } finally {
+    usernameLoading.value = false
   }
-}
-
-const toggleAlipay = () => {
-  if (alipay.linked) {
-    ElMessageBox.confirm('确定要解除支付宝关联吗？', '确认', {
-      confirmButtonText: '解除',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }).then(() => {
-      alipay.linked = false
-      ElMessage.success('已解除支付宝关联')
-    })
-  } else {
-    ElMessage.info('正在跳转支付宝授权页面...')
-    setTimeout(() => {
-      alipay.linked = true
-      ElMessage.success('支付宝关联成功')
-    }, 1500)
-  }
-}
-
-const importFromWechat = () => {
-  ElMessage.info('正在从微信导入账单...')
-}
-
-const importFromAlipay = () => {
-  ElMessage.info('正在从支付宝导入账单...')
-}
-
-const handleFileChange = (file) => {
-  ElMessage.success(`已选择文件: ${file.name}`)
 }
 
 const changePassword = () => {
@@ -205,10 +401,6 @@ const changePassword = () => {
   verifyForm.code = ''
   verifyForm.newPassword = ''
   verifyDialogVisible.value = true
-}
-
-const clearCache = () => {
-  ElMessage.success('缓存已清除')
 }
 
 const handleLogout = () => {
@@ -235,23 +427,20 @@ const sendVerifyCode = async () => {
     ElMessage.warning('请输入邮箱地址')
     return
   }
-  
+
   sendCodeLoading.value = true
   try {
-    await axios.post('https://ysj0710.xyz/api/auth/send-sensitive-code', {
+    await axios.post('/api/auth/send-sensitive-code', {
       email: verifyForm.email,
       purpose: verifyPurpose.value
     })
     ElMessage.success('验证码已发送到邮箱')
-    
-    // 开始倒计时
+
     countdown.value = 60
     if (countdownTimer) clearInterval(countdownTimer)
     countdownTimer = setInterval(() => {
       countdown.value--
-      if (countdown.value <= 0) {
-        clearInterval(countdownTimer)
-      }
+      if (countdown.value <= 0) clearInterval(countdownTimer)
     }, 1000)
   } catch (error) {
     ElMessage.error('发送验证码失败')
@@ -265,25 +454,23 @@ const handleVerify = async () => {
     ElMessage.warning('请输入验证码')
     return
   }
-  
+
   verifyLoading.value = true
   try {
-    // 先验证验证码
-    await axios.post('https://ysj0710.xyz/api/auth/verify-sensitive-code', {
+    await axios.post('/api/auth/verify-sensitive-code', {
       email: verifyForm.email,
       code: verifyForm.code,
       purpose: verifyPurpose.value
     })
-    
+
     if (verifyPurpose.value === 'password') {
-      // 修改密码
       if (!verifyForm.newPassword) {
         ElMessage.warning('请输入新密码')
         verifyLoading.value = false
         return
       }
       const token = localStorage.getItem('token')
-      await axios.post('https://ysj0710.xyz/api/auth/change-password', {
+      await axios.post('/api/auth/change-password', {
         password: verifyForm.newPassword
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -291,15 +478,14 @@ const handleVerify = async () => {
       ElMessage.success('密码修改成功')
       verifyDialogVisible.value = false
     } else if (verifyPurpose.value === 'delete') {
-      // 确认注销
       const confirm = await ElMessageBox.confirm(
         '账号注销后将清除所有数据且不可恢复，是否确定？',
         '确认注销',
         { confirmButtonText: '确定注销', cancelButtonText: '取消', type: 'error' }
       )
-      
+
       const token = localStorage.getItem('token')
-      await axios.delete('https://ysj0710.xyz/api/auth/account', {
+      await axios.delete('/api/auth/account', {
         headers: { Authorization: `Bearer ${token}` }
       })
       ElMessage.success('账号已注销')
@@ -313,47 +499,93 @@ const handleVerify = async () => {
     verifyLoading.value = false
   }
 }
+
+onMounted(() => {
+  fetchFinanceStats()
+})
 </script>
 
 <style scoped>
-.user-page {
-  padding: 24px;
-  max-width: 600px;
+.page-container { display: flex; flex-direction: column; gap: 20px; max-width: 600px; }
+
+/* 财务概览 */
+.finance-overview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
 }
 
-.page-header {
-  margin-bottom: 24px;
-}
-
-.page-header h2 {
-  font-size: 28px;
-  font-weight: 700;
-  color: #000;
-  margin: 0;
-}
-
-.subtitle {
-  font-size: 14px;
-  color: #8E8E93;
-  margin: 8px 0 0 0;
-}
-
-.user-card {
-  background: white;
-  border-radius: 20px;
-  padding: 28px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-}
-
-.avatar-section {
+.finance-card {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-fast);
 }
 
-.avatar-wrapper {
-  position: relative;
+.finance-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+.finance-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.income-card .finance-icon { background: var(--color-income-bg); color: var(--color-income); }
+.expense-card .finance-icon { background: var(--color-expense-bg); color: var(--color-expense); }
+.balance-card .finance-icon { background: var(--color-primary-soft); color: var(--color-primary); }
+
+.finance-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.finance-label { font-size: 12px; color: var(--color-text-muted); font-weight: 500; }
+.finance-value { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.finance-value.income { color: var(--color-income); }
+.finance-value.expense { color: var(--color-expense); }
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.card-title { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; color: var(--color-text-primary); }
+
+.card-body { padding: 24px; }
+
+.avatar-section { display: flex; align-items: center; gap: 20px; }
+
+.avatar-wrapper { position: relative; flex-shrink: 0; }
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.avatar-image {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
 }
 
 .avatar-edit-btn {
@@ -362,305 +594,229 @@ const handleVerify = async () => {
   right: 0;
   width: 28px;
   height: 28px;
-  border-radius: 50%;
-  background: white;
-  border: none;
-  cursor: pointer;
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
 }
 
-.nickname-input {
-  font-size: 20px;
-  font-weight: 600;
-  border: none;
-  background: transparent;
-  outline: none;
-  padding: 4px 0;
-  border-bottom: 2px solid transparent;
-  transition: border-color 0.3s;
-}
+.avatar-edit-btn:hover { background: var(--color-surface-hover); color: var(--color-primary); }
 
-.nickname-input:focus {
-  border-color: #007AFF;
-}
+.user-info { flex: 1; display: flex; flex-direction: column; gap: 12px; }
 
-.user-email {
-  font-size: 14px;
-  color: #8E8E93;
-  margin-top: 4px;
-  display: block;
-}
-
-.settings-section {
-  background: white;
-  border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-}
-
-.settings-section h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #000;
-  margin: 0 0 20px 0;
-}
-
-.budget-setting {
+.info-row {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.setting-item {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  background: #F5F5F7;
-  border-radius: 14px;
+  justify-content: space-between;
+  gap: 16px;
 }
 
-.setting-info {
+.info-display {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.setting-label {
-  font-size: 15px;
-  font-weight: 600;
-  color: #000;
-}
-
-.setting-desc {
-  font-size: 13px;
-  color: #8E8E93;
-}
-
-.section-desc {
-  font-size: 13px;
-  color: #8E8E93;
-  margin: 8px 0 20px 0;
-}
-
-.link-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.link-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: #F5F5F7;
-  border-radius: 14px;
-  border: 2px solid transparent;
-  transition: all 0.3s;
-}
-
-.link-card.linked {
-  background: rgba(52, 199, 89, 0.1);
-  border-color: rgba(52, 199, 89, 0.3);
-}
-
-.link-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  background: white;
-}
-
-.link-icon.wechat {
-  background: rgba(7, 193, 96, 0.15);
-}
-
-.link-icon.alipay {
-  background: rgba(22, 119, 255, 0.15);
-}
-
-.link-icon img {
-  width: 28px;
-  height: 28px;
-}
-
-.link-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.link-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #000;
-}
-
-.link-status {
+.info-label {
   font-size: 12px;
-  color: #8E8E93;
-}
-
-.link-card.linked .link-status {
-  color: #34C759;
-}
-
-.link-btn {
-  padding: 8px 20px;
-  border-radius: 10px;
-  border: none;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.link-btn.link {
-  background: #007AFF;
-  color: white;
-}
-
-.link-btn.unlink {
-  background: #E5E5EA;
-  color: #FF3B30;
-}
-
-/* 导入账单 */
-.import-options {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.import-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 20px;
-  background: #F5F5F7;
-  border: 2px dashed #D1D1D6;
-  border-radius: 14px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.import-btn:hover:not(:disabled) {
-  border-color: #007AFF;
-  background: rgba(0, 122, 255, 0.05);
-}
-
-.import-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.import-icon {
-  font-size: 28px;
-}
-
-.import-btn span:not(.import-icon) {
-  font-size: 14px;
+  color: var(--color-text-muted);
   font-weight: 500;
-  color: #000;
 }
 
-.import-tip {
-  font-size: 11px !important;
-  color: #8E8E93 !important;
+.info-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-hover);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
 }
 
-.manual-import {
-  margin-top: 24px;
+.info-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
-.divider-text {
-  text-align: center;
-  color: #8E8E93;
+.info-value.secondary {
+  font-size: 15px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.edit-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
-  margin: 20px 0;
-}
-
-.upload-area {
-  width: 100%;
-}
-
-.upload-content {
-  display: flex;
-  flex-direction: column;
+  font-weight: 600;
+  background: var(--color-surface-hover);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary-soft);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 32px;
+  gap: 6px;
+  white-space: nowrap;
 }
 
-.upload-icon {
-  font-size: 36px;
+.edit-btn:hover { background: var(--color-primary-soft); }
+
+.user-email { font-size: 13px; color: var(--color-text-muted); margin-top: 4px; }
+
+/* 用户名修改对话框 */
+.username-info {
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  border: 1px solid var(--color-border);
 }
 
-.upload-text {
-  font-size: 14px;
-  color: #000;
-}
-
-.upload-hint {
-  font-size: 12px;
-  color: #8E8E93;
-}
-
-/* 菜单列表 */
-.menu-list {
+.current-username {
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
+
+.warning-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--color-warning-soft);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #92400E;
+  line-height: 1.5;
+}
+
+.warning-icon { flex-shrink: 0; margin-top: 2px; color: #F59E0B; }
+
+.menu-list { display: flex; flex-direction: column; gap: 8px; }
 
 .menu-item {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--transition-fast);
+  color: var(--color-text-secondary);
 }
 
-.menu-item:hover {
-  background: #F5F5F7;
-}
+.menu-item:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+.menu-item.danger:hover { background: var(--color-expense-bg); color: var(--color-expense); }
 
-.menu-icon {
-  font-size: 20px;
-}
+.menu-item span:nth-child(2) { flex: 1; font-size: 14px; font-weight: 500; }
+.menu-item.danger span:nth-child(2) { color: var(--color-expense); }
 
-.menu-item span:nth-child(2) {
-  flex: 1;
-  font-size: 14px;
-  color: #000;
-}
-
-.menu-item .danger {
-  color: #FF3B30;
-}
-
-.menu-arrow {
-  color: #C7C7CC;
-  font-size: 18px;
-}
-
-.code-input-wrapper {
+/* 对话框 */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 25, 23, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 200;
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
 }
 
-.code-input-wrapper .el-input {
-  flex: 1;
+.dialog-container {
+  width: 420px;
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+}
+
+.dialog-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dialog-title { font-size: 18px; font-weight: 600; color: var(--color-text-primary); }
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-hover);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.close-btn:hover { background: var(--color-surface-active); color: var(--color-text-primary); }
+
+.dialog-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.dialog-footer { padding: 16px 24px; border-top: 1px solid var(--color-border); display: flex; gap: 12px; justify-content: flex-end; }
+
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-label { font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
+
+.form-input {
+  padding: 10px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  outline: none;
+  transition: all var(--transition-fast);
+  font-family: var(--font-ui);
+}
+
+.form-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-soft); }
+.form-input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.code-input-wrapper { display: flex; gap: 8px; }
+.code-input-wrapper .form-input { flex: 1; }
+
+.btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-ui);
+}
+
+.btn.primary { background: var(--color-primary); color: white; }
+.btn.primary:hover:not(:disabled) { background: #4F46E5; }
+.btn.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn.secondary { background: var(--color-surface-hover); color: var(--color-text-secondary); border: 1px solid var(--color-border); }
+.btn.secondary:hover { background: var(--color-surface-active); }
+.btn.secondary.small { padding: 8px 16px; font-size: 13px; white-space: nowrap; }
+.btn.secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn.loading { opacity: 0.6; pointer-events: none; }
+
+@media (max-width: 640px) {
+  .dialog-container { width: 100%; border-radius: 0; }
+  .info-row { flex-direction: column; align-items: flex-start; }
+  .edit-btn { align-self: flex-start; }
 }
 </style>

@@ -2,6 +2,7 @@ const Router = require('koa-router');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const Transaction = require('../models/Transaction');
+const Category = require('../models/Category');
 const { JWT_SECRET } = require('../middleware/jwt');
 
 const router = new Router();
@@ -12,6 +13,13 @@ const precisionAdd = (...nums) => nums.reduce((sum, num) => sum + num, 0);
 const precisionSub = (a, b) => a - b;
 const precisionMul = (a, b) => a * b;
 const precisionDiv = (a, b) => b === 0 ? 0 : a / b;
+
+// 验证分类与收支类型是否匹配
+async function validateCategoryType(categoryName, txType) {
+  const cat = await Category.findOne({ name: categoryName });
+  if (!cat) return null; // 未在分类表中找到，不阻止
+  return cat.type === txType ? null : cat.type;
+}
 
 const requireAuth = async (ctx, next) => {
   const token = ctx.headers.authorization?.replace('Bearer ', '');
@@ -93,7 +101,15 @@ router.post('/', async (ctx) => {
       ctx.body = { message: '缺少必要参数' };
       return;
     }
-    
+
+    // 验证分类类型是否匹配
+    const mismatchedType = await validateCategoryType(category, type);
+    if (mismatchedType !== null) {
+      ctx.status = 400;
+      ctx.body = { message: `「${category}」属于${mismatchedType === 'income' ? '收入' : '支出'}分类，不能用于${type === 'income' ? '收入' : '支出'}记录` };
+      return;
+    }
+
     const transaction = new Transaction({
       userId,
       type,
@@ -204,7 +220,17 @@ router.put('/:id', async (ctx) => {
       return;
     }
     
-    if (type) transaction.type = type;
+    if (type) {
+      // 验证分类类型是否匹配
+      const catToCheck = category || transaction.category;
+      const mismatchedType = await validateCategoryType(catToCheck, type);
+      if (mismatchedType !== null) {
+        ctx.status = 400;
+        ctx.body = { message: `「${catToCheck}」属于${mismatchedType === 'income' ? '收入' : '支出'}分类，不能用于${type === 'income' ? '收入' : '支出'}记录` };
+        return;
+      }
+      transaction.type = type;
+    }
     if (amount) transaction.amount = parseFloat(amount);
     if (category) transaction.category = category;
     if (note !== undefined) transaction.note = note;
@@ -252,7 +278,14 @@ router.get('/statistics', async (ctx) => {
     if (startDate || endDate) {
       match.date = {};
       if (startDate) match.date.$gte = new Date(startDate);
-      if (endDate) match.date.$lte = new Date(endDate);
+      if (endDate) {
+        // 如果结束日期是月初(年份边界)，用 $lt 包含完整的上个月
+        if (endDate.endsWith('-01')) {
+          match.date.$lt = new Date(endDate);
+        } else {
+          match.date.$lte = new Date(endDate);
+        }
+      }
     }
     
     // 按类型统计
@@ -401,48 +434,57 @@ router.get('/month-stats', async (ctx) => {
 router.get('/daily-stats', async (ctx) => {
   try {
     const userId = ctx.state.userId;
-    const { range = 'month' } = ctx.query;
-    
-    const now = new Date();
+    const { range = 'month', startDate: startDateStr, endDate: endDateStr } = ctx.query;
+
     let startDate, endDate;
-    
-    if (range === 'week') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
-      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-    } else if (range === 'year') {
-      startDate = new Date(now.getFullYear(), 0, 1);
-      endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+
+    // 优先使用传入的日期范围
+    if (startDateStr && endDateStr) {
+      startDate = new Date(startDateStr);
+      endDate = new Date(endDateStr);
+      endDate.setHours(23, 59, 59, 999);
     } else {
-      // 默认本月
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      const now = new Date();
+      if (range === 'week') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      } else if (range === 'year') {
+        startDate = new Date(now.getFullYear(), 0, 1);
+        endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+      } else {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      }
     }
-    
+
     const dailyStats = await Transaction.aggregate([
       {
         $match: {
           userId: new mongoose.Types.ObjectId(userId),
-          type: 'expense',
           date: { $gte: startDate, $lte: endDate }
         }
       },
       {
         $group: {
           _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$date' }
+            date: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
+            type: '$type'
           },
           total: { $sum: '$amount' }
         }
       },
-      { $sort: { _id: 1 } }
+      { $sort: { '_id.date': 1 } }
     ]);
-    
-    // 转换为日期 -> 金额 的映射
+
+    // 转换为日期 -> { amount, income } 的映射
     const dataMap = {};
     dailyStats.forEach(item => {
-      dataMap[item._id] = item.total;
+      const date = item._id.date;
+      if (!dataMap[date]) dataMap[date] = { amount: 0, income: 0 };
+      if (item._id.type === 'expense') dataMap[date].amount = item.total;
+      else if (item._id.type === 'income') dataMap[date].income = item.total;
     });
-    
+
     // 生成日期范围内的所有日期
     const result = [];
     const current = new Date(startDate);
@@ -450,11 +492,12 @@ router.get('/daily-stats', async (ctx) => {
       const dateStr = current.toISOString().split('T')[0];
       result.push({
         date: dateStr,
-        amount: dataMap[dateStr] || 0
+        amount: dataMap[dateStr]?.amount || 0,
+        income: dataMap[dateStr]?.income || 0
       });
       current.setDate(current.getDate() + 1);
     }
-    
+
     ctx.body = result;
   } catch (error) {
     ctx.status = 500;

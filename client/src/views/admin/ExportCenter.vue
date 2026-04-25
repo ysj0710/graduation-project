@@ -1,35 +1,67 @@
 <template>
   <div class="page-container">
-    <div class="ios-card">
-      <h3>📤 数据导出</h3>
-      <div class="export-form">
-        <div class="form-item">
-          <label>日期范围</label>
-          <el-date-picker
-            v-model="dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-          />
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <Download :size="18" :stroke-width="1.5" />
+          <span>数据导出</span>
         </div>
-        <div class="form-item">
-          <label>数据类型</label>
-          <el-checkbox-group v-model="dataTypes">
-            <el-checkbox label="transactions">交易记录</el-checkbox>
-            <el-checkbox label="users">用户数据</el-checkbox>
-            <el-checkbox label="stats">统计数据</el-checkbox>
-          </el-checkbox-group>
-        </div>
-        <div class="form-item">
-          <label>导出格式</label>
-          <el-radio-group v-model="exportFormat">
-            <el-radio label="csv">CSV</el-radio>
-            <el-radio label="xlsx">Excel</el-radio>
-            <el-radio label="json">JSON</el-radio>
-          </el-radio-group>
-        </div>
-        <el-button type="primary" @click="handleExport">导出数据</el-button>
+      </div>
+      <div class="card-body">
+        <form class="export-form">
+          <div class="form-group">
+            <label class="form-label">日期范围</label>
+            <el-date-picker
+              v-model="dateRange"
+              type="daterange"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              unlink-panels
+              style="width: 100%"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">数据类型</label>
+            <div class="checkbox-group">
+              <label class="checkbox-item">
+                <input type="checkbox" value="transactions" v-model="dataTypes" />
+                <span class="checkbox-label">交易记录</span>
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox" value="users" v-model="dataTypes" />
+                <span class="checkbox-label">用户数据</span>
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox" value="stats" v-model="dataTypes" />
+                <span class="checkbox-label">统计数据</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">导出格式</label>
+            <div class="radio-group">
+              <label class="radio-item" :class="{ active: exportFormat === 'csv' }">
+                <input type="radio" value="csv" v-model="exportFormat" />
+                <span class="radio-label">CSV</span>
+              </label>
+              <label class="radio-item" :class="{ active: exportFormat === 'xlsx' }">
+                <input type="radio" value="xlsx" v-model="exportFormat" />
+                <span class="radio-label">Excel</span>
+              </label>
+              <label class="radio-item" :class="{ active: exportFormat === 'json' }">
+                <input type="radio" value="json" v-model="exportFormat" />
+                <span class="radio-label">JSON</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-primary" @click="handleExport">
+              <Download :size="16" :stroke-width="2" />
+              导出数据
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -38,51 +70,71 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Download } from 'lucide-vue-next'
 
 const dateRange = ref(null)
 const dataTypes = ref(['transactions'])
 const exportFormat = ref('csv')
 
-const handleExport = () => {
-  ElMessage.success('正在导出数据...')
-}
+const handleExport = () => { ElMessage.success('正在导出数据...') }
 </script>
 
 <style scoped>
-.page-container {
+.page-container { display: flex; flex-direction: column; gap: 24px; }
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  max-width: 600px;
+}
+.card-header { padding: 20px 24px; border-bottom: 1px solid var(--color-border); }
+.card-title { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; color: var(--color-text-primary); }
+.card-body { padding: 24px; }
+
+.export-form { display: flex; flex-direction: column; gap: 20px; }
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-label { font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
+
+.checkbox-group { display: flex; flex-direction: column; gap: 10px; }
+.checkbox-item {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
 }
+.checkbox-item input { width: 18px; height: 18px; accent-color: var(--color-primary); }
+.checkbox-label { font-size: 14px; color: var(--color-text-primary); }
 
-.ios-card {
-  background: white;
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+.radio-group { display: flex; gap: 12px; }
+.radio-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
+.radio-item.active { border-color: var(--color-primary); color: var(--color-primary); background: var(--color-primary-soft); }
+.radio-item input { display: none; }
+.radio-label { font-size: 14px; font-weight: 500; }
 
-.ios-card h3 {
-  font-size: 16px;
+.form-actions { margin-top: 8px; }
+.btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
   font-weight: 600;
-  margin: 0 0 20px 0;
-}
-
-.export-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-item {
-  display: flex;
-  flex-direction: column;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
 }
-
-.form-item label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #3C3C43;
-}
+.btn-primary { border: none; background: var(--color-primary); color: white; }
+.btn-primary:hover { background: var(--color-primary-dark); transform: translateY(-1px); }
 </style>

@@ -1,62 +1,94 @@
 <template>
-  <div class="user-page">
-    <div class="page-header">
-      <h2>💳 账户管理</h2>
-      <el-button type="primary" size="small" @click="openDialog()">+ 添加账户</el-button>
-    </div>
-    
-    <div class="accounts-list" v-if="accounts.length > 0">
-      <div class="account-card" v-for="account in accounts" :key="account._id">
-        <div class="account-icon" :style="{ background: account.color + '15' }">
-          {{ account.icon }}
+  <div class="page-container">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <Wallet :size="18" :stroke-width="1.5" />
+          <span>账户管理</span>
         </div>
-        <div class="account-info">
-          <div class="account-name">{{ account.name }}</div>
-          <div class="account-type">{{ getTypeName(account.type) }}</div>
+        <button class="btn primary" @click="openDialog()">
+          <Plus :size="16" :stroke-width="2" />
+          添加账户
+        </button>
+      </div>
+
+      <div class="card-body">
+        <div class="accounts-list" v-if="accounts.length > 0">
+          <div class="account-card" v-for="account in accounts" :key="account._id">
+            <div class="account-icon" :style="{ background: account.color + '15', color: account.color }">
+              <component :is="getTypeIcon(account.type)" :size="22" :stroke-width="1.8" />
+            </div>
+            <div class="account-info">
+              <div class="account-name">{{ account.name }}</div>
+              <div class="account-type">{{ getTypeName(account.type) }}</div>
+            </div>
+            <div class="account-balance">¥{{ formatNumber(account.balance) }}</div>
+            <div class="account-actions">
+              <button class="btn-text" @click="openDialog(account)">编辑</button>
+              <button class="btn-text danger" @click="deleteAccount(account._id)">删除</button>
+            </div>
+          </div>
         </div>
-        <div class="account-balance">¥{{ formatNumber(account.balance) }}</div>
-        <div class="account-actions">
-          <el-button size="small" text @click="openDialog(account)">编辑</el-button>
-          <el-button size="small" text type="danger" @click="deleteAccount(account._id)">删除</el-button>
+
+        <div v-else class="empty-state">
+          <Wallet :size="48" :stroke-width="1" />
+          <p>暂无账户，点击右上角添加</p>
         </div>
       </div>
     </div>
-    
-    <el-empty v-else description="暂无账户，点击右上角添加" :image-size="80" />
 
     <!-- 添加/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑账户' : '添加账户'" width="400px">
-      <el-form :model="form" label-width="80px">
-        <el-form-item label="账户名称">
-          <el-input v-model="form.name" placeholder="如：现金、银行卡" />
-        </el-form-item>
-        <el-form-item label="账户类型">
-          <el-select v-model="form.type" placeholder="选择类型">
-            <el-option label="💵 现金" value="cash" />
-            <el-option label="💳 银行卡" value="bank" />
-            <el-option label="📱 支付宝" value="alipay" />
-            <el-option label="💬 微信" value="wechat" />
-            <el-option label="📦 其他" value="other" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="余额">
-          <el-input-number v-model="form.balance" :precision="2" :min="0" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="form.remark" type="textarea" :rows="2" placeholder="可选" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveAccount">保存</el-button>
-      </template>
-    </el-dialog>
+    <div v-if="dialogVisible" class="dialog-overlay" @click="dialogVisible = false">
+      <div class="dialog-container" @click.stop>
+        <div class="dialog-header">
+          <div class="dialog-title">{{ isEdit ? '编辑账户' : '添加账户' }}</div>
+          <button class="close-btn" @click="dialogVisible = false"><X :size="20" :stroke-width="2" /></button>
+        </div>
+
+        <div class="dialog-body">
+          <div class="form-group">
+            <label class="form-label">账户名称</label>
+            <input v-model="form.name" type="text" class="form-input" placeholder="如：现金、银行卡" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">账户类型</label>
+            <select v-model="form.type" class="form-select">
+              <option value="cash">现金</option>
+              <option value="bank">银行卡</option>
+              <option value="alipay">支付宝</option>
+              <option value="wechat">微信</option>
+              <option value="other">其他</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">余额</label>
+            <input v-model.number="form.balance" type="number" step="0.01" class="form-input" placeholder="0.00" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">备注</label>
+            <textarea v-model="form.remark" rows="2" class="form-textarea" placeholder="可选"></textarea>
+          </div>
+        </div>
+
+        <div class="dialog-footer">
+          <button class="btn secondary" @click="dialogVisible = false">取消</button>
+          <button class="btn primary" @click="saveAccount">保存</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Wallet, Banknote, CreditCard, Smartphone, MessageSquare, Package,
+  Coins, Plus, X
+} from 'lucide-vue-next'
 import axios from 'axios'
 
 const accounts = ref([])
@@ -72,21 +104,32 @@ const form = ref({
 })
 
 const typeConfig = {
-  cash: { icon: '💵', color: '#34C759', name: '现金' },
-  bank: { icon: '💳', color: '#007AFF', name: '银行卡' },
-  alipay: { icon: '📱', color: '#5856D6', name: '支付宝' },
-  wechat: { icon: '💬', color: '#07BE63', name: '微信' },
-  other: { icon: '📦', color: '#FF9500', name: '其他' }
+  cash: { color: '#10B981', name: '现金' },
+  bank: { color: '#6366F1', name: '银行卡' },
+  alipay: { color: '#8B5CF6', name: '支付宝' },
+  wechat: { color: '#10B981', name: '微信' },
+  other: { color: '#F59E0B', name: '其他' }
 }
 
 const getTypeName = (type) => typeConfig[type]?.name || '其他'
+
+const getTypeIcon = (type) => {
+  const icons = {
+    cash: Banknote,
+    bank: CreditCard,
+    alipay: Smartphone,
+    wechat: MessageSquare,
+    other: Package
+  }
+  return icons[type] || Coins
+}
 
 const formatNumber = (num) => Number(num || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 
 const fetchAccounts = async () => {
   try {
     const token = localStorage.getItem('token')
-    const res = await axios.get('https://ysj0710.xyz/api/accounts', {
+    const res = await axios.get('/api/accounts', {
       headers: { Authorization: `Bearer ${token}` }
     })
     accounts.value = res.data || []
@@ -108,12 +151,7 @@ const openDialog = (account = null) => {
   } else {
     isEdit.value = false
     editId.value = ''
-    form.value = {
-      name: '',
-      type: 'cash',
-      balance: 0,
-      remark: ''
-    }
+    form.value = { name: '', type: 'cash', balance: 0, remark: '' }
   }
   dialogVisible.value = true
 }
@@ -127,21 +165,20 @@ const saveAccount = async () => {
   try {
     const token = localStorage.getItem('token')
     const config = { headers: { Authorization: `Bearer ${token}` } }
-    
+
     const data = {
       ...form.value,
-      icon: typeConfig[form.value.type]?.icon || '💰',
-      color: typeConfig[form.value.type]?.color || '#007AFF'
+      color: typeConfig[form.value.type]?.color || '#6366F1'
     }
 
     if (isEdit.value) {
-      await axios.put(`https://ysj0710.xyz/api/accounts/${editId.value}`, data, config)
+      await axios.put(`/api/accounts/${editId.value}`, data, config)
       ElMessage.success('账户更新成功')
     } else {
-      await axios.post('https://ysj0710.xyz/api/accounts', data, config)
+      await axios.post('/api/accounts', data, config)
       ElMessage.success('账户添加成功')
     }
-    
+
     dialogVisible.value = false
     fetchAccounts()
   } catch (error) {
@@ -156,17 +193,15 @@ const deleteAccount = async (id) => {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    
+
     const token = localStorage.getItem('token')
-    await axios.delete(`https://ysj0710.xyz/api/accounts/${id}`, {
+    await axios.delete(`/api/accounts/${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     ElMessage.success('删除成功')
     fetchAccounts()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-    }
+    if (error !== 'cancel') ElMessage.error('删除失败')
   }
 }
 
@@ -176,76 +211,160 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.user-page {
-  padding: 24px;
+.page-container { display: flex; flex-direction: column; gap: 24px; }
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
 }
 
-.page-header {
+.card-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
 }
 
-.page-header h2 {
-  font-size: 24px;
-  font-weight: 700;
-  color: #000;
-  margin: 0;
+.card-title { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; color: var(--color-text-primary); }
+
+.card-body { padding: 24px; }
+
+.btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.accounts-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.btn.primary { background: var(--color-primary); color: white; }
+.btn.primary:hover { background: '#4F46E5'; transform: translateY(-1px); }
+.btn.secondary { background: var(--color-surface-hover); color: var(--color-text-secondary); }
+.btn.secondary:hover { background: var(--color-surface-active); }
+
+.btn-text {
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: color var(--transition-fast);
 }
+
+.btn-text:hover { color: var(--color-primary); }
+.btn-text.danger:hover { color: var(--color-expense); }
+
+.accounts-list { display: flex; flex-direction: column; gap: 12px; }
 
 .account-card {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 18px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  transition: background var(--transition-fast);
 }
+
+.account-card:hover { background: var(--color-surface-active); }
 
 .account-icon {
   width: 48px;
   height: 48px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
 }
 
-.account-info {
-  flex: 1;
-}
+.account-info { flex: 1; }
+.account-name { font-size: 15px; font-weight: 600; color: var(--color-text-primary); }
+.account-type { font-size: 13px; color: var(--color-text-muted); margin-top: 2px; }
+.account-balance { font-size: 18px; font-weight: 700; color: var(--color-text-primary); min-width: 100px; text-align: right; }
+.account-actions { display: flex; gap: 8px; }
 
-.account-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #000;
-}
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; color: var(--color-text-muted); }
+.empty-state p { margin-top: 12px; font-size: 14px; }
 
-.account-type {
-  font-size: 13px;
-  color: #8E8E93;
-  margin-top: 2px;
-}
-
-.account-balance {
-  font-size: 18px;
-  font-weight: 700;
-  color: #000;
-  min-width: 100px;
-  text-align: right;
-}
-
-.account-actions {
+/* 对话框 */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 25, 23, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 200;
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-container {
+  width: 400px;
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dialog-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dialog-title { font-size: 18px; font-weight: 600; color: var(--color-text-primary); }
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-hover);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.close-btn:hover { background: var(--color-surface-active); color: var(--color-text-primary); }
+
+.dialog-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.dialog-footer { padding: 16px 24px; border-top: 1px solid var(--color-border); display: flex; gap: 12px; justify-content: flex-end; }
+
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-label { font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
+
+.form-input, .form-select, .form-textarea {
+  padding: 10px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-soft); }
+.form-textarea { resize: vertical; }
+
+@media (max-width: 640px) {
+  .dialog-container { width: 100%; border-radius: 0; }
 }
 </style>

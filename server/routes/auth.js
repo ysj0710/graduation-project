@@ -8,6 +8,7 @@ const User = require("../models/User");
 const VerificationCode = require("../models/VerificationCode");
 const Transaction = require("../models/Transaction");
 const Account = require("../models/Account");
+const SystemSettings = require("../models/SystemSettings");
 const { jwtMiddleware, JWT_SECRET } = require("../middleware/jwt");
 const emailConfig = require("../config/email");
 
@@ -30,6 +31,18 @@ const requireAuth = async (ctx, next) => {
 };
 
 const router = new Router();
+
+// 公开接口：获取系统信息（登录页使用）
+router.get("/system-info", async (ctx) => {
+  try {
+    const settings = await SystemSettings.findOne();
+    ctx.body = {
+      systemName: settings?.systemName || "随手记"
+    };
+  } catch (error) {
+    ctx.body = { systemName: "随手记" };
+  }
+});
 
 // 创建邮件发送器
 const transporter = nodemailer.createTransport({
@@ -343,7 +356,8 @@ router.post("/login", async (ctx) => {
       id: user._id,
       username: user.username,
       email: user.email,
-      nickname: user.nickname,
+      nickname: user.nickname || user.username,
+      avatar: user.avatar || '',
       role: user.role,
     },
   };

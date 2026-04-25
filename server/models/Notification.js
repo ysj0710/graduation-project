@@ -7,6 +7,11 @@ const notificationSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  senderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   type: {
     type: String,
     enum: ['budget_alert', 'system', 'risk_warning', 'transaction'],
@@ -20,6 +25,15 @@ const notificationSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  scope: {
+    type: String,
+    enum: ['all', 'selected'],
+    default: 'all'
+  },
+  targetUserIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   isRead: {
     type: Boolean,
     default: false
@@ -38,6 +52,7 @@ const notificationSchema = new mongoose.Schema({
 
 // 索引优化查询
 notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
+notificationSchema.index({ senderId: 1, createdAt: -1 });
 notificationSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Notification', notificationSchema);
