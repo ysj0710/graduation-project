@@ -160,11 +160,13 @@ const iconMap = {
 
   // === 支出类：家庭 ===
   baby: Baby,
+  Baby: Baby,
   kids: Baby,
   pets: Dog,
   pet: Dog,
   '育儿': Baby,
   '宠物': Dog,
+  '家庭': Baby,
 
   // === 支出类：运动 ===
   sports: Trophy,

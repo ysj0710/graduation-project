@@ -134,9 +134,14 @@
               v-for="cell in heatmapCells"
               :key="cell.date"
               class="heatmap-cell"
-              :class="cell.class"
-              :title="cell.date + ': ¥' + cell.amount"
+              :class="[cell.class, hoveredCell && hoveredCell.date === cell.date ? 'hovered' : '']"
+              @mouseenter="hoveredCell = cell"
+              @mouseleave="hoveredCell = null"
             >
+              <div v-if="hoveredCell && hoveredCell.date === cell.date && cell.date" class="cell-tooltip">
+                <div class="ct-date">{{ cell.date }}</div>
+                <div class="ct-amount">¥{{ cell.amount.toFixed(2) }}</div>
+              </div>
               <span v-if="cell.day">{{ cell.day }}</span>
             </div>
           </div>
@@ -163,20 +168,14 @@
               <button
                 class="btn small"
                 :class="{ active: categoryType === 'expense' }"
-                @click="
-                  categoryType = 'expense';
-                  fetchData();
-                "
+                @click="categoryType = 'expense'"
               >
                 支出
               </button>
               <button
                 class="btn small"
                 :class="{ active: categoryType === 'income' }"
-                @click="
-                  categoryType = 'income';
-                  fetchData();
-                "
+                @click="categoryType = 'income'"
               >
                 收入
               </button>
@@ -199,30 +198,21 @@
               <button
                 class="btn small"
                 :class="{ active: timeRange === 'week' }"
-                @click="
-                  timeRange = 'week';
-                  fetchData();
-                "
+                @click="timeRange = 'week'"
               >
                 周
               </button>
               <button
                 class="btn small"
                 :class="{ active: timeRange === 'month' }"
-                @click="
-                  timeRange = 'month';
-                  fetchData();
-                "
+                @click="timeRange = 'month'"
               >
                 月
               </button>
               <button
                 class="btn small"
                 :class="{ active: timeRange === 'year' }"
-                @click="
-                  timeRange = 'year';
-                  fetchData();
-                "
+                @click="timeRange = 'year'"
               >
                 年
               </button>
@@ -334,7 +324,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { useUserStore } from "../../stores/user";
 import {
   Wallet,
@@ -369,9 +359,12 @@ const savingsRate = ref(0);
 const recentRecords = ref([]);
 const dailyExpenseData = ref([]);
 const categoryType = ref("expense");
+const hoveredCell = ref(null);
 const categoryList = ref([]);
 let categoryPieChart = null;
 let trendChartInstance = null;
+
+const getCategoryColor = (category) => userStore.getCategoryColor(category)
 
 const budgetUsagePercent = computed(() => {
   const budget = userStore.budget.monthly || 0;
@@ -451,7 +444,10 @@ const fetchHeatmapData = async () => {
       params: { startDate, endDate },
       headers: { Authorization: `Bearer ${token}` },
     });
-    dailyExpenseData.value = res.data || [];
+    dailyExpenseData.value = (res.data || []).map(d => ({
+      ...d,
+      amount: Math.round(d.amount * 100) / 100
+    }));
   } catch (error) {
     console.error("获取热力图数据失败:", error);
   }
@@ -520,7 +516,10 @@ const fetchData = async () => {
       params: { pageSize: 10 },
       headers: { Authorization: `Bearer ${token}` },
     });
-    recentRecords.value = recordsRes.data.transactions || [];
+    recentRecords.value = (recordsRes.data.transactions || []).map(r => ({
+      ...r,
+      amount: Math.round(r.amount * 100) / 100
+    }));
 
     // 分类统计
     const statsRes = await axios.get("/api/transactions/statistics", {
@@ -567,12 +566,8 @@ const renderCategoryPie = () => {
   const chartData = categoryList.value.map((cat) => ({
     name: cat.name,
     value: cat.amount,
+    itemStyle: { color: getCategoryColor(cat.name) }
   }));
-
-  const colors =
-    categoryType.value === "expense"
-      ? ["#FF3B30", "#FF6B6B", "#FF8E53", "#FFB347", "#FFD700", "#C0C0C0"]
-      : ["#34C759", "#50C878", "#3CB371", "#2E8B57", "#20B2AA", "#C0C0C0"];
 
   categoryPieChart = echarts.init(categoryPieRef.value);
   categoryPieChart.setOption({
@@ -589,6 +584,7 @@ const renderCategoryPie = () => {
       top: "center",
       textStyle: { fontSize: 12, color: "#57534E" },
     },
+    color: [],
     series: [
       {
         type: "pie",
@@ -598,7 +594,6 @@ const renderCategoryPie = () => {
         label: { show: false },
         emphasis: { label: { show: true, fontSize: 15, fontWeight: "bold" } },
         data: chartData,
-        color: colors,
       },
     ],
   });
@@ -631,13 +626,13 @@ const renderChart = async () => {
       });
       chartData = weekDays.map((d) => {
         const item = data.find((item) => item.date === d);
-        return item ? item.amount : 0;
+        return item ? Math.round(item.amount * 100) / 100 : 0;
       });
     } else if (timeRange.value === "year") {
       const monthMap = {};
       data.forEach((item) => {
         const month = item.date.substring(0, 7);
-        monthMap[month] = (monthMap[month] || 0) + item.amount;
+        monthMap[month] = Math.round(((monthMap[month] || 0) + item.amount) * 100) / 100;
       });
       days = [
         "1月",
@@ -671,7 +666,7 @@ const renderChart = async () => {
       days = monthDays.map((d) => `${parseInt(d.split("-")[2])}日`);
       chartData = monthDays.map((d) => {
         const item = data.find((item) => item.date === d);
-        return item ? item.amount : 0;
+        return item ? Math.round(item.amount * 100) / 100 : 0;
       });
     }
 
@@ -705,7 +700,7 @@ const renderChart = async () => {
           fontSize: 11,
           color: "#78716C",
           formatter: (val) =>
-            val >= 1000 ? `¥${(val / 1000).toFixed(1)}k` : `¥${val}`,
+            val >= 1000 ? `¥${(val / 1000).toFixed(1)}k` : `¥${Number(val).toFixed(0)}`,
         },
         splitLine: { lineStyle: { color: "#E7E5E4", type: "dashed" } },
       },
@@ -714,7 +709,7 @@ const renderChart = async () => {
           type: "bar",
           data: chartData,
           barWidth: "55%",
-          itemStyle: { color: "#4ECDC4", borderRadius: [6, 6, 0, 0] },
+          itemStyle: { color: "#6366F1", borderRadius: [4, 4, 0, 0] },
         },
       ],
     });
@@ -723,23 +718,83 @@ const renderChart = async () => {
   }
 };
 
-watch(categoryType, () => {
-  fetchData();
+watch(categoryType, async () => {
+  // 只更新饼图数据，不触发完整数据刷新
+  const token = localStorage.getItem("token");
+  try {
+    const statsRes = await axios.get("/api/transactions/statistics", {
+      params: { type: categoryType.value },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const expenseCats = statsRes.data.byCategory?.[categoryType.value] || [];
+    const totalAmount = expenseCats.reduce((sum, cat) => sum + cat.total, 0);
+    categoryList.value = expenseCats.slice(0, 6).map((cat) => ({
+      name: cat.category,
+      amount: cat.total,
+      percent: totalAmount > 0 ? Math.round((cat.total / totalAmount) * 100) : 0,
+    }));
+    renderCategoryPie();
+  } catch (e) {
+    console.error("获取分类数据失败:", e);
+  }
 });
 
-onMounted(() => {
+watch(timeRange, async () => {
+  // 只更新趋势图数据，不触发完整数据刷新
+  const token = localStorage.getItem("token");
+  try {
+    const res = await axios.get(`/api/transactions/daily-stats?range=${timeRange.value}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    dailyExpenseData.value = (res.data || []).map(d => ({
+      ...d,
+      amount: Math.round(d.amount * 100) / 100
+    }));
+    if (trendChartRef.value) {
+      renderChart();
+    }
+  } catch (e) {
+    console.error("获取趋势数据失败:", e);
+  }
+});
+
+onMounted(async () => {
   userStore.fetchProfile();
+  await userStore.fetchCategories();
   fetchData();
   fetchHeatmapData();
+
+  // 监听窗口大小变化，调整图表
+  window.addEventListener('resize', handleResize);
+  window.addEventListener('orientationchange', handleResize);
 });
+
+onUnmounted(() => {
+  // 清理图表实例和事件监听
+  trendChartInstance?.dispose();
+  categoryPieChart?.dispose();
+  window.removeEventListener('resize', handleResize);
+  window.removeEventListener('orientationchange', handleResize);
+});
+
+const handleResize = () => {
+  nextTick(() => {
+    trendChartInstance?.resize();
+    categoryPieChart?.resize();
+  });
+};
 </script>
 
 <style scoped>
 .page-container {
-  padding: 24px;
+  padding: 28px 32px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  max-width: 1080px;
+  margin: 0 auto;
+  width: 100%;
+  overflow-x: hidden;
 }
 .stats-grid {
   display: grid;
@@ -888,6 +943,7 @@ onMounted(() => {
 .heatmap-section {
   padding: 16px;
   border-right: 1px solid var(--color-border);
+  position: relative;
 }
 .heatmap-controls {
   display: flex;
@@ -923,25 +979,57 @@ onMounted(() => {
   font-size: 11px;
   color: var(--color-text-muted);
   cursor: default;
+  position: relative;
 }
 .heatmap-cell.zero {
   background: #ebedf0;
+  color: #78716c;
 }
 .heatmap-cell.low {
   background: #9be9a8;
+  color: #166534;
 }
 .heatmap-cell.medium {
   background: #40c463;
+  color: #14532d;
 }
 .heatmap-cell.medium-high {
   background: #30a14e;
+  color: #ffffff;
 }
 .heatmap-cell.high {
   background: #216e39;
-  color: white;
+  color: #ffffff;
 }
 .heatmap-cell.empty {
   background: transparent;
+}
+.heatmap-cell.hovered {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+.cell-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.ct-date {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.ct-amount {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-expense);
 }
 .heatmap-legend {
   display: flex;
@@ -950,6 +1038,7 @@ onMounted(() => {
   font-size: 11px;
   color: var(--color-text-muted);
 }
+
 .legend-bar {
   display: flex;
   gap: 2px;
@@ -1160,6 +1249,27 @@ onMounted(() => {
   }
   .page-container {
     padding: 16px;
+  }
+
+  .chart-area {
+    height: 240px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stat-amount {
+    font-size: 20px;
+  }
+
+  .content-grid {
+    gap: 16px;
   }
 }
 </style>

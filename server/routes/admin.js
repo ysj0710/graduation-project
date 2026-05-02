@@ -56,39 +56,20 @@ router.get('/dashboard-stats', async (ctx) => {
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    // 用户统计
-    const totalUsers = await User.countDocuments({ role: 'user' });
-    const newUsersToday = await User.countDocuments({ 
-      role: 'user',
-      createdAt: { $gte: startOfToday } 
-    });
-    const activeUsers = await User.countDocuments({ 
-      role: 'user',
-      updatedAt: { $gte: new Date(now - 7 * 24 * 60 * 60 * 1000) }  // 7天内活跃
-    });
-    
-    // 交易统计（本月）
-    const monthlyTransactions = await Transaction.countDocuments({
-      date: { $gte: startOfMonth, $lte: endOfMonth }
-    });
-    
-    const monthlyAmount = await Transaction.aggregate([
-      {
-        $match: {
-          date: { $gte: startOfMonth, $lte: endOfMonth }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$amount' }
-        }
-      }
+    // 并行查询所有统计数据
+    const [totalUsers, newUsersToday, activeUsers, monthlyTransactions, monthlyAmount, riskStats] = await Promise.all([
+      User.countDocuments({ role: 'user' }),
+      User.countDocuments({ role: 'user', createdAt: { $gte: startOfToday } }),
+      User.countDocuments({ role: 'user', updatedAt: { $gte: new Date(now - 7 * 24 * 60 * 60 * 1000) } }),
+      Transaction.countDocuments({ date: { $gte: startOfMonth, $lte: endOfMonth } }),
+      Transaction.aggregate([
+        { $match: { date: { $gte: startOfMonth, $lte: endOfMonth } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      calculateRiskUsers()
     ]);
-    const monthlyTotal = monthlyAmount[0]?.total || 0;
     
-    // 计算风险用户
-    const riskStats = await calculateRiskUsers();
+    const monthlyTotal = monthlyAmount[0]?.total || 0;
     
     ctx.body = {
       totalUsers,
@@ -106,51 +87,73 @@ router.get('/dashboard-stats', async (ctx) => {
   }
 });
 
-// 获取消费趋势数据（用于图表）
+// 获取消费趋势数据（用于图表）- 优化为单次聚合
 router.get('/trend-data', async (ctx) => {
   try {
     const { months = 6, year } = ctx.query;
     const now = new Date();
     const targetYear = year ? parseInt(year) : now.getFullYear();
-    const result = [];
 
+    let startDate, endDate;
     if (year) {
-      // 指定年份：返回该年12个月数据
-      for (let m = 0; m < 12; m++) {
-        const startDate = new Date(targetYear, m, 1);
-        const endDate = new Date(targetYear, m + 1, 0, 23, 59, 59);
-        const monthStats = await Transaction.aggregate([
-          { $match: { date: { $gte: startDate, $lte: endDate } } },
-          { $group: { _id: '$type', total: { $sum: '$amount' }, count: { $sum: 1 } } }
-        ]);
-        const income = monthStats.find(s => s._id === 'income')?.total || 0;
-        const expense = monthStats.find(s => s._id === 'expense')?.total || 0;
+      startDate = new Date(targetYear, 0, 1);
+      endDate = new Date(targetYear, 11, 31, 23, 59, 59);
+    } else {
+      const startMonth = new Date(now.getFullYear(), now.getMonth() - parseInt(months) + 1, 1);
+      startDate = startMonth;
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    }
+
+    // 单次聚合按月分组
+    const monthlyStats = await Transaction.aggregate([
+      { $match: { date: { $gte: startDate, $lte: endDate } } },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$date' },
+            month: { $month: '$date' },
+            type: '$type'
+          },
+          total: { $sum: '$amount' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // 构建月份映射
+    const monthMap = {};
+    monthlyStats.forEach(s => {
+      const key = `${s._id.year}-${s._id.month}`;
+      if (!monthMap[key]) monthMap[key] = { income: 0, expense: 0 };
+      if (s._id.type === 'income') monthMap[key].income = s.total;
+      else if (s._id.type === 'expense') monthMap[key].expense = s.total;
+    });
+
+    // 生成结果数组
+    const result = [];
+    if (year) {
+      for (let m = 1; m <= 12; m++) {
+        const key = `${targetYear}-${m}`;
+        const data = monthMap[key] || { income: 0, expense: 0 };
         result.push({
-          month: `${targetYear}年${m + 1}月`,
-          monthIndex: m,
-          income,
-          expense,
-          balance: income - expense
+          month: `${targetYear}年${m}月`,
+          monthIndex: m - 1,
+          income: data.income,
+          expense: data.expense,
+          balance: data.income - data.expense
         });
       }
     } else {
-      // 默认：返回过去N个月
-      for (let i = months - 1; i >= 0; i--) {
+      for (let i = parseInt(months) - 1; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const startDate = new Date(d.getFullYear(), d.getMonth(), 1);
-        const endDate = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
-        const monthStats = await Transaction.aggregate([
-          { $match: { date: { $gte: startDate, $lte: endDate } } },
-          { $group: { _id: '$type', total: { $sum: '$amount' }, count: { $sum: 1 } } }
-        ]);
-        const income = monthStats.find(s => s._id === 'income')?.total || 0;
-        const expense = monthStats.find(s => s._id === 'expense')?.total || 0;
+        const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
+        const data = monthMap[key] || { income: 0, expense: 0 };
         result.push({
-          month: `${startDate.getFullYear()}年${startDate.getMonth() + 1}月`,
-          monthIndex: startDate.getMonth(),
-          income,
-          expense,
-          balance: income - expense
+          month: `${d.getFullYear()}年${d.getMonth() + 1}月`,
+          monthIndex: d.getMonth(),
+          income: data.income,
+          expense: data.expense,
+          balance: data.income - data.expense
         });
       }
     }
@@ -180,74 +183,66 @@ router.get('/trend-data', async (ctx) => {
   }
 });
 
-// 获取风险用户列表
+// 获取风险用户列表（优化：批量查询替代 N+1）
 router.get('/risk-users', async (ctx) => {
   try {
     const { page = 1, pageSize = 10, level = 'all' } = ctx.query;
-    
-    // 获取所有用户配置
+
     let query = {};
     if (level !== 'all') {
       query['financialHealth.riskLevel'] = level;
     }
-    
-    const configs = await UserConfig.find(query)
-      .populate('userId', 'username nickname email createdAt')
-      .skip((page - 1) * pageSize)
-      .limit(parseInt(pageSize));
-    
-    const total = await UserConfig.countDocuments(query);
-    
-    // 获取用户的预算使用情况
-    const riskUsers = await Promise.all(configs.map(async (config) => {
-      const user = config.userId;
-      if (!user) return null;
-      
-      // 获取本月支出
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const monthlyExpense = await Transaction.aggregate([
-        {
-          $match: {
-            userId: user._id,
-            type: 'expense',
-            date: { $gte: startOfMonth }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$amount' }
-          }
-        }
-      ]);
-      
-      const spent = monthlyExpense[0]?.total || 0;
-      const budget = config.budget?.monthly || 5000;
-      const usageRate = budget > 0 ? (spent / budget * 100) : 0;
-      
-      return {
-        id: user._id,
-        name: user.nickname || user.username,
-        email: user.email,
-        budget,
-        spent,
-        usageRate: usageRate.toFixed(1),
-        riskLevel: config.financialHealth?.riskLevel || 'low',
-        riskScore: config.financialHealth?.score || 100,
-        riskLabel: getRiskLabel(config.financialHealth?.riskLevel || 'low'),
-        createdAt: user.createdAt
-      };
-    }));
-    
-    // 过滤掉null值，并按风险等级排序
-    const filteredUsers = riskUsers.filter(u => u !== null).sort((a, b) => {
-      const riskOrder = { high: 0, medium: 1, low: 2 };
-      return riskOrder[a.riskLevel] - riskOrder[b.riskLevel];
-    });
-    
+
+    const [configs, total] = await Promise.all([
+      UserConfig.find(query)
+        .populate('userId', 'username nickname email createdAt')
+        .skip((page - 1) * pageSize)
+        .limit(parseInt(pageSize))
+        .lean(),
+      UserConfig.countDocuments(query)
+    ]);
+
+    // 批量获取本月支出
+    const userIds = configs.filter(c => c.userId).map(c => c.userId._id);
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const monthlyExpenses = await Transaction.aggregate([
+      { $match: { userId: { $in: userIds }, type: 'expense', date: { $gte: startOfMonth } } },
+      { $group: { _id: '$userId', total: { $sum: '$amount' } } }
+    ]);
+
+    const expenseMap = {};
+    monthlyExpenses.forEach(e => { expenseMap[e._id.toString()] = e.total; });
+
+    const riskUsers = configs
+      .filter(config => config.userId)
+      .map(config => {
+        const user = config.userId;
+        const spent = expenseMap[user._id.toString()] || 0;
+        const budget = config.budget?.monthly || 5000;
+        const usageRate = budget > 0 ? (spent / budget * 100) : 0;
+
+        return {
+          id: user._id,
+          name: user.nickname || user.username,
+          email: user.email,
+          budget,
+          spent,
+          usageRate: usageRate.toFixed(1),
+          riskLevel: config.financialHealth?.riskLevel || 'low',
+          riskScore: config.financialHealth?.score || 100,
+          riskLabel: getRiskLabel(config.financialHealth?.riskLevel || 'low'),
+          createdAt: user.createdAt
+        };
+      })
+      .sort((a, b) => {
+        const riskOrder = { high: 0, medium: 1, low: 2 };
+        return riskOrder[a.riskLevel] - riskOrder[b.riskLevel];
+      });
+
     ctx.body = {
-      users: filteredUsers,
+      users: riskUsers,
       total,
       page: parseInt(page),
       pageSize: parseInt(pageSize)
@@ -258,23 +253,11 @@ router.get('/risk-users', async (ctx) => {
   }
 });
 
-// 获取各风险等级用户数量
+// 获取各风险等级用户数量（优化：直接聚合查询）
 router.get('/risk-counts', async (ctx) => {
   try {
-    const counts = { high: 0, medium: 0, low: 0 }
-    const configs = await UserConfig.find({})
-
-    for (const config of configs) {
-      await updateUserFinancialHealth(config.userId)
-    }
-
-    // 重新读取最新的
-    const freshConfigs = await UserConfig.find({}, 'financialHealth')
-    freshConfigs.forEach(config => {
-      const level = config.financialHealth?.riskLevel || 'low'
-      if (counts[level] !== undefined) counts[level]++
-    })
-    ctx.body = counts
+    const riskStats = await calculateRiskUsers();
+    ctx.body = { high: riskStats.highRiskCount, medium: riskStats.mediumRiskCount, low: riskStats.lowRiskCount };
   } catch (error) {
     ctx.status = 500
     ctx.body = { message: '获取风险统计失败', error: error.message }
@@ -404,18 +387,19 @@ router.post('/batch-alert', async (ctx) => {
 
 // ==================== 用户管理API ====================
 
-// 获取统计数据
+// 获取统计数据（优化：并行查询）
 router.get('/statistics', async (ctx) => {
   try {
-    const totalUsers = await User.countDocuments();
-    const activeUsers = await User.countDocuments({ isActive: { $ne: false } });
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const newUsersToday = await User.countDocuments({ createdAt: { $gte: today } });
-    
-    // 风险用户统计
-    const riskStats = await calculateRiskUsers();
-    
+
+    const [totalUsers, activeUsers, newUsersToday, riskStats] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ isActive: { $ne: false } }),
+      User.countDocuments({ createdAt: { $gte: today } }),
+      calculateRiskUsers()
+    ]);
+
     ctx.body = {
       totalUsers,
       activeUsers,
@@ -428,14 +412,13 @@ router.get('/statistics', async (ctx) => {
   }
 });
 
-// 获取用户列表
+// 获取用户列表（优化：批量查询替代 N+1）
 router.get('/users', async (ctx) => {
   try {
     const { page = 1, pageSize = 10, search = '', status = '' } = ctx.query;
 
-    const query = { role: { $ne: 'admin' } }; // 过滤掉管理员用户
+    const query = { role: { $ne: 'admin' } };
 
-    // 搜索
     if (search) {
       query.$or = [
         { username: { $regex: search, $options: 'i' } },
@@ -443,50 +426,48 @@ router.get('/users', async (ctx) => {
       ];
     }
 
-    // 状态筛选
     if (status === 'inactive') {
       query.isActive = false;
     } else if (status === 'normal') {
       query.isActive = { $ne: false };
     }
-    
-    const total = await User.countDocuments(query);
-    const users = await User.find(query)
-      .select('-password')
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * pageSize)
-      .limit(parseInt(pageSize));
-    
-    // 获取用户的配置信息和本月消费
+
+    const [total, users] = await Promise.all([
+      User.countDocuments(query),
+      User.find(query)
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * pageSize)
+        .limit(parseInt(pageSize))
+        .lean()
+    ]);
+
+    // 批量获取用户配置和本月支出
+    const userIds = users.map(u => u._id);
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const usersWithConfig = await Promise.all(users.map(async (user) => {
-      const config = await UserConfig.findOne({ userId: user._id });
 
-      // 获取本月支出
-      const monthlyExpense = await Transaction.aggregate([
-        {
-          $match: {
-            userId: user._id,
-            type: 'expense',
-            date: { $gte: startOfMonth }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$amount' }
-          }
-        }
-      ]);
+    const [configs, monthlyExpenses] = await Promise.all([
+      UserConfig.find({ userId: { $in: userIds } }).lean(),
+      Transaction.aggregate([
+        { $match: { userId: { $in: userIds }, type: 'expense', date: { $gte: startOfMonth } } },
+        { $group: { _id: '$userId', total: { $sum: '$amount' } } }
+      ])
+    ]);
 
-      return {
-        ...user.toObject(),
-        config: config || {},
-        monthlySpent: monthlyExpense[0]?.total || 0
-      };
+    // 构建映射
+    const configMap = {};
+    configs.forEach(c => { configMap[c.userId.toString()] = c; });
+    const expenseMap = {};
+    monthlyExpenses.forEach(e => { expenseMap[e._id.toString()] = e.total; });
+
+    const usersWithConfig = users.map(user => ({
+      ...user,
+      config: configMap[user._id.toString()] || {},
+      monthlySpent: expenseMap[user._id.toString()] || 0,
+      yearlyBudget: configMap[user._id.toString()]?.budget?.yearly || 60000
     }));
-    
+
     ctx.body = {
       users: usersWithConfig,
       total,
@@ -703,25 +684,27 @@ router.get('/sent-notifications', async (ctx) => {
 
 // ==================== 辅助函数 ====================
 
-// 计算风险用户数量
+// 计算风险用户数量（优化：单次聚合查询，不再逐用户更新）
 async function calculateRiskUsers() {
-  const configs = await UserConfig.find();
-  
+  const riskCounts = await UserConfig.aggregate([
+    {
+      $group: {
+        _id: '$financialHealth.riskLevel',
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
   let highRiskCount = 0;
   let mediumRiskCount = 0;
   let lowRiskCount = 0;
-  
-  for (const config of configs) {
-    await updateUserFinancialHealth(config.userId);
-    
-    const updatedConfig = await UserConfig.findOne({ userId: config.userId });
-    const riskLevel = updatedConfig?.financialHealth?.riskLevel || 'low';
-    
-    if (riskLevel === 'high') highRiskCount++;
-    else if (riskLevel === 'medium') mediumRiskCount++;
-    else lowRiskCount++;
-  }
-  
+
+  riskCounts.forEach(item => {
+    if (item._id === 'high') highRiskCount = item.count;
+    else if (item._id === 'medium') mediumRiskCount = item.count;
+    else lowRiskCount += item.count; // low 或 null 都算低风险
+  });
+
   return { highRiskCount, mediumRiskCount, lowRiskCount };
 }
 
@@ -787,7 +770,7 @@ async function updateUserFinancialHealth(userId) {
 
 // ==================== 新增统计接口 ====================
 
-// 获取财务统计数据
+// 获取财务统计数据（优化：聚合查询替代全量取回JS处理）
 router.get('/finance-stats', async (ctx) => {
   try {
     const { timeRange = 'month', year, month } = ctx.query;
@@ -804,30 +787,34 @@ router.get('/finance-stats', async (ctx) => {
         startDate = new Date(y, 0, 1);
         endDate = new Date(y, 11, 31, 23, 59, 59);
         break;
-      default: // month
+      default:
         const ym = year ? parseInt(year) : now.getFullYear();
         const mm = month ? parseInt(month) : now.getMonth() + 1;
         startDate = new Date(ym, mm - 1, 1);
         endDate = new Date(ym, mm, 0, 23, 59, 59);
     }
 
-    const transactions = await Transaction.find({
-      date: { $gte: startDate, $lte: endDate }
-    });
+    const stats = await Transaction.aggregate([
+      { $match: { date: { $gte: startDate, $lte: endDate } } },
+      {
+        $group: {
+          _id: '$type',
+          total: { $sum: '$amount' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
 
-    const totalIncome = transactions.filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
-    const totalExpense = transactions.filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-    const balance = totalIncome - totalExpense;
-    const transactionCount = transactions.length;
+    const totalIncome = stats.find(s => s._id === 'income')?.total || 0;
+    const totalExpense = stats.find(s => s._id === 'expense')?.total || 0;
+    const transactionCount = stats.reduce((sum, s) => sum + s.count, 0);
 
     ctx.body = {
       success: true,
       stats: {
         totalIncome,
         totalExpense,
-        balance,
+        balance: totalIncome - totalExpense,
         transactionCount
       }
     };
@@ -838,7 +825,7 @@ router.get('/finance-stats', async (ctx) => {
   }
 });
 
-// 获取每日趋势数据
+// 获取每日趋势数据（优化：聚合查询替代全量取回JS处理）
 router.get('/daily-trend', async (ctx) => {
   try {
     let { startDate, endDate, timeRange = 'month', year, month } = ctx.query;
@@ -855,7 +842,7 @@ router.get('/daily-trend', async (ctx) => {
           startDate = new Date(y, 0, 1);
           endDate = new Date(y, 11, 31, 23, 59, 59);
           break;
-        default: // month
+        default:
           const ym = year ? parseInt(year) : now.getFullYear();
           const mm = month ? parseInt(month) : now.getMonth() + 1;
           startDate = new Date(ym, mm - 1, 1);
@@ -866,27 +853,35 @@ router.get('/daily-trend', async (ctx) => {
       endDate = new Date(endDate);
     }
 
-    const transactions = await Transaction.find({
-      date: { $gte: startDate, $lte: endDate }
-    }).sort({ date: 1 });
+    const dailyStats = await Transaction.aggregate([
+      { $match: { date: { $gte: startDate, $lte: endDate } } },
+      {
+        $group: {
+          _id: {
+            date: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
+            type: '$type'
+          },
+          total: { $sum: '$amount' }
+        }
+      },
+      { $sort: { '_id.date': 1 } }
+    ]);
 
-    // 按日期分组统计
-    const dailyStats = {};
-    transactions.forEach(t => {
-      const dateKey = t.date.toISOString().split('T')[0];
-      if (!dailyStats[dateKey]) {
-        dailyStats[dateKey] = { date: dateKey, income: 0, expense: 0, amount: 0 };
-      }
-      if (t.type === 'income') {
-        dailyStats[dateKey].income += t.amount;
-        dailyStats[dateKey].amount += t.amount;
-      } else {
-        dailyStats[dateKey].expense += t.amount;
-        dailyStats[dateKey].amount -= t.amount;
+    // 转换为日期 -> { income, expense } 的映射
+    const dataMap = {};
+    dailyStats.forEach(item => {
+      const date = item._id.date;
+      if (!dataMap[date]) dataMap[date] = { date, income: 0, expense: 0, amount: 0 };
+      if (item._id.type === 'expense') {
+        dataMap[date].expense = item.total;
+        dataMap[date].amount -= item.total;
+      } else if (item._id.type === 'income') {
+        dataMap[date].income = item.total;
+        dataMap[date].amount += item.total;
       }
     });
 
-    const result = Object.values(dailyStats).sort((a, b) =>
+    const result = Object.values(dataMap).sort((a, b) =>
       new Date(a.date) - new Date(b.date)
     );
 
@@ -901,7 +896,7 @@ router.get('/daily-trend', async (ctx) => {
   }
 });
 
-// 获取分类明细统计
+// 获取分类明细统计（优化：聚合查询替代全量取回JS处理）
 router.get('/category-breakdown', async (ctx) => {
   try {
     const { timeRange = 'month', year, month } = ctx.query;
@@ -918,41 +913,41 @@ router.get('/category-breakdown', async (ctx) => {
         startDate = new Date(y, 0, 1);
         endDate = new Date(y, 11, 31, 23, 59, 59);
         break;
-      default: // month
+      default:
         const ym = year ? parseInt(year) : now.getFullYear();
         const mm = month ? parseInt(month) : now.getMonth() + 1;
         startDate = new Date(ym, mm - 1, 1);
         endDate = new Date(ym, mm, 0, 23, 59, 59);
     }
 
-    const transactions = await Transaction.find({
-      date: { $gte: startDate, $lte: endDate },
-      type: 'expense'
-    });
+    const [categoryStats, totalResult] = await Promise.all([
+      Transaction.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate }, type: 'expense' } },
+        {
+          $group: {
+            _id: '$category',
+            count: { $sum: 1 },
+            amount: { $sum: '$amount' }
+          }
+        },
+        { $sort: { amount: -1 } }
+      ]),
+      Transaction.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate }, type: 'expense' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ])
+    ]);
 
-    // 按分类统计
-    const categoryStats = {};
-    const totalExpense = transactions.reduce((sum, t) => sum + t.amount, 0);
+    const totalExpense = totalResult[0]?.total || 0;
 
-    transactions.forEach(t => {
-      if (!categoryStats[t.category]) {
-        categoryStats[t.category] = { name: t.category, count: 0, amount: 0 };
-      }
-      categoryStats[t.category].count++;
-      categoryStats[t.category].amount += t.amount;
-    });
-
-    // 转换为数组并计算百分比
-    const categories = Object.values(categoryStats)
-      .map(c => ({
-        name: c.name,
-        iconId: c.name,
-        count: c.count,
-        amount: c.amount,
-        percent: totalExpense > 0 ? Math.round((c.amount / totalExpense) * 100) : 0,
-        color: getCategoryColor(c.name)
-      }))
-      .sort((a, b) => b.amount - a.amount);
+    const categories = categoryStats.map(c => ({
+      name: c._id,
+      iconId: c._id,
+      count: c.count,
+      amount: c.amount,
+      percent: totalExpense > 0 ? Math.round((c.amount / totalExpense) * 100) : 0,
+      color: getCategoryColor(c._id)
+    }));
 
     ctx.body = {
       success: true,
@@ -965,7 +960,7 @@ router.get('/category-breakdown', async (ctx) => {
   }
 });
 
-// 获取分类分析数据（支持多时间范围）
+// 获取分类分析数据（优化：聚合查询替代全量取回JS处理）
 router.get('/category-analysis', async (ctx) => {
   try {
     const { timeRange = 'month', year, month, quarter } = ctx.query;
@@ -988,55 +983,49 @@ router.get('/category-analysis', async (ctx) => {
         startDate = new Date(y, 0, 1);
         endDate = new Date(y, 11, 31, 23, 59, 59);
         break;
-      default: // month
+      default:
         const ym = year ? parseInt(year) : now.getFullYear();
         const mm = month ? parseInt(month) : now.getMonth() + 1;
         startDate = new Date(ym, mm - 1, 1);
         endDate = new Date(ym, mm, 0, 23, 59, 59);
     }
 
-    const transactions = await Transaction.find({
-      date: { $gte: startDate, $lte: endDate }
-    });
+    const dateMatch = { date: { $gte: startDate, $lte: endDate } };
 
-    // 按分类统计支出
-    const expenseByCategory = {};
-    const incomeByCategory = {};
-    const expenseTransactions = transactions.filter(t => t.type === 'expense');
-    const incomeTransactions = transactions.filter(t => t.type === 'income');
-    const totalExpense = expenseTransactions.reduce((sum, t) => sum + t.amount, 0);
-    const totalIncome = incomeTransactions.reduce((sum, t) => sum + t.amount, 0);
+    const [expenseStats, incomeStats, totalStats] = await Promise.all([
+      Transaction.aggregate([
+        { $match: { ...dateMatch, type: 'expense' } },
+        { $group: { _id: '$category', value: { $sum: '$amount' } } },
+        { $sort: { value: -1 } }
+      ]),
+      Transaction.aggregate([
+        { $match: { ...dateMatch, type: 'income' } },
+        { $group: { _id: '$category', value: { $sum: '$amount' } } },
+        { $sort: { value: -1 } }
+      ]),
+      Transaction.aggregate([
+        { $match: dateMatch },
+        { $group: { _id: '$type', total: { $sum: '$amount' } } }
+      ])
+    ]);
 
-    expenseTransactions.forEach(t => {
-      if (!expenseByCategory[t.category]) expenseByCategory[t.category] = 0;
-      expenseByCategory[t.category] += t.amount;
-    });
-    incomeTransactions.forEach(t => {
-      if (!incomeByCategory[t.category]) incomeByCategory[t.category] = 0;
-      incomeByCategory[t.category] += t.amount;
-    });
+    const totalExpense = totalStats.find(s => s._id === 'expense')?.total || 0;
+    const totalIncome = totalStats.find(s => s._id === 'income')?.total || 0;
 
-    // 支出饼图
-    const expensePieData = Object.entries(expenseByCategory)
-      .map(([name, value]) => ({
-        name,
-        value,
-        color: getCategoryColor(name),
-        percent: totalExpense > 0 ? ((value / totalExpense) * 100).toFixed(1) : 0
-      }))
-      .sort((a, b) => b.value - a.value);
+    const expensePieData = expenseStats.map(s => ({
+      name: s._id,
+      value: s.value,
+      color: getCategoryColor(s._id),
+      percent: totalExpense > 0 ? ((s.value / totalExpense) * 100).toFixed(1) : 0
+    }));
 
-    // 收入饼图
-    const incomePieData = Object.entries(incomeByCategory)
-      .map(([name, value]) => ({
-        name,
-        value,
-        color: '#10B981',
-        percent: totalIncome > 0 ? ((value / totalIncome) * 100).toFixed(1) : 0
-      }))
-      .sort((a, b) => b.value - a.value);
+    const incomePieData = incomeStats.map(s => ({
+      name: s._id,
+      value: s.value,
+      color: '#10B981',
+      percent: totalIncome > 0 ? ((s.value / totalIncome) * 100).toFixed(1) : 0
+    }));
 
-    // 柱状图（top分类）
     const barData = expensePieData.slice(0, 8).map(item => ({
       category: item.name,
       value: item.value,
@@ -1050,7 +1039,7 @@ router.get('/category-analysis', async (ctx) => {
       barData,
       totalExpense,
       totalIncome,
-      hasData: transactions.length > 0
+      hasData: totalExpense > 0 || totalIncome > 0
     };
   } catch (error) {
     console.error('获取分类分析错误:', error);
@@ -1294,7 +1283,7 @@ router.get('/categories', async (ctx) => {
     const query = {};
     if (type) query.type = type;
 
-    let categories = await Category.find(query).sort({ type: 1, createdAt: 1 });
+    let categories = await Category.find(query).sort({ sortOrder: 1, type: 1, createdAt: 1 });
 
     // 如果没有分类，插入默认分类
     if (categories.length === 0) {
@@ -1367,6 +1356,26 @@ router.post('/categories', async (ctx) => {
   }
 });
 
+// 排序分类（必须放在 /categories/:id 前面，koa-router 按注册顺序匹配）
+router.put('/categories/reorder', async (ctx) => {
+  try {
+    const { type, orderedIds } = ctx.request.body;
+    if (!type || !Array.isArray(orderedIds)) {
+      ctx.status = 400;
+      ctx.body = { message: '参数错误' };
+      return;
+    }
+    await Promise.all(orderedIds.map((id, index) =>
+      Category.findByIdAndUpdate(id, { sortOrder: index, type })
+    ));
+    ctx.body = { success: true, message: '排序已更新' };
+  } catch (error) {
+    console.error('排序分类错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});
+
 // 更新分类
 router.put('/categories/:id', async (ctx) => {
   try {
@@ -1410,15 +1419,12 @@ router.delete('/categories/:id', async (ctx) => {
       ctx.body = { message: '分类不存在' };
       return;
     }
-
     await Category.deleteOne({ _id: ctx.params.id });
-
     await OperationLog.create({
       userId: ctx.state.adminUser._id,
       action: '删除分类',
       details: `删除分类：${category.name}`
     });
-
     ctx.body = { success: true, message: '分类已删除' };
   } catch (error) {
     console.error('删除分类错误:', error);
@@ -1428,7 +1434,6 @@ router.delete('/categories/:id', async (ctx) => {
 });
 
 // ==================== 消息模板API ====================
-
 // 获取消息模板
 router.get('/message-templates', async (ctx) => {
   try {
@@ -1516,6 +1521,174 @@ router.get('/operation-logs', async (ctx) => {
     ctx.body = { message: '服务器错误', error: error.message };
   }
 });
+
+// ==================== 数据导出API ====================
+
+router.get('/export', async (ctx) => {
+  try {
+    const { startDate, endDate, dataTypes, format = 'csv' } = ctx.query;
+
+    // 解析日期范围
+    let start = startDate ? new Date(startDate) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    let end = endDate ? new Date(endDate) : new Date();
+    end.setHours(23, 59, 59, 999);
+
+    // 解析数据类型
+    const types = dataTypes ? dataTypes.split(',') : ['transactions'];
+
+    const result = {};
+
+    // 交易记录
+    if (types.includes('transactions')) {
+      const transactions = await Transaction.find({ date: { $gte: start, $lte: end } })
+        .populate('userId', 'username nickname')
+        .sort({ date: -1 })
+        .lean();
+
+      result.transactions = transactions.map(t => ({
+        '序号': t._id.toString(),
+        '日期': t.date.toISOString().split('T')[0],
+        '类型': t.type === 'income' ? '收入' : '支出',
+        '分类': t.category,
+        '金额': t.amount,
+        '备注': t.note || '',
+        '用户': t.userId?.nickname || t.userId?.username || '未知',
+        '创建时间': t.createdAt.toISOString().replace('T', ' ').substring(0, 19)
+      }));
+    }
+
+    // 用户数据
+    if (types.includes('users')) {
+      const users = await User.find({ role: 'user' })
+        .select('-password')
+        .lean();
+
+      const userIds = users.map(u => u._id);
+      const configs = await UserConfig.find({ userId: { $in: userIds } }).lean();
+      const configMap = {};
+      configs.forEach(c => { configMap[c.userId.toString()] = c; });
+
+      // 本月消费汇总
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthlyExpense = await Transaction.aggregate([
+        { $match: { userId: { $in: userIds }, type: 'expense', date: { $gte: monthStart } } },
+        { $group: { _id: '$userId', total: { $sum: '$amount' } } }
+      ]);
+      const expenseMap = {};
+      monthlyExpense.forEach(e => { expenseMap[e._id.toString()] = e.total; });
+
+      result.users = users.map(u => ({
+        '序号': u._id.toString(),
+        '用户名': u.username,
+        '昵称': u.nickname || '',
+        '邮箱': u.email || '',
+        '月度预算': configMap[u._id.toString()]?.budget?.monthly || '未设置',
+        '年度预算': configMap[u._id.toString()]?.budget?.yearly || '未设置',
+        '本月消费': expenseMap[u._id.toString()] || 0,
+        '风险等级': configMap[u._id.toString()]?.financialHealth?.riskLevel || 'low',
+        '注册时间': u.createdAt.toISOString().replace('T', ' ').substring(0, 19),
+        '最近活跃': u.updatedAt ? u.updatedAt.toISOString().replace('T', ' ').substring(0, 19) : ''
+      }));
+    }
+
+    // 统计数据
+    if (types.includes('stats')) {
+      const transactions = await Transaction.find({ date: { $gte: start, $lte: end } }).lean();
+      const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+      const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+      // 按分类统计
+      const categoryStats = {};
+      transactions.filter(t => t.type === 'expense').forEach(t => {
+        if (!categoryStats[t.category]) categoryStats[t.category] = 0;
+        categoryStats[t.category] += t.amount;
+      });
+
+      result.stats = {
+        '汇总': [{
+          '统计周期开始': start.toISOString().split('T')[0],
+          '统计周期结束': end.toISOString().split('T')[0],
+          '总收入': totalIncome,
+          '总支出': totalExpense,
+          '结余': totalIncome - totalExpense,
+          '交易笔数': transactions.length
+        }],
+        '支出分类统计': Object.entries(categoryStats).map(([cat, amt]) => ({
+          '分类': cat,
+          '金额': amt,
+          '占比': totalExpense > 0 ? ((amt / totalExpense) * 100).toFixed(2) + '%' : '0%'
+        }))
+      };
+    }
+
+    // 按格式返回
+    if (format === 'json') {
+      ctx.set('Content-Type', 'application/json');
+      ctx.set('Content-Disposition', `attachment; filename="export_${Date.now()}.json"`);
+      ctx.body = result;
+      return;
+    }
+
+    if (format === 'xlsx') {
+      const XLSX = require('xlsx');
+      const wb = XLSX.utils.book_new();
+
+      if (result.transactions?.length) {
+        const ws = XLSX.utils.json_to_sheet(result.transactions);
+        XLSX.utils.book_append_sheet(wb, ws, '交易记录');
+      }
+      if (result.users?.length) {
+        const ws = XLSX.utils.json_to_sheet(result.users);
+        XLSX.utils.book_append_sheet(wb, ws, '用户数据');
+      }
+      if (result.stats?.['汇总']?.length) {
+        const ws1 = XLSX.utils.json_to_sheet(result.stats['汇总']);
+        XLSX.utils.book_append_sheet(wb, ws1, '统计汇总');
+        if (result.stats['支出分类统计']?.length) {
+          const ws2 = XLSX.utils.json_to_sheet(result.stats['支出分类统计']);
+          XLSX.utils.book_append_sheet(wb, ws2, '分类统计');
+        }
+      }
+
+      const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      const filename = `财务导出_${end.toISOString().split('T')[0]}.xlsx`;
+      ctx.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      ctx.set('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+      ctx.body = buf;
+      return;
+    }
+
+    // 默认 CSV（只导出交易记录，其他类型用 JSON）
+    if (result.transactions?.length) {
+      const csv = arrayToCSV(result.transactions);
+      ctx.set('Content-Type', 'text/csv;charset=utf-8');
+      ctx.set('Content-Disposition', `attachment; filename="transactions_${end.toISOString().split('T')[0]}.csv"`);
+      ctx.body = '\ufeff' + csv; // BOM for Excel
+    } else {
+      ctx.status = 400;
+      ctx.body = { message: '当前日期范围内没有可导出的交易数据' };
+    }
+  } catch (error) {
+    console.error('[Export] 导出失败:', error);
+    ctx.status = 500;
+    ctx.body = { message: '导出失败', error: error.message };
+  }
+});
+
+// CSV 工具函数
+function arrayToCSV(data) {
+  if (!data || data.length === 0) return '';
+  const headers = Object.keys(data[0]);
+  const rows = data.map(row =>
+    headers.map(h => {
+      const val = row[h] == null ? '' : String(row[h]);
+      // 包含逗号、引号或换行的字段需要加引号
+      return /[,"\n]/.test(val) ? `"${val.replace(/"/g, '""')}"` : val;
+    }).join(',')
+  );
+  return [headers.join(','), ...rows].join('\n');
+}
 
 // ==================== 辅助函数 ====================
 function getCategoryColor(category) {

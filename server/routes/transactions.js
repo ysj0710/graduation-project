@@ -93,16 +93,57 @@ router.get('/', async (ctx) => {
 // 添加记账
 router.post('/', async (ctx) => {
   try {
-    const { type, amount, category, note, date } = ctx.request.body;
+    const rawBody = ctx.request.body;
+    const { type, amount, category, note, date, items } = rawBody || {};
     const userId = ctx.state.userId;
-    
-    if (!type || !amount || !category) {
-      ctx.status = 400;
-      ctx.body = { message: '缺少必要参数' };
+
+    // 批量添加（来自记一笔面板）
+    if (items && Array.isArray(items) && items.length > 0) {
+      const transactionsToSave = [];
+      const parsedDate = date ? new Date(date) : new Date();
+
+      for (const item of items) {
+        const { category: cat, amount: amt, note: itemNote, type: itemType } = item;
+        if (!cat || !amt) continue;
+        // 每个条目用自己的 type，不再统一用外层 type
+        const txType = itemType || type || 'expense';
+        const mismatchedType = await validateCategoryType(cat, txType);
+        if (mismatchedType !== null) continue;
+        transactionsToSave.push(new Transaction({
+          userId,
+          type: txType,
+          amount: parseFloat(amt),
+          category: cat,
+          note: itemNote || '',
+          date: parsedDate
+        }));
+      }
+
+      if (transactionsToSave.length === 0) {
+        ctx.status = 400;
+        ctx.body = { message: '没有可添加的记录（条目可能缺少金额或分类类型不匹配）' };
+        return;
+      }
+
+      await Transaction.insertMany(transactionsToSave);
+
+      // 只要有支出就检查预算预警
+      if (transactionsToSave.some(t => t.type === 'expense')) {
+        await checkAndCreateBudgetAlert(userId);
+      }
+
+      ctx.status = 201;
+      ctx.body = { message: `成功添加 ${transactionsToSave.length} 笔记录`, count: transactionsToSave.length };
       return;
     }
 
-    // 验证分类类型是否匹配
+    // 单条添加（兼容原有逻辑）
+    if (!type || !amount || !category) {
+      ctx.status = 400;
+      ctx.body = { message: `缺少必要参数：${!type ? 'type ' : ''}${!amount ? 'amount ' : ''}${!category ? 'category' : ''}` };
+      return;
+    }
+
     const mismatchedType = await validateCategoryType(category, type);
     if (mismatchedType !== null) {
       ctx.status = 400;
@@ -118,14 +159,13 @@ router.post('/', async (ctx) => {
       note: note || '',
       date: date ? new Date(date) : new Date()
     });
-    
+
     await transaction.save();
-    
-    // 如果是支出，检查预算预警
+
     if (type === 'expense') {
       await checkAndCreateBudgetAlert(userId);
     }
-    
+
     ctx.status = 201;
     ctx.body = { message: '记账成功', transaction };
   } catch (error) {

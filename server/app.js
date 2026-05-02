@@ -32,7 +32,11 @@ app.use(cors({
   origin: '*',
   credentials: true
 }));
-app.use(bodyParser());
+app.use(bodyParser({
+  enableTypes: ['json', 'form'],
+  jsonLimit: '10mb',
+  formLimit: '10mb',
+}));
 
 // 路由
 router.get('/', (ctx) => {
@@ -43,9 +47,10 @@ router.use('/api/auth', authRouter.routes(), authRouter.allowedMethods());
 router.use('/api/admin', adminRouter.routes(), adminRouter.allowedMethods());
 router.use('/api/transactions', transactionRouter.routes(), transactionRouter.allowedMethods());
 router.use('/api/accounts', accountRouter.routes(), accountRouter.allowedMethods());
-router.use('/api/import', importRouter.routes(), importRouter.allowedMethods());
+router.use('/api/import', importRouter.routes(), adminRouter.allowedMethods());
 router.use('/api/notifications', notificationRouter.routes(), notificationRouter.allowedMethods());
 router.use('/api/user', userRouter.routes(), userRouter.allowedMethods());
+router.use('/api/categories', adminRouter.routes(), adminRouter.allowedMethods());
 
 app.use(router.routes());
 app.use(router.allowedMethods());

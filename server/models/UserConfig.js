@@ -95,4 +95,6 @@ userConfigSchema.pre('save', async function() {
   this.updatedAt = new Date();
 });
 
+userConfigSchema.index({ 'financialHealth.riskLevel': 1 }); // 风险等级查询
+
 module.exports = mongoose.model('UserConfig', userConfigSchema);

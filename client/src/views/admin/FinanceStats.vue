@@ -110,7 +110,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import CategoryIcon from '../../components/CategoryIcon.vue'
 import { ArrowUpCircle, ArrowDownCircle, Wallet, BarChart3, TrendingUp, PieChart, ChevronLeft, ChevronRight } from 'lucide-vue-next'
@@ -119,11 +119,17 @@ import { ElMessage } from 'element-plus'
 
 const viewMode = ref('month') // 'day' | 'month' | 'year'
 const chartRef = ref(null)
+let chartInstance = null
 const loading = ref(false)
 const now = new Date()
 const currentYear = now.getFullYear()
 const selectedYear = ref(currentYear)
 const selectedMonth = ref(now.getMonth() + 1) // 1-12
+
+// 图表resize处理
+const handleResize = () => {
+  chartInstance?.resize()
+}
 
 // 当前选中的时间段是否已是最新（不可再前进）
 const isCurrentPeriod = computed(() => {
@@ -234,7 +240,10 @@ const renderChart = () => {
     return
   }
 
-  const chart = echarts.init(chartRef.value)
+  if (chartInstance) {
+    chartInstance.dispose()
+  }
+  chartInstance = echarts.init(chartRef.value)
   let xData = []
   let chartData = []
 
@@ -264,7 +273,7 @@ const renderChart = () => {
     }
   }
 
-  chart.setOption({
+  chartInstance.setOption({
     tooltip: {
       trigger: 'axis',
       backgroundColor: 'rgba(255,255,255,0.95)',
@@ -294,6 +303,14 @@ const renderChart = () => {
 
 onMounted(() => {
   fetchData()
+  window.addEventListener('resize', handleResize)
+  window.addEventListener('orientationchange', handleResize)
+})
+
+onUnmounted(() => {
+  chartInstance?.dispose()
+  window.removeEventListener('resize', handleResize)
+  window.removeEventListener('orientationchange', handleResize)
 })
 </script>
 
@@ -395,4 +412,98 @@ onMounted(() => {
 .percent-bar { flex: 1; height: 8px; background: var(--color-border); border-radius: 4px; overflow: hidden; }
 .percent-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
 .percent-text { font-size: 12px; color: var(--color-text-muted); font-weight: 500; min-width: 36px; }
+
+/* ============================================
+   Mobile Responsive Styles
+   ============================================ */
+@media (max-width: 768px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .filter-selector {
+    margin-left: 0;
+    justify-content: center;
+  }
+
+  .filter-tabs {
+    justify-content: center;
+  }
+
+  .filter-tab {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .selector-text {
+    font-size: 13px;
+    min-width: 80px;
+  }
+
+  .chart-area {
+    height: 240px;
+    padding: 0 12px 12px;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    min-width: 500px;
+  }
+
+  .table th,
+  .table td {
+    padding: 10px 6px;
+    font-size: 12px;
+  }
+
+  .category-cell {
+    gap: 6px;
+  }
+
+  .cat-name {
+    font-size: 13px;
+  }
+
+  .percent-cell {
+    gap: 6px;
+  }
+
+  .percent-text {
+    font-size: 11px;
+    min-width: 30px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 14px;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .card-header {
+    padding: 14px 16px;
+  }
+
+  .card-title {
+    font-size: 14px;
+  }
+}
 </style>

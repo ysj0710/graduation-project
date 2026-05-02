@@ -56,9 +56,9 @@
             </div>
           </div>
           <div class="form-actions">
-            <button type="button" class="btn btn-primary" @click="handleExport">
+            <button type="button" class="btn btn-primary" :disabled="exporting" @click="handleExport">
               <Download :size="16" :stroke-width="2" />
-              导出数据
+              {{ exporting ? '导出中...' : '导出数据' }}
             </button>
           </div>
         </form>
@@ -75,8 +75,59 @@ import { Download } from 'lucide-vue-next'
 const dateRange = ref(null)
 const dataTypes = ref(['transactions'])
 const exportFormat = ref('csv')
+const exporting = ref(false)
 
-const handleExport = () => { ElMessage.success('正在导出数据...') }
+const handleExport = async () => {
+  if (dataTypes.value.length === 0) {
+    ElMessage.warning('请至少选择一种数据类型')
+    return
+  }
+  exporting.value = true
+  try {
+    const params = new URLSearchParams()
+    params.append('dataTypes', dataTypes.value.join(','))
+    params.append('format', exportFormat.value)
+    if (dateRange.value?.length === 2) {
+      const fmt = d => d instanceof Date ? d.toISOString().split('T')[0] : String(d).split('T')[0]
+      params.append('startDate', fmt(dateRange.value[0]))
+      params.append('endDate', fmt(dateRange.value[1]))
+    }
+
+    const token = localStorage.getItem('token')
+    const response = await fetch(`/api/admin/export?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+
+    if (!response.ok) {
+      const err = await response.json()
+      throw new Error(err.message || '导出失败')
+    }
+
+    // 根据格式获取文件名后缀
+    const ext = exportFormat.value === 'json' ? 'json' : exportFormat.value === 'xlsx' ? 'xlsx' : 'csv'
+    const disposition = response.headers.get('Content-Disposition')
+    let filename = `财务导出_${new Date().toISOString().split('T')[0]}.${ext}`
+    if (disposition) {
+      const match = disposition.match(/filename[^;=\n]*=(?:(\\?['"])(.*?)\1|([^;\n]*))/i)
+      if (match) filename = decodeURIComponent(match[2] || match[3] || filename)
+    }
+
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+
+    ElMessage.success('导出成功')
+  } catch (e) {
+    console.error('[ExportCenter] 导出失败:', e)
+    ElMessage.error(e.message || '导出失败，请重试')
+  } finally {
+    exporting.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -136,5 +187,6 @@ const handleExport = () => { ElMessage.success('正在导出数据...') }
   gap: 8px;
 }
 .btn-primary { border: none; background: var(--color-primary); color: white; }
-.btn-primary:hover { background: var(--color-primary-dark); transform: translateY(-1px); }
+.btn-primary:hover:not(:disabled) { background: var(--color-primary-dark); transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>

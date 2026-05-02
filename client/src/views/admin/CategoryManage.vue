@@ -14,7 +14,8 @@
       </div>
       <div class="card-body">
         <div class="category-list">
-          <div class="category-item" v-for="cat in expenseCategories" :key="cat._id">
+          <div class="category-item" v-for="cat in expenseCategories" :key="cat._id" draggable="true" @dragstart="onDragStart($event, cat, 'expense')" @dragover.prevent @drop="onDrop($event, cat, 'expense')" :class="{ 'dragging': dragCat && dragCat._id === cat._id }">
+            <div class="drag-handle" title="拖动排序">⋮⋮</div>
             <div class="category-icon" :style="{ background: cat.color + '20', color: cat.color }">
               <CategoryIcon :id="cat.iconId" :size="18" />
             </div>
@@ -53,7 +54,8 @@
       </div>
       <div class="card-body">
         <div class="category-list">
-          <div class="category-item" v-for="cat in incomeCategories" :key="cat._id">
+          <div class="category-item" v-for="cat in incomeCategories" :key="cat._id" draggable="true" @dragstart="onDragStart($event, cat, 'income')" @dragover.prevent @drop="onDrop($event, cat, 'income')" :class="{ 'dragging': dragCat && dragCat._id === cat._id }">
+            <div class="drag-handle" title="拖动排序">⋮⋮</div>
             <div class="category-icon" :style="{ background: cat.color + '20', color: cat.color }">
               <CategoryIcon :id="cat.iconId" :size="18" />
             </div>
@@ -174,6 +176,7 @@ const loading = ref(false)
 const showModal = ref(false)
 const editingCategory = ref(null)
 const saving = ref(false)
+const dragCat = ref(null)
 
 const expenseCategories = computed(() => categories.value.filter(c => c.type === 'expense'))
 const incomeCategories = computed(() => categories.value.filter(c => c.type === 'income'))
@@ -280,6 +283,44 @@ const deleteCategory = async (cat) => {
 onMounted(() => {
   fetchCategories()
 })
+
+const onDragStart = (e, cat, type) => {
+  dragCat.value = cat
+  e.dataTransfer.effectAllowed = 'move'
+}
+
+const onDrop = async (e, targetCat, type) => {
+  if (!dragCat.value || dragCat.value._id === targetCat._id) {
+    dragCat.value = null
+    return
+  }
+  if (dragCat.value.type !== type) {
+    dragCat.value = null
+    return
+  }
+  const allCats = categories.value
+  const fromIdx = allCats.findIndex(c => c._id === dragCat.value._id)
+  const toIdx = allCats.findIndex(c => c._id === targetCat._id)
+  if (fromIdx === -1 || toIdx === -1) {
+    dragCat.value = null
+    return
+  }
+  const [moved] = allCats.splice(fromIdx, 1)
+  allCats.splice(toIdx, 0, moved)
+  dragCat.value = null
+
+  try {
+    const token = localStorage.getItem('token')
+    const orderedIds = allCats.filter(c => c.type === type).map(c => c._id)
+    await axios.put('/api/admin/categories/reorder', { type, orderedIds }, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    ElMessage.success('排序已更新')
+  } catch (error) {
+    ElMessage.error('排序更新失败')
+    fetchCategories()
+  }
+}
 </script>
 
 <style scoped>
@@ -306,6 +347,16 @@ onMounted(() => {
   transition: background var(--transition-fast);
 }
 .category-item:hover { background: var(--color-surface-active); }
+.category-item.dragging { opacity: 0.5; }
+.drag-handle {
+  color: var(--color-text-muted);
+  font-size: 16px;
+  cursor: grab;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+  user-select: none;
+}
+.drag-handle:active { cursor: grabbing; }
 
 .category-icon {
   width: 36px;

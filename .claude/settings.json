@@ -95,7 +95,40 @@
       "Bash(python3 -c ' *)",
       "Bash(TESSDATA_PREFIX=/opt/homebrew/share/tessdata tesseract /tmp/page_screenshot.jpg /tmp/ocr_jpg --oem 3 --psm 6)",
       "Bash(TESSDATA_PREFIX=/opt/homebrew/share/tessdata tesseract /Users/enjoy0710/page_screenshot.png /Users/enjoy0710/ocr_output2 --oem 3 --psm 6)",
-      "Bash(TESSDATA_PREFIX=/opt/homebrew/share/tessdata tesseract /Users/enjoy0710/page_screenshot.png /Users/enjoy0710/ocr_output3 --oem 3 --psm 4)"
+      "Bash(TESSDATA_PREFIX=/opt/homebrew/share/tessdata tesseract /Users/enjoy0710/page_screenshot.png /Users/enjoy0710/ocr_output3 --oem 3 --psm 4)",
+      "Bash(lsof -i:3000)",
+      "Bash(curl -sL \"https://minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com/ccv2%2F2026-04-26%2FMiniMax-M2.7%2F2021228959408070944%2F5e71aec3a117b3dd7701b567272758f9bf0815a3db15824560d3a9843facec03..png?Expires=1777220964&OSSAccessKeyId=LTAI5tGLnRTkBjLuYPjNcKQ8&Signature=MDpxH01POsRTEsD%2F6OcjYriS23M%3D\" -o /tmp/dashboard1.png)",
+      "Bash(curl -sL \"https://minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com/ccv2%2F2026-04-26%2FMiniMax-M2.7%2F2021228959408070944%2F9573dd019e5261473bf83676e592abcc98fa50a6c7cb328a44ea785011ce451c..png?Expires=1777220965&OSSAccessKeyId=LTAI5tGLnRTkBjLuYPjNcKQ8&Signature=OOLtDTY5dGbIg0EtQYO4NpMTmfs%3D\" -o /tmp/dashboard2.png)",
+      "Bash(curl -sL \"https://minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com/ccv2%2F2026-04-26%2FMiniMax-M2.7%2F2021228959408070944%2F251cbd3a00aff048b7cd7c2b983af71bdb871c00034a570eac5bc7f4ee261988..png?Expires=1777220965&OSSAccessKeyId=LTAI5tGLnRTkBjLuYPjNcKQ8&Signature=aQ6gYQkMoRS42GkzLOohLm6icls%3D\" -o /tmp/dashboard3.png)",
+      "Bash(curl -L -o /tmp/wechat_error.png \"https://minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com/ccv2%2F2026-04-26%2FMiniMax-M2.7%2F2021228959408070944%2F66d90aa1765acdd4e55d870bef9e2c30d0261188b9c96e60ca9ed18064b3304d..png?Expires=1777221705&OSSAccessKeyId=LTAI5tGLnRTkBjLuYPjNcKQ8&Signature=PwPp2kH85i6RXFVQYzh9nXE8VzM%3D\")",
+      "Bash(curl -sL \"https://minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com/ccv2%2F2026-04-26%2FMiniMax-M2.7%2F2021228959408070944%2F2c09cf2bb4d7150e45f5d0c7b824b16ab25d5f84eb5d1ee9babe92cfcd3c83bd..png?Expires=1777222211&OSSAccessKeyId=LTAI5tGLnRTkBjLuYPjNcKQ8&Signature=3ZnJYsmOLjPcXPHjz%2Fg5OF2vmuY%3D\" -o /tmp/chart_image.png)",
+      "Read(//private/tmp/**)",
+      "Bash(python3)",
+      "Bash(tesseract /tmp/chart_image.png /tmp/chart_out)",
+      "Bash(tesseract /tmp/legend_crop.png stdout)",
+      "Bash(tesseract /tmp/chart_body.png stdout)",
+      "Bash(convert --version)",
+      "Bash(node -e \"const jwt = require\\('jsonwebtoken'\\); console.log\\('jwt ok'\\);\")",
+      "Bash(curl -s -o \"/tmp/img1.png\" \"https://minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com/ccv2%2F2026-04-26%2FMiniMax-M2.7%2F2021228959408070944%2F50620c6c646752a32498a9726d4258588a8ad0612bf41eac95e35950b6f5410a..png?Expires=1777224414&OSSAccessKeyId=LTAI5tGLnRTkBjLuYPjNcKQ8&Signature=Fn1Cuwi18A%2B8%2B0Gnr6jQY1UzmS4%3D\")",
+      "Bash(curl -s -o \"/tmp/img2.png\" \"https://minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com/ccv2%2F2026-04-26%2FMiniMax-M2.7%2F2021228959408070944%2Fcfb4fdf247e83fa2cdee5f6f64b72abcaa40ef1fbb1fc813d998a62e096e0f22..png?Expires=1777224415&OSSAccessKeyId=LTAI5tGLnRTkBjLuYPjNcKQ8&Signature=UbdVNXrKUDRkhVA1ikrP5n4LDOM%3D\")",
+      "Bash(curl -s -o \"/tmp/img3.png\" \"https://minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com/ccv2%2F2026-04-26%2FMiniMax-M2.7%2F2021228959408070944%2F57fc914c46a79f957909c071b790054fcc7c8e2e1dce19a75d41929b55294875..png?Expires=1777224415&OSSAccessKeyId=LTAI5tGLnRTkBjLuYPjNcKQ8&Signature=2xKJQ95ddlPIxKqjtSSHfZ7tY4k%3D\")",
+      "WebFetch(domain:minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com)",
+      "Bash(sips -g all /tmp/img1.png)",
+      "Bash(qlmanage -t /tmp/img1.png /tmp/img2.png /tmp/img3.png)",
+      "Bash(tesseract --version)",
+      "Bash(python3 -c \"import pytesseract; print\\('pytesseract available'\\)\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/api/user/categories)",
+      "Bash(brew list *)",
+      "Read(//usr/local/bin/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://ysj0710.xyz/api/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://ysj0710.xyz/api/user/categories)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://ysj0710.xyz/)",
+      "Bash(curl -sL -o /tmp/img1.png \"https://minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com/ccv2%2F2026-04-26%2FMiniMax-M2.7%2F2021228959408070944%2Fddb0b47fd506a64a031b3362ed128fc8951ac12707c293a8346774acb3a8086c..png?Expires=1777226202&OSSAccessKeyId=LTAII5tGLnRTkBjLuYPjNcKQ8&Signature=%2BG4b47MhtdIwWEFXsQv%2Fbbiip1o%3D\")",
+      "Bash(qlmanage -t /tmp/img2.png -o /tmp/img2_thumb.png)",
+      "Bash(qlmanage -t /tmp/img3.png -o /tmp/img3_thumb.png)"
+    ],
+    "additionalDirectories": [
+      "/private/tmp"
     ]
   }
 }

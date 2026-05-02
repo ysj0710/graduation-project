@@ -24,7 +24,8 @@
           <thead>
             <tr>
               <th>用户</th>
-              <th style="width: 120px">预算</th>
+              <th style="width: 110px">月预算</th>
+              <th style="width: 110px">年预算</th>
               <th style="width: 120px">本月消费</th>
               <th style="width: 100px">风险等级</th>
               <th style="width: 140px">操作</th>
@@ -44,6 +45,7 @@
                 </div>
               </td>
               <td class="num">¥{{ formatNumber(user.budget) }}</td>
+              <td class="num">¥{{ formatNumber(user.yearlyBudget) }}</td>
               <td class="num" :class="{ expense: user.spent > user.budget * 0.8 }">
                 ¥{{ formatNumber(user.spent) }}
               </td>
@@ -114,6 +116,7 @@ const fetchUsers = async () => {
       name: u.nickname || u.username,
       email: u.email,
       budget: u.config?.budget?.monthly || 5000,
+      yearlyBudget: u.yearlyBudget || u.config?.budget?.yearly || 60000,
       spent: u.monthlySpent || 0,
       riskLevel: u.config?.financialHealth?.riskLevel || 'low',
       riskLabel: u.config?.financialHealth?.riskLevel === 'high' ? '高风险' :
@@ -171,6 +174,7 @@ const deleteUser = async (user) => {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
 }
 .search-box {
   display: flex;
@@ -182,6 +186,7 @@ const deleteUser = async (user) => {
   border-radius: var(--radius-md);
   flex: 1;
   max-width: 400px;
+  min-width: 200px;
   transition: all var(--transition-fast);
 }
 .search-box:focus-within {
@@ -211,6 +216,7 @@ const deleteUser = async (user) => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
 .btn-primary {
   border: none;
@@ -279,6 +285,7 @@ const deleteUser = async (user) => {
   color: white;
   font-size: 16px;
   font-weight: 600;
+  flex-shrink: 0;
 }
 .user-info { display: flex; flex-direction: column; gap: 2px; }
 .user-name { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
@@ -313,4 +320,102 @@ const deleteUser = async (user) => {
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; }
 .empty-icon { color: var(--color-text-muted); opacity: 0.5; }
 .empty-state p { font-size: 14px; color: var(--color-text-muted); margin-top: 12px; }
+
+/* ============================================
+   Mobile Responsive Styles
+   ============================================ */
+@media (max-width: 768px) {
+  .action-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .search-box {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    font-size: 13px;
+    justify-content: center;
+  }
+
+  /* 表格在移动端横向滚动 */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    min-width: 700px;
+  }
+
+  .table th,
+  .table td {
+    padding: 12px 10px;
+    font-size: 12px;
+  }
+
+  .user-cell {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .user-info {
+    gap: 2px;
+  }
+
+  .user-name {
+    font-size: 13px;
+  }
+
+  .user-email {
+    font-size: 11px;
+  }
+
+  .risk-badge {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .action-btns {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .btn-small {
+    padding: 6px 10px;
+    font-size: 11px;
+    justify-content: center;
+  }
+
+  .pagination-wrap {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-container {
+    gap: 16px;
+  }
+
+  .table th,
+  .table td {
+    padding: 10px 8px;
+  }
+
+  .num {
+    font-size: 12px;
+  }
+}
 </style>

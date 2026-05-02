@@ -22,9 +22,15 @@ const categorySchema = new mongoose.Schema({
   isDefault: {
     type: Boolean,
     default: false
+  },
+  sortOrder: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true
 });
+
+categorySchema.index({ type: 1, sortOrder: 1 }); // 按类型+排序查询
 
 module.exports = mongoose.model('Category', categorySchema);

@@ -161,13 +161,12 @@ function getThemePreviewStyle(theme) {
 function selectPreset(theme) {
   selectedPreset.value = theme.id
   customPrimaryColor.value = theme.primaryColor
-  // 仅切换主题预览，不自动保存配色
-  userStore.updateTheme({
-    background: theme.gradient,
-    primaryColor: theme.primaryColor,
-    pattern: 'dots',
-    presetId: theme.id,
-    customBgUrl: ''
+  // 切换主题时立即保存到服务端，确保持久化
+  saveTheme({
+    name: theme.name,
+    id: theme.id,
+    gradient: theme.gradient,
+    primaryColor: theme.primaryColor
   })
 }
 
@@ -282,7 +281,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; gap: 24px; }
+.page-container { display: flex; flex-direction: column; gap: 24px; padding: 28px 32px; max-width: 1080px; margin: 0 auto; width: 100%; overflow-x: hidden; }
 
 /* 通用卡片 */
 .card {
@@ -460,8 +459,36 @@ onMounted(async () => {
 .btn.primary.small { padding: 8px 14px; font-size: 13px; }
 
 @media (max-width: 768px) {
-  .theme-grid { grid-template-columns: repeat(2, 1fr); }
+  .theme-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .customizer-layout { grid-template-columns: 1fr; }
   .customizer-right { order: -1; }
+  .page-container { padding: 12px; gap: 12px; }
+  .card-body { padding: 12px; }
+  .customizer-left { width: 100%; overflow: hidden; }
+  .customizer-right { width: 100%; overflow: hidden; }
+  .preview-box { padding: 10px; }
+  .preview-theme-card { padding: 10px; }
+  .mood-stats { flex-wrap: wrap; gap: 8px; }
+  .mood-stat { padding: 6px 8px; }
+  .budget-form { max-width: 100%; }
+  .section-title { font-size: 14px; }
+  .section-desc { font-size: 11px; }
+  .theme-preview { height: 48px; }
+  .theme-info { padding: 6px 8px; }
+  .theme-name { font-size: 11px; }
+  .theme-desc { font-size: 9px; }
+  .settings-section { margin-bottom: 24px; }
+  .preview-mood { margin-bottom: 8px; gap: 8px; }
+  .mood-icon { width: 32px; height: 32px; }
+  .mood-text { font-size: 13px; }
+  .mood-value { font-size: 12px; }
+  .mood-label { font-size: 10px; }
+  .btn.primary.small { font-size: 12px; padding: 6px 10px; }
+
+  /* ColorPicker 响应式 */
+  .presets-grid { grid-template-columns: repeat(8, 1fr); gap: 4px; }
+  .preset-dot { width: 24px; height: 24px; }
+  .preview-swatch { width: 40px; height: 40px; }
+  .slider-row { gap: 6px; }
 }
 </style>

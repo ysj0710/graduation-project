@@ -36,5 +36,9 @@ const transactionSchema = new mongoose.Schema({
 // 索引优化查询性能
 transactionSchema.index({ userId: 1, date: -1 });
 transactionSchema.index({ userId: 1, type: 1 });
+transactionSchema.index({ date: -1 }); // 管理员按日期范围查询
+transactionSchema.index({ type: 1, date: -1 }); // 按类型+日期聚合
+transactionSchema.index({ userId: 1, type: 1, date: -1 }); // 用户统计聚合
+transactionSchema.index({ category: 1 }); // 分类统计
 
 module.exports = mongoose.model('Transaction', transactionSchema);

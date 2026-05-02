@@ -39,28 +39,32 @@
         <!-- 交易列表 -->
         <div class="transactions-list">
           <div v-for="record in filteredRecords" :key="record._id" class="transaction-item" :class="{ selected: selectedIds.includes(record._id) }">
-            <input
-              type="checkbox"
-              :checked="selectedIds.includes(record._id)"
-              @change="(e) => toggleSelect(record._id, e.target.checked)"
-            />
-            <div class="transaction-icon" :style="{
-              background: record.type === 'income' ? 'var(--color-income-bg)' : 'var(--color-expense-bg)',
-              color: record.type === 'income' ? 'var(--color-income)' : 'var(--color-expense)'
-            }">
-              <CategoryIcon :name="record.category" :size="20" />
+            <div class="transaction-top">
+              <input
+                type="checkbox"
+                :checked="selectedIds.includes(record._id)"
+                @change="(e) => toggleSelect(record._id, e.target.checked)"
+              />
+              <div class="transaction-icon" :style="{
+                background: record.type === 'income' ? 'var(--color-income-bg)' : 'var(--color-expense-bg)',
+                color: record.type === 'income' ? 'var(--color-income)' : 'var(--color-expense)'
+              }">
+                <CategoryIcon :name="record.category" :size="20" />
+              </div>
+              <div class="transaction-info">
+                <div class="transaction-title">{{ record.category }}</div>
+                <div v-if="record.note" class="transaction-note">{{ record.note }}</div>
+                <div class="transaction-time">{{ formatTime(record.date) }}</div>
+              </div>
             </div>
-            <div class="transaction-info">
-              <div class="transaction-title">{{ record.category }}</div>
-              <div v-if="record.note" class="transaction-note">{{ record.note }}</div>
-              <div class="transaction-time">{{ formatTime(record.date) }}</div>
-            </div>
-            <div class="transaction-amount" :class="record.type">
-              {{ record.type === 'income' ? '+' : '-' }}¥{{ formatNumber(record.amount) }}
-            </div>
-            <div class="transaction-actions">
-              <button class="btn-text" @click="openEditDialog(record)">编辑</button>
-              <button class="btn-text danger" @click="deleteRecord(record._id)">删除</button>
+            <div class="transaction-bottom">
+              <div class="transaction-amount" :class="record.type">
+                {{ record.type === 'income' ? '+' : '-' }}¥{{ formatNumber(record.amount) }}
+              </div>
+              <div class="transaction-actions">
+                <button class="btn-text" @click="openEditDialog(record)">编辑</button>
+                <button class="btn-text danger" @click="deleteRecord(record._id)">删除</button>
+              </div>
             </div>
           </div>
 
@@ -71,24 +75,29 @@
         </div>
 
         <!-- 分页 -->
-        <div class="pagination" v-if="total > 0">
-          <div class="page-info">共 {{ total }} 条记录，第 {{ currentPage }}/{{ Math.ceil(total / pageSize) }} 页</div>
-          <div class="page-controls">
-            <select v-model="pageSize" @change="handleSizeChange">
+        <div class="pagination-wrapper" v-if="total > 0">
+          <div class="pagination-left">
+            <span class="pagination-total">共 <strong>{{ total }}</strong> 条</span>
+            <select v-model="pageSize" @change="handleSizeChange" class="page-size-select">
               <option :value="10">10条/页</option>
               <option :value="20">20条/页</option>
               <option :value="50">50条/页</option>
-              <option :value="100">100条/页</option>
             </select>
-            <div class="page-buttons">
-              <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--; fetchRecords()">
-                <ChevronLeft :size="16" />
-              </button>
-              <span class="page-current">{{ currentPage }}</span>
-              <button class="page-btn" :disabled="currentPage >= Math.ceil(total / pageSize)" @click="currentPage++; fetchRecords()">
-                <ChevronRight :size="16" />
-              </button>
-            </div>
+          </div>
+          <div class="pagination-right">
+            <button class="page-btn" :disabled="currentPage === 1" @click="goPage(currentPage - 1)">
+              <ChevronLeft :size="16" />
+            </button>
+            <!-- 桌面端显示页码 -->
+            <template v-for="item in pageRange" :key="item">
+              <button v-if="item !== '...'" class="page-btn page-num desktop-only" :class="{ active: item === currentPage }" @click="goPage(item)">{{ item }}</button>
+              <span v-else class="page-ellipsis desktop-only">···</span>
+            </template>
+            <!-- 移动端显示页码指示 -->
+            <span class="page-indicator mobile-only">{{ currentPage }}/{{ totalPages }}</span>
+            <button class="page-btn" :disabled="currentPage >= totalPages" @click="goPage(currentPage + 1)">
+              <ChevronRight :size="16" />
+            </button>
           </div>
         </div>
       </div>
@@ -245,7 +254,7 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   ListOrdered, Download, MessageSquare, Smartphone, Trash2,
-  Upload, X, ChevronLeft, ChevronRight
+  Upload, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from 'lucide-vue-next'
 import CategoryIcon from '../../components/CategoryIcon.vue'
 import axios from 'axios'
@@ -258,6 +267,32 @@ const isIndeterminate = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+
+const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
+
+const pageRange = computed(() => {
+  const pages = []
+  const total = totalPages.value
+  const current = currentPage.value
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i)
+  } else {
+    pages.push(1)
+    if (current > 3) pages.push('...')
+    const start = Math.max(2, current - 1)
+    const end = Math.min(total - 1, current + 1)
+    for (let i = start; i <= end; i++) pages.push(i)
+    if (current < total - 2) pages.push('...')
+    pages.push(total)
+  }
+  return pages
+})
+
+const goPage = (page) => {
+  if (page < 1 || page > totalPages.value) return
+  currentPage.value = page
+  fetchRecords()
+}
 
 // 导入相关
 const showImportDialog = ref(false)
@@ -527,7 +562,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; gap: 24px; }
+.page-container { display: flex; flex-direction: column; gap: 24px; padding: 28px 32px; max-width: 1080px; margin: 0 auto; width: 100%; overflow-x: hidden; }
 
 .card {
   background: var(--color-surface);
@@ -617,8 +652,8 @@ onMounted(() => {
 
 .transaction-item {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 8px;
   padding: 14px 16px;
   background: var(--color-surface-hover);
   border-radius: var(--radius-lg);
@@ -628,6 +663,19 @@ onMounted(() => {
 
 .transaction-item:hover { background: var(--color-surface-active); }
 .transaction-item.selected { background: var(--color-primary-soft); border-color: var(--color-primary); }
+
+.transaction-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.transaction-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 28px;
+}
 
 .transaction-item input { width: 16px; height: 16px; cursor: pointer; }
 
@@ -653,33 +701,51 @@ onMounted(() => {
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; color: var(--color-text-muted); }
 .empty-state p { margin-top: 12px; font-size: 14px; }
 
-.pagination {
-  margin-top: 20px;
-  padding: 16px;
-  background: var(--color-surface-hover);
-  border-radius: var(--radius-lg);
+.pagination-wrapper {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  padding: 16px 0 4px;
 }
 
-.page-info { font-size: 13px; color: var(--color-text-muted); }
-.page-controls { display: flex; align-items: center; gap: 16px; }
+.pagination-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-.page-controls select {
-  padding: 6px 12px;
+.pagination-total {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.pagination-total strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.pagination-left select {
+  padding: 6px 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text-primary);
   font-size: 13px;
   cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+.pagination-left select:hover { border-color: var(--color-primary); }
+
+.pagination-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.page-buttons { display: flex; align-items: center; gap: 8px; }
 .page-btn {
-  width: 32px;
-  height: 32px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
   border-radius: var(--radius-md);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -687,13 +753,44 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
+.page-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  color: var(--color-text-muted);
+}
+.page-btn.page-num.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+  font-weight: 600;
+}
+.page-ellipsis {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  padding: 0 4px;
+  line-height: 34px;
+}
 
-.page-btn:hover:not(:disabled) { background: var(--color-surface-hover); color: var(--color-text-primary); }
-.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.page-current { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
+.page-indicator {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  padding: 0 8px;
+  min-width: 48px;
+  text-align: center;
+}
+
+.desktop-only { display: inline-flex; }
+.mobile-only { display: none; }
 
 /* 对话框 */
 .dialog-overlay {
@@ -859,5 +956,38 @@ onMounted(() => {
 @media (max-width: 640px) {
   .dialog-container { width: 100%; max-height: 100vh; border-radius: 0; }
   .pagination { flex-direction: column; gap: 12px; }
+}
+
+@media (max-width: 768px) {
+  .page-container { padding: 12px; gap: 12px; }
+  .card-header { flex-direction: column; gap: 12px; align-items: flex-start; padding: 14px 16px; }
+  .header-actions { width: 100%; flex-wrap: wrap; }
+  .filter-bar { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+  .card-body { padding: 12px; }
+
+  .transaction-item { padding: 10px 12px; gap: 6px; }
+  .transaction-top { gap: 10px; }
+  .transaction-bottom {
+    padding-left: 26px;
+    padding-top: 4px;
+    border-top: 1px dashed var(--color-border);
+    margin-top: 2px;
+    padding-top: 8px;
+  }
+
+  .transaction-title { font-size: 14px; font-weight: 600; }
+  .transaction-note { font-size: 12px; margin-top: 1px; }
+  .transaction-time { font-size: 12px; margin-top: 2px; }
+  .transaction-amount { font-size: 15px; font-weight: 700; }
+  .transaction-actions { gap: 8px; }
+
+  .pagination-wrapper { flex-direction: column; gap: 10px; align-items: center; }
+  .pagination-left { justify-content: center; gap: 8px; }
+  .pagination-right { justify-content: center; }
+
+  .desktop-only { display: none !important; }
+  .mobile-only { display: inline !important; }
+
+  .page-size-select { font-size: 12px; padding: 4px 8px; }
 }
 </style>

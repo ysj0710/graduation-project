@@ -14,26 +14,26 @@
       <nav class="sidebar-nav">
         <a href="/admin/dashboard" class="nav-item" :class="{ active: currentPath === '/admin/dashboard' }">
           <LayoutDashboard :size="18" :stroke-width="1.5" />
-          <span>数据概览</span>
+          <span class="nav-label">数据概览</span>
         </a>
 
         <div class="nav-section">
           <div class="nav-section-title">用户管理</div>
           <a href="/admin/users" class="nav-item sub" :class="{ active: currentPath === '/admin/users' }">
             <Users :size="16" :stroke-width="1.5" />
-            <span>用户列表</span>
+            <span class="nav-label">用户列表</span>
           </a>
           <a href="/admin/risk" class="nav-item sub" :class="{ active: currentPath === '/admin/risk' }">
             <AlertTriangle :size="16" :stroke-width="1.5" />
-            <span>风险监控</span>
+            <span class="nav-label">风险监控</span>
           </a>
           <a href="/admin/users-add" class="nav-item sub" :class="{ active: currentPath === '/admin/users-add' }">
             <UserPlus :size="16" :stroke-width="1.5" />
-            <span>新增用户</span>
+            <span class="nav-label">新增用户</span>
           </a>
           <a href="/admin/users-batch" class="nav-item sub" :class="{ active: currentPath === '/admin/users-batch' }">
             <Layers :size="16" :stroke-width="1.5" />
-            <span>批量操作</span>
+            <span class="nav-label">批量操作</span>
           </a>
         </div>
 
@@ -41,19 +41,19 @@
           <div class="nav-section-title">财务数据</div>
           <a href="/admin/finance-stats" class="nav-item sub" :class="{ active: currentPath === '/admin/finance-stats' }">
             <CreditCard :size="16" :stroke-width="1.5" />
-            <span>消费统计</span>
+            <span class="nav-label">消费统计</span>
           </a>
           <a href="/admin/finance-category" class="nav-item sub" :class="{ active: currentPath === '/admin/finance-category' }">
             <FolderOpen :size="16" :stroke-width="1.5" />
-            <span>分类分析</span>
+            <span class="nav-label">分类分析</span>
           </a>
           <a href="/admin/finance-trend" class="nav-item sub" :class="{ active: currentPath === '/admin/finance-trend' }">
             <TrendingUp :size="16" :stroke-width="1.5" />
-            <span>趋势报表</span>
+            <span class="nav-label">趋势报表</span>
           </a>
           <a href="/admin/finance-export" class="nav-item sub" :class="{ active: currentPath === '/admin/finance-export' }">
             <Download :size="16" :stroke-width="1.5" />
-            <span>导出中心</span>
+            <span class="nav-label">导出中心</span>
           </a>
         </div>
 
@@ -61,25 +61,25 @@
           <div class="nav-section-title">系统设置</div>
           <a href="/admin/settings-basic" class="nav-item sub" :class="{ active: currentPath === '/admin/settings-basic' }">
             <Settings :size="16" :stroke-width="1.5" />
-            <span>基础配置</span>
+            <span class="nav-label">基础配置</span>
           </a>
           <a href="/admin/settings-category" class="nav-item sub" :class="{ active: currentPath === '/admin/settings-category' }">
             <Tags :size="16" :stroke-width="1.5" />
-            <span>分类管理</span>
+            <span class="nav-label">分类管理</span>
           </a>
           <a href="/admin/settings-message" class="nav-item sub" :class="{ active: currentPath === '/admin/settings-message' }">
             <MessageSquare :size="16" :stroke-width="1.5" />
-            <span>消息模板</span>
+            <span class="nav-label">消息模板</span>
           </a>
           <a href="/admin/settings-log" class="nav-item sub" :class="{ active: currentPath === '/admin/settings-log' }">
             <ScrollText :size="16" :stroke-width="1.5" />
-            <span>操作日志</span>
+            <span class="nav-label">操作日志</span>
           </a>
         </div>
 
         <a href="/admin/send-notification" class="nav-item" :class="{ active: currentPath === '/admin/send-notification' }">
           <Send :size="18" :stroke-width="1.5" />
-          <span>发送通知</span>
+          <span class="nav-label">发送通知</span>
         </a>
       </nav>
 
@@ -104,32 +104,38 @@
           <h1 class="page-title">{{ pageTitle }}</h1>
         </div>
         <div class="header-right">
-          <div class="header-search">
-            <Search :size="18" :stroke-width="1.5" />
-            <input type="text" placeholder="搜索..." class="search-input" />
-          </div>
-          <button class="header-btn">
-            <Bell :size="18" :stroke-width="1.5" />
-          </button>
+          <!-- extra header buttons removed -->
         </div>
       </header>
 
       <div class="page-content">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <transition name="page-slide" mode="out-in">
+            <suspense>
+              <template #default>
+                <component :is="Component" :key="$route.path" />
+              </template>
+              <template #fallback>
+                <div class="page-loading">
+                  <div class="loading-spinner"></div>
+                  <span>加载中...</span>
+                </div>
+              </template>
+            </suspense>
+          </transition>
+        </router-view>
       </div>
     </main>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
-// axios kept for future use
 import {
   Wallet, LayoutDashboard, Users, AlertTriangle, UserPlus, Layers,
   CreditCard, FolderOpen, TrendingUp, Download, Settings, Tags,
-  MessageSquare, ScrollText, Bell, Search, LogOut, Send
+  MessageSquare, ScrollText, LogOut, Send
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -158,6 +164,10 @@ const pageTitle = computed(() => pageTitles[currentPath.value] || '管理控制�
 const handleLogout = () => {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
+  localStorage.removeItem('username')
+  localStorage.removeItem('user_theme')
+  localStorage.removeItem('user_budget')
+  localStorage.removeItem('user_category_colors')
   router.push('/login')
 }
 </script>
@@ -171,7 +181,7 @@ const handleLogout = () => {
 
 /* Sidebar */
 .sidebar {
-  width: var(--sidebar-width);
+  width: 260px;
   background: var(--color-surface);
   border-right: 1px solid var(--color-border);
   display: flex;
@@ -181,7 +191,7 @@ const handleLogout = () => {
   left: 0;
   bottom: 0;
   z-index: 100;
-  transition: width var(--transition-slow);
+  overflow-y: auto;
 }
 
 .sidebar-header {
@@ -204,12 +214,15 @@ const handleLogout = () => {
   align-items: center;
   justify-content: center;
   color: white;
+  flex-shrink: 0;
 }
 
 .logo-text {
   font-size: 16px;
   font-weight: 600;
   color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 /* Nav */
@@ -231,6 +244,13 @@ const handleLogout = () => {
   font-weight: 500;
   transition: all var(--transition-fast);
   margin-bottom: 4px;
+  position: relative;
+}
+
+.nav-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .nav-item:hover {
@@ -260,21 +280,7 @@ const handleLogout = () => {
   letter-spacing: 0.5px;
   padding: 8px 14px;
   text-transform: uppercase;
-}
-
-.nav-badge {
-  margin-left: auto;
-  background: var(--color-expense);
-  color: white;
-  font-size: 11px;
-  font-weight: 600;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  white-space: nowrap;
 }
 
 /* Footer */
@@ -303,6 +309,7 @@ const handleLogout = () => {
   color: white;
   font-size: 14px;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .admin-info {
@@ -314,12 +321,16 @@ const handleLogout = () => {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-role {
   font-size: 11px;
   color: var(--color-text-muted);
   margin-top: 2px;
+  white-space: nowrap;
 }
 
 .logout-btn {
@@ -334,6 +345,7 @@ const handleLogout = () => {
   justify-content: center;
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .logout-btn:hover {
@@ -344,11 +356,11 @@ const handleLogout = () => {
 /* Main */
 .main-content {
   flex: 1;
-  margin-left: var(--sidebar-width);
+  margin-left: 260px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  transition: margin-left var(--transition-slow);
+  overflow-x: hidden;
 }
 
 /* Header */
@@ -362,6 +374,7 @@ const handleLogout = () => {
   position: sticky;
   top: 0;
   z-index: 10;
+  flex-shrink: 0;
 }
 
 .page-title {
@@ -378,76 +391,51 @@ const handleLogout = () => {
   gap: 12px;
 }
 
-.header-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background: var(--color-surface-hover);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  transition: all var(--transition-fast);
-}
-
-.header-search:focus-within {
-  border-color: var(--color-primary);
-  background: var(--color-surface);
-}
-
-.search-input {
-  border: none;
-  background: transparent;
-  font-size: 13px;
-  color: var(--color-text-primary);
-  width: 160px;
-  outline: none;
-}
-
-.search-input::placeholder {
-  color: var(--color-text-muted);
-}
-
-.header-btn {
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
-}
-
-.header-btn:hover {
-  background: var(--color-surface-hover);
-  color: var(--color-text-primary);
-}
-
 /* Content */
 .page-content {
   flex: 1;
   padding: 24px 32px;
   overflow-y: auto;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
-  .sidebar { width: 64px; }
-  .logo-text { display: none; }
-  .nav-item span { display: none; }
-  .nav-item.sub { padding-left: 14px; }
-  .nav-section-title { display: none; }
-  .admin-info { display: none; }
-  .logout-btn { margin-left: auto; }
-  .main-content { margin-left: 64px; }
-  .page-content { padding: 20px; }
+/* 路由切换过渡动画 */
+.page-slide-enter-active,
+.page-slide-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.page-slide-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.page-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
-@media (max-width: 768px) {
-  .sidebar { width: 0; transform: translateX(-100%); }
-  .main-content { margin-left: 0; }
+/* 页面加载动画 */
+.page-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 16px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>

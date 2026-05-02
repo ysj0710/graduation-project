@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const UserConfig = require('../models/UserConfig');
 const SystemSettings = require('../models/SystemSettings');
+const Category = require('../models/Category');
 const { JWT_SECRET } = require('../middleware/jwt');
 
 const router = new Router();
@@ -314,3 +315,43 @@ router.put('/settings/budget', requireAuth, async (ctx) => {
 });
 
 module.exports = router;
+
+// ==================== 用户端分类API ====================
+
+// 获取分类列表（供普通用户使用）
+router.get('/categories', async (ctx) => {
+  try {
+    const { type } = ctx.query;
+    const query = {};
+    if (type) query.type = type;
+
+    let categories = await Category.find(query).sort({ sortOrder: 1, type: 1, createdAt: 1 });
+
+    if (categories.length === 0) {
+      const defaultCategories = [
+        { name: '工资', iconId: 'salary', color: '#10B981', type: 'income' },
+        { name: '奖金', iconId: 'bonus', color: '#34D399', type: 'income' },
+        { name: '理财', iconId: 'investment', color: '#6EE7D0', type: 'income' },
+        { name: '兼职', iconId: 'parttime', color: '#A7F3D0', type: 'income' },
+        { name: '其他收入', iconId: 'other_income', color: '#34D399', type: 'income' },
+        { name: '餐饮', iconId: 'food', color: '#EF4444', type: 'expense' },
+        { name: '交通', iconId: 'transport', color: '#F97316', type: 'expense' },
+        { name: '购物', iconId: 'shopping', color: '#6366F1', type: 'expense' },
+        { name: '娱乐', iconId: 'entertainment', color: '#8B5CF6', type: 'expense' },
+        { name: '住房', iconId: 'housing', color: '#EC4899', type: 'expense' },
+        { name: '医疗', iconId: 'medical', color: '#F43F5E', type: 'expense' },
+        { name: '教育', iconId: 'education', color: '#5856D6', type: 'expense' },
+        { name: '通讯', iconId: 'communication', color: '#14B8A6', type: 'expense' },
+        { name: '其他', iconId: 'other', color: '#8E8E93', type: 'expense' }
+      ];
+      await Category.insertMany(defaultCategories);
+      categories = await Category.find(query).sort({ type: 1, createdAt: 1 });
+    }
+
+    ctx.body = { success: true, categories };
+  } catch (error) {
+    console.error('获取分类错误:', error);
+    ctx.status = 500;
+    ctx.body = { message: '服务器错误', error: error.message };
+  }
+});

@@ -141,7 +141,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import * as echarts from 'echarts'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Users, CreditCard, AlertTriangle, BarChart3, PieChart, TrendingUp, ArrowUp, CheckCircle2 } from 'lucide-vue-next'
@@ -214,14 +214,25 @@ const fetchRiskDistribution = async () => {
 }
 
 // Charts
+let trendChartInstance = null
+let riskChartInstance = null
+
+const handleResize = () => {
+  trendChartInstance?.resize()
+  riskChartInstance?.resize()
+}
+
 const renderTrendChart = (data) => {
   if (!trendChartRef.value) return
-  const chart = echarts.init(trendChartRef.value)
+  if (trendChartInstance) {
+    trendChartInstance.dispose()
+  }
+  trendChartInstance = echarts.init(trendChartRef.value)
   const months = data.map(item => item.month)
   const income = data.map(item => item.income)
   const expense = data.map(item => item.expense)
 
-  chart.setOption({
+  trendChartInstance.setOption({
     tooltip: { trigger: 'axis', backgroundColor: 'rgba(255,255,255,0.95)', borderColor: '#E7E5E4', textStyle: { color: '#1C1917' } },
     legend: { data: ['收入', '支出'], bottom: 0, textStyle: { color: '#57534E' } },
     grid: { left: '3%', right: '4%', bottom: '15%', top: '8%', containLabel: true },
@@ -236,8 +247,11 @@ const renderTrendChart = (data) => {
 
 const renderRiskChart = (distribution) => {
   if (!riskChartRef.value) return
-  const chart = echarts.init(riskChartRef.value)
-  chart.setOption({
+  if (riskChartInstance) {
+    riskChartInstance.dispose()
+  }
+  riskChartInstance = echarts.init(riskChartRef.value)
+  riskChartInstance.setOption({
     tooltip: { trigger: 'item', backgroundColor: 'rgba(255,255,255,0.95)', borderColor: '#E7E5E4', textStyle: { color: '#1C1917' } },
     legend: { orient: 'vertical', right: 10, top: 'center', textStyle: { color: '#57534E' } },
     series: [{
@@ -282,6 +296,15 @@ onMounted(() => {
   fetchStats()
   fetchRiskUsers()
   nextTick(() => { fetchTrendData(); fetchRiskDistribution() })
+  window.addEventListener('resize', handleResize)
+  window.addEventListener('orientationchange', handleResize)
+})
+
+onUnmounted(() => {
+  trendChartInstance?.dispose()
+  riskChartInstance?.dispose()
+  window.removeEventListener('resize', handleResize)
+  window.removeEventListener('orientationchange', handleResize)
 })
 </script>
 
@@ -459,4 +482,102 @@ onMounted(() => {
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; }
 .empty-icon { color: var(--color-text-muted); opacity: 0.5; }
 .empty-state p { font-size: 14px; color: var(--color-text-muted); margin-top: 12px; }
+
+/* ============================================
+   Mobile Responsive Styles
+   ============================================ */
+@media (max-width: 768px) {
+  .charts-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .chart-area {
+    height: 240px;
+  }
+
+  .card-header {
+    padding: 14px 16px;
+    flex-wrap: wrap;
+  }
+
+  .card-actions {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  /* 表格在移动端滚动 */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    min-width: 600px;
+  }
+
+  .table th,
+  .table td {
+    padding: 10px 6px;
+    font-size: 12px;
+  }
+
+  .user-cell {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .user-name {
+    font-size: 13px;
+  }
+
+  .user-email {
+    font-size: 11px;
+  }
+
+  .progress-cell {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .progress-text {
+    font-size: 11px;
+  }
+
+  .risk-badge {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-card {
+    padding: 14px;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+}
 </style>

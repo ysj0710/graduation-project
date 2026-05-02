@@ -262,6 +262,13 @@ const handleLogin = async () => {
   error.value = "";
   try {
     const { data } = await axios.post("/api/auth/login", loginForm);
+    // 登录前清除上一个用户的缓存数据
+    localStorage.removeItem("user_theme");
+    localStorage.removeItem("user_budget");
+    localStorage.removeItem("user_category_colors");
+    localStorage.removeItem("user");
+    localStorage.removeItem("username");
+
     localStorage.setItem("token", data.token);
     localStorage.setItem("username", data.user.username);
     localStorage.setItem("user", JSON.stringify(data.user));

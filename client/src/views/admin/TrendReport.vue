@@ -358,7 +358,7 @@ const renderGrowthChart = () => {
   const chart = echarts.init(growthChartRef.value)
   // 从第2个开始（跳过第1个无上月数据）
   const dataWithGrowth = trendData.value.slice(1)
-  const xLabels = xLabels.value.slice(1)
+  const growthLabels = xLabels.value.slice(1)
   const growths = dataWithGrowth.map(d => d.expenseGrowth ?? 0)
 
   chart.setOption({
@@ -371,7 +371,7 @@ const renderGrowthChart = () => {
       backgroundColor: 'rgba(255,255,255,0.95)', borderColor: '#E7E5E4', textStyle: { color: '#1C1917' }
     },
     grid: { left: '3%', right: '4%', bottom: '3%', top: 16, containLabel: true },
-    xAxis: { type: 'category', data: xLabels, axisLabel: { color: '#78716C', fontSize: 11 }, axisLine: { lineStyle: { color: '#E7E5E4' } } },
+    xAxis: { type: 'category', data: growthLabels, axisLabel: { color: '#78716C', fontSize: 11 }, axisLine: { lineStyle: { color: '#E7E5E4' } } },
     yAxis: {
       type: 'value',
       axisLabel: { formatter: v => (v > 0 ? '+' : '') + v + '%', color: '#78716C' },

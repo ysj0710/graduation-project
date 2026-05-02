@@ -139,7 +139,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import { PieChart, BarChart3, List, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import axios from 'axios'
@@ -158,6 +158,9 @@ const incomePieData = ref([])
 const barData = ref([])
 const totalExpense = ref(0)
 const totalIncome = ref(0)
+
+let pieChartInstance = null
+let barChartInstance = null
 
 const rangeOptions = [
   { value: 'week', label: '本周' },
@@ -179,6 +182,12 @@ const getRankClass = (idx) => {
 
 const pieChartRef = ref(null)
 const barChartRef = ref(null)
+
+// 图表resize处理
+const handleResize = () => {
+  pieChartInstance?.resize()
+  barChartInstance?.resize()
+}
 
 const fetchData = async () => {
   loading.value = true
@@ -213,9 +222,12 @@ const fetchData = async () => {
 
 const renderPieChart = () => {
   if (!pieChartRef.value) return
-  const chart = echarts.init(pieChartRef.value)
+  if (pieChartInstance) {
+    pieChartInstance.dispose()
+  }
+  pieChartInstance = echarts.init(pieChartRef.value)
   const data = currentPieData.value.slice(0, 8)
-  chart.setOption({
+  pieChartInstance.setOption({
     tooltip: {
       trigger: 'item',
       formatter: (p) => `${p.name}<br/>¥${formatNumber(p.value)} (${p.percent}%)`,
@@ -243,9 +255,12 @@ const renderPieChart = () => {
 
 const renderBarChart = () => {
   if (!barChartRef.value) return
-  const chart = echarts.init(barChartRef.value)
+  if (barChartInstance) {
+    barChartInstance.dispose()
+  }
+  barChartInstance = echarts.init(barChartRef.value)
   const data = currentPieData.value.slice(0, 8)
-  chart.setOption({
+  barChartInstance.setOption({
     tooltip: {
       trigger: 'axis',
       formatter: (p) => `${p[0].name}<br/>¥${formatNumber(p[0].value)} (${data[p[0].dataIndex]?.percent}%)`,
@@ -288,6 +303,15 @@ watch([selectedYear, timeRange], () => {
 
 onMounted(() => {
   fetchData()
+  window.addEventListener('resize', handleResize)
+  window.addEventListener('orientationchange', handleResize)
+})
+
+onUnmounted(() => {
+  pieChartInstance?.dispose()
+  barChartInstance?.dispose()
+  window.removeEventListener('resize', handleResize)
+  window.removeEventListener('orientationchange', handleResize)
 })
 </script>
 
@@ -372,5 +396,105 @@ onMounted(() => {
   .controls-row { flex-wrap: wrap; }
   .type-tabs { margin-left: 0; }
   .table-header, .table-row { grid-template-columns: 50px 1fr 100px 120px 70px; font-size: 11px; }
+}
+
+/* ============================================
+   Mobile Responsive Styles
+   ============================================ */
+@media (max-width: 768px) {
+  .controls-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .range-tabs {
+    justify-content: center;
+  }
+
+  .type-tabs {
+    margin-left: 0;
+    justify-content: center;
+  }
+
+  .year-selector {
+    justify-content: center;
+  }
+
+  .stats-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .stat-mini {
+    padding: 12px 16px;
+  }
+
+  .stat-mini-value {
+    font-size: 16px;
+  }
+
+  .chart-area {
+    height: 240px;
+  }
+
+  .table-header,
+  .table-row {
+    grid-template-columns: 40px 1fr 80px 100px 60px;
+    gap: 8px;
+    padding: 10px 16px;
+    font-size: 11px;
+  }
+
+  .rank-badge {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  .name-cell {
+    font-size: 12px;
+  }
+
+  .amount-cell {
+    font-size: 12px;
+  }
+
+  .percent-bar-wrap {
+    min-width: 40px;
+  }
+
+  .percent-text {
+    font-size: 10px;
+    min-width: 28px;
+  }
+
+  .trend-cell {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-area {
+    height: 200px;
+  }
+
+  .table-header,
+  .table-row {
+    grid-template-columns: 36px 1fr 70px 80px 50px;
+    gap: 6px;
+    padding: 8px 12px;
+  }
+
+  .cat-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  .trend-cell {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
 }
 </style>

@@ -1,33 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Login from '../views/Login.vue'
 
-// 用户端布局
-import UserLayout from '../views/user/UserLayout.vue'
+// 首页直接加载（用户首次进入必看）
 import Dashboard from '../views/user/Dashboard.vue'
-import Transactions from '../views/user/Transactions.vue'
-import Statistics from '../views/user/Statistics.vue'
-import ConsumptionAnalysis from '../views/user/ConsumptionAnalysis.vue'
-import Personal from '../views/user/Personal.vue'
-import Profile from '../views/user/Profile.vue'
-import Notifications from '../views/user/Notifications.vue'
-
-// 管理员端页面
-import AdminLayout from '../views/admin/AdminLayout.vue'
 import AdminDashboard from '../views/admin/Dashboard.vue'
-import UserList from '../views/admin/UserList.vue'
-import RiskMonitor from '../views/admin/RiskMonitor.vue'
-import AddUser from '../views/admin/AddUser.vue'
-import BatchOperation from '../views/admin/BatchOperation.vue'
-import FinanceStats from '../views/admin/FinanceStats.vue'
-import CategoryAnalysis from '../views/admin/CategoryAnalysis.vue'
-import TrendReport from '../views/admin/TrendReport.vue'
-import ExportCenter from '../views/admin/ExportCenter.vue'
-import BasicSettings from '../views/admin/BasicSettings.vue'
-import CategoryManage from '../views/admin/CategoryManage.vue'
-import MessageTemplate from '../views/admin/MessageTemplate.vue'
-import OperationLog from '../views/admin/OperationLog.vue'
-import NotificationCenter from '../views/admin/NotificationCenter.vue'
-import SendNotification from '../views/admin/SendNotification.vue'
 
 const requireAuth = (to, from, next) => {
   const token = localStorage.getItem('token')
@@ -64,6 +39,9 @@ const requireAuth = (to, from, next) => {
   }
 }
 
+// 带预取的懒加载：加载完当前页后，空闲时预取其他页面
+const lazyLoad = (importFn) => () => importFn()
+
 const routes = [
   {
     path: '/',
@@ -72,84 +50,84 @@ const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: Login
+    component: () => import('../views/Login.vue')
   },
   {
     path: '/:pathMatch(.*)*',
     redirect: '/dashboard'
   },
-  // 用户端 - 统一布局
+  // 用户端
   {
     path: '/',
-    component: UserLayout,
+    component: () => import('../views/user/UserLayout.vue'),
     beforeEnter: requireAuth,
     children: [
       {
         path: 'dashboard',
         name: 'Dashboard',
-        component: Dashboard,
+        component: Dashboard, // 首页预加载
         meta: { title: '总览' }
       },
       {
         path: 'transactions',
         name: 'Transactions',
-        component: Transactions,
+        component: lazyLoad(() => import('../views/user/Transactions.vue')),
         meta: { title: '交易记录' }
       },
       {
         path: 'statistics',
         name: 'Statistics',
-        component: Statistics,
+        component: lazyLoad(() => import('../views/user/Statistics.vue')),
         meta: { title: '统计分析' }
       },
       {
         path: 'consumption',
         name: 'ConsumptionAnalysis',
-        component: ConsumptionAnalysis,
+        component: lazyLoad(() => import('../views/user/ConsumptionAnalysis.vue')),
         meta: { title: '消费分析' }
       },
       {
         path: 'personal',
         name: 'Personal',
-        component: Personal,
+        component: lazyLoad(() => import('../views/user/Personal.vue')),
         meta: { title: '个性设置' }
       },
       {
         path: 'profile',
         name: 'Profile',
-        component: Profile,
+        component: lazyLoad(() => import('../views/user/Profile.vue')),
         meta: { title: '个人中心' }
       },
       {
         path: 'notifications',
         name: 'Notifications',
-        component: Notifications,
+        component: lazyLoad(() => import('../views/user/Notifications.vue')),
         meta: { title: '消息中心' }
       }
     ]
   },
-  // 管理员端路由
+  // 管理员端
   {
     path: '/admin',
-    component: AdminLayout,
+    component: () => import('../views/admin/AdminLayout.vue'),
     beforeEnter: requireAuth,
     children: [
       { path: '', redirect: '/admin/dashboard' },
       { path: 'dashboard', name: 'AdminDashboard', component: AdminDashboard, meta: { title: '管理总览' } },
-      { path: 'users', name: 'UserList', component: UserList, meta: { title: '用户列表' } },
-      { path: 'risk', name: 'RiskMonitor', component: RiskMonitor, meta: { title: '风险监控' } },
-      { path: 'users-add', name: 'AddUser', component: AddUser, meta: { title: '新增用户' } },
-      { path: 'users-batch', name: 'BatchOperation', component: BatchOperation, meta: { title: '批量操作' } },
-      { path: 'finance-stats', name: 'FinanceStats', component: FinanceStats, meta: { title: '消费统计' } },
-      { path: 'finance-category', name: 'CategoryAnalysis', component: CategoryAnalysis, meta: { title: '分类分析' } },
-      { path: 'finance-trend', name: 'TrendReport', component: TrendReport, meta: { title: '趋势报表' } },
-      { path: 'finance-export', name: 'ExportCenter', component: ExportCenter, meta: { title: '导出中心' } },
-      { path: 'settings-basic', name: 'BasicSettings', component: BasicSettings, meta: { title: '基础配置' } },
-      { path: 'settings-category', name: 'CategoryManage', component: CategoryManage, meta: { title: '分类管理' } },
-      { path: 'settings-message', name: 'MessageTemplate', component: MessageTemplate, meta: { title: '消息模板' } },
-      { path: 'settings-log', name: 'OperationLog', component: OperationLog, meta: { title: '操作日志' } },
-      { path: 'notifications', name: 'NotificationCenter', component: NotificationCenter, meta: { title: '消息中心' } },
-      { path: 'send-notification', name: 'SendNotification', component: SendNotification, meta: { title: '发送通知' } }
+      { path: 'users', name: 'UserList', component: lazyLoad(() => import('../views/admin/UserList.vue')), meta: { title: '用户列表' } },
+      { path: 'risk', name: 'RiskMonitor', component: lazyLoad(() => import('../views/admin/RiskMonitor.vue')), meta: { title: '风险监控' } },
+      { path: 'users-add', name: 'AddUser', component: lazyLoad(() => import('../views/admin/AddUser.vue')), meta: { title: '新增用户' } },
+      { path: 'users-batch', name: 'BatchOperation', component: lazyLoad(() => import('../views/admin/BatchOperation.vue')), meta: { title: '批量操作' } },
+      { path: 'finance-stats', name: 'FinanceStats', component: lazyLoad(() => import('../views/admin/FinanceStats.vue')), meta: { title: '消费统计' } },
+      { path: 'finance-category', name: 'CategoryAnalysis', component: lazyLoad(() => import('../views/admin/CategoryAnalysis.vue')), meta: { title: '分类分析' } },
+      { path: 'finance-trend', name: 'TrendReport', component: lazyLoad(() => import('../views/admin/TrendReport.vue')), meta: { title: '趋势报表' } },
+      { path: 'finance-export', name: 'ExportCenter', component: lazyLoad(() => import('../views/admin/ExportCenter.vue')), meta: { title: '导出中心' } },
+      { path: 'settings-basic', name: 'BasicSettings', component: lazyLoad(() => import('../views/admin/BasicSettings.vue')), meta: { title: '基础配置' } },
+      { path: 'settings-category', name: 'CategoryManage', component: lazyLoad(() => import('../views/admin/CategoryManage.vue')), meta: { title: '分类管理' } },
+      { path: 'settings-message', name: 'MessageTemplate', component: lazyLoad(() => import('../views/admin/MessageTemplate.vue')), meta: { title: '消息模板' } },
+      { path: 'settings-log', name: 'OperationLog', component: lazyLoad(() => import('../views/admin/OperationLog.vue')), meta: { title: '操作日志' } },
+      { path: 'notifications', name: 'NotificationCenter', component: lazyLoad(() => import('../views/admin/NotificationCenter.vue')), meta: { title: '消息中心' } },
+      { path: 'send-notification', name: 'SendNotification', component: lazyLoad(() => import('../views/admin/SendNotification.vue')), meta: { title: '发送通知' } }
     ]
   }
 ]
@@ -157,6 +135,26 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// 路由预取：首页加载后，空闲时预加载其他页面
+let prefetched = false
+router.afterEach((to) => {
+  if (prefetched) return
+  prefetched = true
+
+  // 延迟预取，不阻塞首页渲染
+  setTimeout(() => {
+    const userPages = import.meta.glob('../views/user/*.vue')
+    const adminPages = import.meta.glob('../views/admin/*.vue')
+    // 预取所有非当前页面的组件
+    Object.entries({ ...userPages, ...adminPages }).forEach(([path, load]) => {
+      // 只预取懒加载的模块
+      if (typeof load === 'function') {
+        load().catch(() => {}) // 静默失败
+      }
+    })
+  }, 2000)
 })
 
 export default router

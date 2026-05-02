@@ -45,4 +45,7 @@ const userSchema = new mongoose.Schema({
   }
 });
 
+userSchema.index({ role: 1, createdAt: -1 }); // 管理员按角色+创建时间查询
+userSchema.index({ isActive: 1 }); // 按状态筛选
+
 module.exports = mongoose.model('User', userSchema);

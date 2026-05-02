@@ -152,13 +152,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import {
   BarChart3, PieChart, Target, TrendingUp, Wallet, ArrowUpDown,
   ShoppingBag, Lightbulb, BookOpen, Info
 } from 'lucide-vue-next'
+import { useUserStore } from '../../stores/user'
 import axios from 'axios'
+
+const userStore = useUserStore()
 
 const timeRange = ref('month')
 const records = ref([])
@@ -373,12 +376,16 @@ const fetchData = async () => {
 
     expenseRecords.forEach(r => {
       const key = r.date.substring(0, 7)
-      if (monthlyData[key]) monthlyData[key].expense += r.amount
+      if (monthlyData[key]) {
+        monthlyData[key].expense = Math.round((monthlyData[key].expense + r.amount) * 100) / 100
+      }
     })
 
     incomeRecordsAll.forEach(r => {
       const key = r.date.substring(0, 7)
-      if (monthlyData[key]) monthlyData[key].income += r.amount
+      if (monthlyData[key]) {
+        monthlyData[key].income = Math.round((monthlyData[key].income + r.amount) * 100) / 100
+      }
     })
 
     monthlyExpenseData.value = monthlyData
@@ -403,31 +410,7 @@ const getCategoryData = () => {
     .sort((a, b) => b.value - a.value)
 }
 
-const getCategoryColor = (category) => {
-  const colors = {
-    '餐饮': '#FF6B6B',
-    '交通': '#4ECDC4',
-    '购物': '#FFE66D',
-    '娱乐': '#95E1D3',
-    '医疗': '#F38181',
-    '教育': '#AA96DA',
-    '住房': '#FCBAD3',
-    '通讯': '#A8D8EA',
-    '生活缴费': '#C9B1FF',
-    '保险': '#A8D8EA',
-    '充值': '#FFD93D',
-    '日用百货': '#FF9F43',
-    '运动户外': '#0EA5E9',
-    '其他支出': '#C9B1FF',
-    '工资': '#10B981',
-    '奖金': '#34D399',
-    '理财': '#6EE7D0',
-    '兼职': '#A7F3D0',
-    '其他收入': '#10B981',
-    '其他': '#6C5CE7'
-  }
-  return colors[category] || '#6C5CE7'
-}
+const getCategoryColor = (category) => userStore.getCategoryColor(category)
 
 const initCharts = () => {
   initPieChart()
@@ -440,17 +423,27 @@ const initPieChart = () => {
   if (!pieChart.value) return
   const chart = echarts.init(pieChart.value)
   const data = getCategoryData()
+  const colors = data.map(d => getCategoryColor(d.name))
 
   chart.setOption({
-    tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)', backgroundColor: 'rgba(255,255,255,0.95)', borderColor: '#E7E5E4', textStyle: { color: '#1C1917' } },
-    legend: { orient: 'vertical', left: 'left', top: 'center', textStyle: { fontSize: 12, color: '#78716C' } },
+    tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)', backgroundColor: 'rgba(255,255,255,0.98)', borderColor: '#E7E5E4', textStyle: { color: '#1C1917', fontSize: 13 } },
+    legend: {
+      orient: 'vertical',
+      right: '8%',
+      top: 'center',
+      textStyle: { fontSize: 12, color: '#57534E' },
+      itemWidth: 10,
+      itemHeight: 10,
+      itemGap: 12
+    },
     series: [{
       type: 'pie',
-      radius: ['40%', '70%'],
-      itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+      radius: ['42%', '72%'],
+      center: ['35%', '50%'],
+      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
       label: { show: false },
       emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
-      data: data.map(d => ({ name: d.name, value: d.value, itemStyle: { color: getCategoryColor(d.name) } }))
+      data: data.map((d, i) => ({ name: d.name, value: d.value, itemStyle: { color: colors[i % colors.length] } }))
     }]
   })
 }
@@ -497,16 +490,17 @@ const initTrendChart = () => {
   }
 
   chart.setOption({
-    tooltip: { trigger: 'axis', formatter: '{b}: ¥{c}', backgroundColor: 'rgba(255,255,255,0.95)', borderColor: '#E7E5E4', textStyle: { color: '#1C1917' } },
+    tooltip: { trigger: 'axis', formatter: params => `${params[0].name}: ¥${Number(params[0].value).toFixed(2)}`, backgroundColor: 'rgba(255,255,255,0.95)', borderColor: '#E7E5E4', textStyle: { color: '#1C1917', fontSize: 13 } },
+    grid: { left: '3%', right: '4%', bottom: '3%', top: 16, containLabel: true },
     xAxis: { type: 'category', data: sortedDates, axisLabel: { rotate: 45, fontSize: 10, color: '#78716C' }, axisLine: { lineStyle: { color: '#E7E5E4' } } },
-    yAxis: { type: 'value', axisLabel: { formatter: '¥{value}', color: '#78716C' }, splitLine: { lineStyle: { color: '#E7E5E4', type: 'dashed' } } },
+    yAxis: { type: 'value', min: 0, axisLabel: { formatter: val => val >= 1000 ? `¥${(val/1000).toFixed(0)}k` : `¥${Number(val).toFixed(0)}`, color: '#78716C' }, splitLine: { lineStyle: { color: '#E7E5E4', type: 'dashed' } } },
     series: [{
       type: 'line',
-      smooth: true,
+      smooth: 0.4,
       data: values,
       areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(239, 68, 68, 0.2)' }, { offset: 1, color: 'rgba(239, 68, 68, 0.02)' }]) },
       itemStyle: { color: '#EF4444' },
-      lineStyle: { width: 3 }
+      lineStyle: { width: 2 }
     }]
   })
 }
@@ -516,52 +510,47 @@ const initRadarChart = () => {
   const chart = echarts.init(radarChart.value)
 
   const categoryData = getCategoryData()
-  const maxValue = Math.max(...categoryData.map(d => d.value), 1)
+  const topCategories = categoryData.slice(0, 8)
+  const maxValue = Math.max(...topCategories.map(d => d.value), 1)
+  const max = Math.ceil(maxValue * 1.2)
 
-  const indicators = categoryData.slice(0, 8).map(d => ({ name: d.name, max: Math.ceil(maxValue * 1.2) }))
-  const values = categoryData.slice(0, 8).map(d => d.value)
+  const indicatorNames = topCategories.map(d => d.name)
+  const indicators = topCategories.map(d => ({ name: d.name, max }))
+
+  // 每个分类一条线，只在自己的轴上显示数值
+  const seriesData = topCategories.map(d => {
+    const idx = indicatorNames.indexOf(d.name)
+    return {
+      value: topCategories.map((_, i) => (i === idx ? d.value : 0)),
+      name: d.name,
+      lineStyle: { color: getCategoryColor(d.name), width: 2 },
+      itemStyle: { color: getCategoryColor(d.name) },
+      areaStyle: { color: getCategoryColor(d.name), opacity: 0.15 }
+    }
+  })
 
   chart.setOption({
-    tooltip: {},
+    tooltip: {
+      trigger: 'item',
+      formatter: params => `${params.name}: ¥${params.value[indicatorNames.indexOf(params.name)]}`
+    },
+    legend: { show: false },
     radar: {
       indicator: indicators,
       shape: 'polygon',
       splitNumber: 4,
-      axisName: { color: '#92400E', fontSize: 12, fontWeight: 600 },
+      axisName: { color: '#78716C', fontSize: 12, fontWeight: 500 },
       splitArea: {
         areaStyle: {
-          color: ['rgba(255, 247, 237, 0.9)', 'rgba(255, 231, 201, 0.8)', 'rgba(253, 186, 116, 0.7)', 'rgba(252, 162, 73, 0.6)']
+          color: ['rgba(250,250,249,1)', 'rgba(243,242,241,0.8)', 'rgba(228,228,226,0.6)', 'rgba(214,214,212,0.4)']
         }
       },
-      splitLine: {
-        lineStyle: {
-          color: '#FDE68A'
-        }
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#FDE68A'
-        }
-      }
+      splitLine: { lineStyle: { color: '#E7E5E4' } },
+      axisLine: { lineStyle: { color: '#E7E5E4' } }
     },
     series: [{
       type: 'radar',
-      data: [{
-        value: values,
-        name: '消费分布',
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(251, 146, 60, 0.55)' },
-              { offset: 1, color: 'rgba(245, 101, 101, 0.2)' }
-            ]
-          }
-        },
-        lineStyle: { color: '#F97316', width: 2.5 },
-        itemStyle: { color: '#F97316' }
-      }]
+      data: seriesData
     }]
   })
 }
@@ -587,20 +576,39 @@ const initBarChart = () => {
   }
 
   chart.setOption({
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: 'rgba(255,255,255,0.95)', borderColor: '#E7E5E4', textStyle: { color: '#1C1917' } },
-    legend: { data: ['支出', '收入'], top: 0, textStyle: { fontSize: 13, color: '#78716C' } },
-    xAxis: { type: 'category', data: months, axisLabel: { color: '#78716C' }, axisLine: { lineStyle: { color: '#E7E5E4' } } },
-    yAxis: { type: 'value', axisLabel: { formatter: '¥{value}', color: '#78716C' }, splitLine: { lineStyle: { color: '#E7E5E4', type: 'dashed' } } },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: 'rgba(255,255,255,0.95)', borderColor: '#E7E5E4', textStyle: { color: '#1C1917', fontSize: 13 }, formatter: params => params.map(p => `${p.marker} ${p.seriesName}: ¥${Number(p.value).toFixed(2)}`).join('<br/>') },
+    legend: { data: ['支出', '收入'], top: 4, textStyle: { fontSize: 12, color: '#78716C' } },
+    grid: { left: '3%', right: '4%', bottom: '3%', top: 40, containLabel: true },
+    xAxis: { type: 'category', data: months, axisLabel: { fontSize: 11, color: '#78716C' }, axisLine: { lineStyle: { color: '#E7E5E4' } } },
+    yAxis: { type: 'value', min: 0, axisLabel: { formatter: val => val >= 1000 ? `¥${(val/1000).toFixed(0)}k` : `¥${Number(val).toFixed(0)}`, color: '#78716C' }, splitLine: { lineStyle: { color: '#E7E5E4', type: 'dashed' } } },
     series: [
-      { name: '支出', type: 'bar', data: expenses, itemStyle: { color: '#EF4444', borderRadius: [6, 6, 0, 0] } },
-      { name: '收入', type: 'bar', data: incomes, itemStyle: { color: '#10B981', borderRadius: [6, 6, 0, 0] } }
+      { name: '支出', type: 'bar', data: expenses, barWidth: '45%', itemStyle: { color: '#EF4444', borderRadius: [4, 4, 0, 0] } },
+      { name: '收入', type: 'bar', data: incomes, barWidth: '45%', itemStyle: { color: '#10B981', borderRadius: [4, 4, 0, 0] } }
     ]
   })
 }
 
 onMounted(() => {
   fetchData()
+  window.addEventListener('resize', handleResize)
+  window.addEventListener('orientationchange', handleResize)
 })
+
+onUnmounted(() => {
+  // echarts 实例通过局部变量管理，需手动清理
+  window.removeEventListener('resize', handleResize)
+  window.removeEventListener('orientationchange', handleResize)
+})
+
+const handleResize = () => {
+  nextTick(() => {
+    // echarts 会在 DOM ref 上挂载 __echarts_instance，通过 resize 方法触发
+    if (pieChart.value) echarts.getInstanceByDom(pieChart.value)?.resize()
+    if (trendChart.value) echarts.getInstanceByDom(trendChart.value)?.resize()
+    if (radarChart.value) echarts.getInstanceByDom(radarChart.value)?.resize()
+    if (barChart.value) echarts.getInstanceByDom(barChart.value)?.resize()
+  })
+}
 
 watch(timeRange, () => {
   fetchData()
@@ -608,12 +616,17 @@ watch(timeRange, () => {
 </script>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; gap: 20px; }
+.page-container { display: flex; flex-direction: column; gap: 20px; padding: 28px 32px; max-width: 1080px; margin: 0 auto; width: 100%; overflow-x: hidden; }
 
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
+}
+
+.metric-card {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .metric-card {
@@ -640,9 +653,9 @@ watch(timeRange, () => {
 .metric-icon.primary { background: var(--color-primary-soft); color: var(--color-primary); }
 .metric-icon.neutral { background: var(--color-surface-hover); color: var(--color-text-muted); }
 
-.metric-info { flex: 1; }
-.metric-label { font-size: 13px; color: var(--color-text-muted); margin-bottom: 8px; }
-.metric-amount { font-size: 24px; font-weight: 700; color: var(--color-text-primary); }
+.metric-info { flex: 1; min-width: 0; overflow: hidden; }
+.metric-label { font-size: 13px; color: var(--color-text-muted); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.metric-amount { font-size: 22px; font-weight: 700; color: var(--color-text-primary); word-break: break-all; line-height: 1.2; }
 .metric-amount.excellent { color: var(--color-income); }
 .metric-amount.good { color: '#10B981'; }
 .metric-amount.normal { color: var(--color-warning); }
@@ -725,8 +738,74 @@ watch(timeRange, () => {
 }
 
 @media (max-width: 768px) {
-  .metrics-grid { grid-template-columns: 1fr; }
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .eng-levels { grid-template-columns: repeat(2, 1fr); }
+  .page-container { padding: 12px; gap: 12px; }
+
+  .metric-card {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .metric-icon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+
+  .metric-info {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .metric-label {
+    font-size: 10px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .metric-amount {
+    font-size: 15px;
+    word-break: break-all;
+    line-height: 1.2;
+  }
+
+  .metric-desc {
+    font-size: 10px;
+  }
+
+  .chart-section,
+  .chart-section > div {
+    min-height: 240px;
+  }
+
+  .suggestion-item {
+    padding: 12px;
+  }
+
+  .eng-level {
+    padding: 12px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .btn-group {
+    flex-wrap: wrap;
+  }
+
+  .radar-legend {
+    gap: 4px 12px;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
 }
 
 /* 雷达图分类颜色图例 */

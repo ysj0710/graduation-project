@@ -409,8 +409,13 @@ const handleLogout = () => {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
+    // 清除所有用户相关缓存，防止下一个用户看到上一个人的数据
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    localStorage.removeItem('username')
+    localStorage.removeItem('user_theme')
+    localStorage.removeItem('user_budget')
+    localStorage.removeItem('user_category_colors')
     router.push('/login')
   })
 }
@@ -506,7 +511,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; gap: 20px; max-width: 600px; }
+.page-container { display: flex; flex-direction: column; gap: 20px; padding: 28px 32px; max-width: 1080px; margin: 0 auto; width: 100%; overflow-x: hidden; }
 
 /* 财务概览 */
 .finance-overview {
@@ -814,9 +819,181 @@ onMounted(() => {
 .btn.secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn.loading { opacity: 0.6; pointer-events: none; }
 
+/* 移动端适配：优先采用上下纵向布局 */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  /* 财务卡片：3列变1列纵向排列 */
+  .finance-overview {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .finance-card {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .finance-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .finance-value {
+    font-size: 16px;
+  }
+
+  /* 用户信息：头像和内容上下排列 */
+  .avatar-section {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .avatar-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .avatar,
+  .avatar-image {
+    width: 72px;
+    height: 72px;
+    font-size: 28px;
+  }
+
+  .user-info {
+    align-items: center;
+    width: 100%;
+  }
+
+  .info-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .info-display {
+    align-items: center;
+  }
+
+  .info-hint {
+    display: none;
+  }
+
+  .edit-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .user-email {
+    text-align: center;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+
+  .card-header {
+    padding: 16px;
+  }
+
+  /* 菜单项：增大点击区域 */
+  .menu-list {
+    gap: 6px;
+  }
+
+  .menu-item {
+    padding: 14px 16px;
+  }
+
+  .menu-item span:nth-child(2) {
+    font-size: 15px;
+  }
+}
+
 @media (max-width: 640px) {
-  .dialog-container { width: 100%; border-radius: 0; }
-  .info-row { flex-direction: column; align-items: flex-start; }
-  .edit-btn { align-self: flex-start; }
+  /* 对话框：全屏显示 */
+  .dialog-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .dialog-container {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .dialog-header {
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    background: var(--color-surface);
+  }
+
+  .dialog-title {
+    font-size: 16px;
+  }
+
+  .dialog-body {
+    padding: 16px 20px;
+  }
+
+  .dialog-footer {
+    padding: 16px 20px;
+    flex-direction: column;
+    position: sticky;
+    bottom: 0;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .dialog-footer .btn {
+    width: 100%;
+  }
+
+  /* 表单：验证码输入框纵向排列 */
+  .form-group {
+    gap: 6px;
+  }
+
+  .code-input-wrapper {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .code-input-wrapper .btn.secondary {
+    width: 100%;
+  }
+
+  .form-input {
+    padding: 12px 14px;
+    font-size: 15px;
+  }
+
+  /* 警告框：文字不换行 */
+  .warning-box {
+    font-size: 12px;
+  }
+
+  /* 用户名信息框 */
+  .username-info {
+    padding: 12px;
+  }
+
+  .current-username {
+    align-items: center;
+    text-align: center;
+  }
 }
 </style>

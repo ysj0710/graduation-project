@@ -85,10 +85,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { BarChart3, Wallet, CreditCard, TrendingUp, PieChart } from 'lucide-vue-next'
+import { useUserStore } from '../../stores/user'
 import axios from 'axios'
+
+const userStore = useUserStore()
 
 const timeRange = ref('month')
 const statistics = ref({ totalIncome: 0, totalExpense: 0, balance: 0, budgetRemaining: 0 })
@@ -102,6 +105,8 @@ const loading = ref(true)
 let trendChart = null
 let pieChart = null
 let compareChart = null
+
+const getCategoryColor = (category) => userStore.getCategoryColor(category)
 
 const formatNumber = (num) => Number(num || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 
@@ -209,8 +214,7 @@ const renderCharts = () => {
 }
 
 const renderCompareChart = () => {
-  if (!compareChartRef.value) return
-  const chart = echarts.init(compareChartRef.value)
+  if (!compareChart) return
 
   let xData, expenseData, incomeData
   if (timeRange.value === 'week') {
@@ -270,7 +274,7 @@ const renderCompareChart = () => {
     })
   }
 
-  chart.setOption({
+  compareChart.setOption({
     tooltip: {
       trigger: 'axis',
       backgroundColor: 'rgba(255,255,255,0.95)',
@@ -279,8 +283,8 @@ const renderCompareChart = () => {
     },
     legend: {
       data: ['支出', '收入'],
-      top: 0,
-      textStyle: { fontSize: 13, color: '#78716C' }
+      top: 4,
+      textStyle: { fontSize: 12, color: '#78716C' }
     },
     grid: { left: '3%', right: '4%', bottom: '3%', top: 40, containLabel: true },
     xAxis: {
@@ -291,6 +295,7 @@ const renderCompareChart = () => {
     },
     yAxis: {
       type: 'value',
+      min: 0,
       axisLabel: {
         fontSize: 11,
         color: '#78716C',
@@ -306,11 +311,11 @@ const renderCompareChart = () => {
       {
         name: '支出',
         type: 'line',
-        smooth: true,
+        smooth: 0.4,
         data: expenseData,
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(239, 68, 68, 0.2)' },
+            { offset: 0, color: 'rgba(239, 68, 68, 0.3)' },
             { offset: 1, color: 'rgba(239, 68, 68, 0.02)' }
           ])
         },
@@ -320,11 +325,11 @@ const renderCompareChart = () => {
       {
         name: '收入',
         type: 'line',
-        smooth: true,
+        smooth: 0.4,
         data: incomeData,
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(16, 185, 129, 0.2)' },
+            { offset: 0, color: 'rgba(16, 185, 129, 0.3)' },
             { offset: 1, color: 'rgba(16, 185, 129, 0.02)' }
           ])
         },
@@ -336,8 +341,7 @@ const renderCompareChart = () => {
 }
 
 const renderTrendChart = () => {
-  if (!trendChartRef.value) return
-  const chart = echarts.init(trendChartRef.value)
+  if (!trendChart) return
 
   let xData, chartData
   if (timeRange.value === 'week') {
@@ -384,7 +388,7 @@ const renderTrendChart = () => {
     })
   }
 
-  chart.setOption({
+  trendChart.setOption({
     tooltip: {
       trigger: 'axis',
       backgroundColor: 'rgba(255,255,255,0.95)',
@@ -416,17 +420,15 @@ const renderTrendChart = () => {
       type: 'bar',
       data: chartData,
       barWidth: '55%',
-      itemStyle: { color: '#4ECDC4', borderRadius: [6, 6, 0, 0] }
+      itemStyle: { color: '#6366F1', borderRadius: [4, 4, 0, 0] }
     }]
   })
 }
 
 const renderPieChart = () => {
-  if (!pieChartRef.value) return
-  const chart = echarts.init(pieChartRef.value)
-  const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181', '#AA96DA']
+  if (!pieChart) return
 
-  chart.setOption({
+  pieChart.setOption({
     tooltip: {
       trigger: 'item',
       formatter: '{b}: ¥{c} ({d}%)',
@@ -446,9 +448,9 @@ const renderPieChart = () => {
       itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 3 },
       label: { show: false },
       emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
-      data: categoryData.value.map((item, index) => ({
+      data: categoryData.value.map(item => ({
         ...item,
-        itemStyle: { color: colors[index % colors.length] }
+        itemStyle: { color: getCategoryColor(item.name) }
       }))
     }]
   })
@@ -456,11 +458,29 @@ const renderPieChart = () => {
 
 onMounted(() => {
   fetchData()
+  window.addEventListener('resize', handleResize)
+  window.addEventListener('orientationchange', handleResize)
 })
+
+onUnmounted(() => {
+  trendChart?.dispose()
+  pieChart?.dispose()
+  compareChart?.dispose()
+  window.removeEventListener('resize', handleResize)
+  window.removeEventListener('orientationchange', handleResize)
+})
+
+const handleResize = () => {
+  nextTick(() => {
+    trendChart?.resize()
+    pieChart?.resize()
+    compareChart?.resize()
+  })
+}
 </script>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; gap: 20px; }
+.page-container { display: flex; flex-direction: column; gap: 20px; padding: 28px 32px; max-width: 1080px; margin: 0 auto; width: 100%; overflow-x: hidden; }
 
 .stats-grid {
   display: grid;
@@ -476,6 +496,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .stat-icon {
@@ -541,7 +563,60 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .stats-grid { grid-template-columns: 1fr; }
-  .charts-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .charts-grid { grid-template-columns: 1fr; gap: 12px; }
+  .page-container { padding: 12px; gap: 12px; }
+
+  .stat-card {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .stat-info {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  .stat-amount {
+    font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .chart-area {
+    height: 240px;
+    padding: 12px;
+  }
+
+  .chart-area.pie {
+    height: 280px;
+    padding: 12px;
+  }
+
+  .btn-group {
+    flex-wrap: wrap;
+  }
+
+  .card-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 14px 16px;
+  }
+
+  .card-title {
+    font-size: 14px;
+  }
 }
 </style>

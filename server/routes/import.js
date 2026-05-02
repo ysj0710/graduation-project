@@ -3,29 +3,88 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const Transaction = require('../models/Transaction');
 const Account = require('../models/Account');
+const Category = require('../models/Category');
 const XLSX = require('xlsx');
 
 const JWT_SECRET = 'your-secret-key-change-in-production';
 
 const router = new Router();
 
+// 缓存分类列表（按类型分组：name -> name）
+let categoryCache = null;
+let categoryCacheTime = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5分钟
+
+async function getCategoryNames(type) {
+  const now = Date.now();
+  if (!categoryCache || now - categoryCacheTime > CACHE_TTL) {
+    const cats = await Category.find({}).lean();
+    categoryCache = {
+      income: cats.filter(c => c.type === 'income').map(c => c.name),
+      expense: cats.filter(c => c.type === 'expense').map(c => c.name)
+    };
+    categoryCacheTime = now;
+  }
+  return categoryCache[type] || [];
+}
+
+// 根据关键词判断分类（优先匹配管理员预设分类名，fallback 到语义识别）
+async function matchCategory(text, type = 'expense') {
+  if (!text) return '其他';
+  const n = text.toLowerCase();
+
+  // 优先精确匹配管理员分类名（支持对方/商户 + 商品描述双重匹配）
+  const names = await getCategoryNames(type);
+  for (const name of names) {
+    if (n.includes(name) || text.includes(name)) return name;
+  }
+
+  // 语义识别回退
+  const rules = type === 'income'
+    ? [
+        { k: ['工资', '退款', '转账', '收入', '还款', '红包'], v: '工资' },
+        { k: ['奖金', '绩效', '年终奖'], v: '奖金' },
+        { k: ['理财', '利息', '投资收益'], v: '理财' },
+        { k: ['兼职', '外快'], v: '兼职' }
+      ]
+    : [
+        { k: ['餐饮', '美食', '外卖', '快餐', '小吃', '烧烤', '火锅', '餐馆', '饭店', '餐厅', '面馆', '饭店'], v: '餐饮' },
+        { k: ['交通', '打车', '滴滴', '地铁', '公交', '停车', '高速', '加油', '顺风车', '出租车', '打车'], v: '交通' },
+        { k: ['购物', '商城', '淘宝', '京东', '拼多多', '天猫', '外卖'], v: '购物' },
+        { k: ['话费', '充值', '流量'], v: '充值' },
+        { k: ['水电', '物业', '燃气', '电费', '水费', '暖气', '宽带'], v: '生活缴费' },
+        { k: ['电影', '视频', '会员', '音乐', '游戏', '腾讯', '王者荣耀'], v: '娱乐' },
+        { k: ['医疗', '药店', '看病', '药房', '医院'], v: '医疗' },
+        { k: ['保险'], v: '保险' },
+        { k: ['房租', '租金'], v: '住房' },
+        { k: ['学费', '培训', '教育', '课程'], v: '教育' },
+        { k: ['通讯', '话费'], v: '通讯' },
+        { k: ['美团', '大众点评', '携程', '酒店'], v: '购物' }
+      ];
+
+  for (const rule of rules) {
+    for (const kw of rule.k) {
+      if (n.includes(kw)) return rule.v;
+    }
+  }
+
+  // 最后兜底：尝试从已知分类名模糊匹配
+  for (const name of names) {
+    if (n.includes(name.charAt(0))) return name;
+  }
+
+  return '其他';
+}
+
 // 用户鉴权中间件
 const requireAuth = async (ctx, next) => {
   const token = ctx.headers.authorization?.replace('Bearer ', '');
-  if (!token) {
-    ctx.status = 401;
-    ctx.body = { message: '未授权' };
-    return;
-  }
-  
+  if (!token) { ctx.status = 401; ctx.body = { message: '未授权' }; return; }
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     ctx.state.userId = decoded.id;
     await next();
-  } catch (error) {
-    ctx.status = 401;
-    ctx.body = { message: '无效的令牌' };
-  }
+  } catch (error) { ctx.status = 401; ctx.body = { message: '无效的令牌' }; }
 };
 
 router.use(requireAuth);
@@ -35,55 +94,21 @@ function parseCSVLine(line) {
   const result = [];
   let current = '';
   let inQuotes = false;
-  
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
+    if (char === '"') { inQuotes = !inQuotes; }
+    else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+    else { current += char; }
   }
   result.push(current.trim());
   return result;
-}
-
-// 根据关键词判断分类
-function getCategory(note, type = 'expense') {
-  if (!note) return '其他';
-  const n = note.toLowerCase();
-  
-  // 二维码收款/二维码支出单独处理
-  if (n.includes('二维码') || n.includes('收款码')) return '二维码支出';
-  
-  if (type === 'income') {
-    if (n.includes('工资') || n.includes('退款') || n.includes('转账') || n.includes('收入') || n.includes('还款') || n.includes('红包')) return '收入';
-    return '其他收入';
-  }
-  
-  if (n.includes('餐饮') || n.includes('美食') || n.includes('外卖') || n.includes('快餐') || n.includes('小吃') || n.includes('烧烤') || n.includes('火锅')) return '餐饮';
-  if (n.includes('交通') || n.includes('打车') || n.includes('滴滴') || n.includes('地铁') || n.includes('公交') || n.includes('停车') || n.includes('高速') || n.includes('加油')) return '交通';
-  if (n.includes('购物') || n.includes('商城') || n.includes('淘宝') || n.includes('京东') || n.includes('拼多多') || n.includes('外卖') || n.includes('天猫')) return '购物';
-  if (n.includes('话费') || n.includes('充值') || n.includes('流量')) return '充值';
-  if (n.includes('水电') || n.includes('物业') || n.includes('燃气') || n.includes('电费') || n.includes('水费') || n.includes('暖气')) return '生活缴费';
-  if (n.includes('电影') || n.includes('视频') || n.includes('会员') || n.includes('音乐') || n.includes('游戏')) return '娱乐';
-  if (n.includes('医疗') || n.includes('药店') || n.includes('看病') || n.includes('药房')) return '医疗';
-  if (n.includes('保险')) return '保险';
-  if (n.includes('工资') || n.includes('退款') || n.includes('转账') || n.includes('收入') || n.includes('还款') || n.includes('红包')) return '收入';
-  if (n.includes('房租') || n.includes('租金')) return '住房';
-  if (n.includes('学费') || n.includes('培训') || n.includes('教育')) return '教育';
-  
-  return '其他';
 }
 
 // 解析文件内容（CSV或XLSX）
 function parseFile(content, filename) {
   const ext = filename.toLowerCase().split('.').pop();
   let data = [];
-  
+
   if (ext === 'xlsx' || ext === 'xls') {
     // 解析XLSX
     const workbook = XLSX.read(content, { type: 'buffer' });
@@ -98,8 +123,17 @@ function parseFile(content, filename) {
       data.push(parseCSVLine(line));
     }
   }
-  
+
   return data;
+}
+
+// Excel 日期序列号转 JS Date
+function excelDateToJSDate(val) {
+  if (typeof val === 'number') {
+    const ms = (val - 25569) * 86400 * 1000;
+    return new Date(ms);
+  }
+  return new Date(val);
 }
 
 // 导入微信账单
@@ -108,14 +142,13 @@ router.post('/wechat', requireAuth, async (ctx) => {
     const { csvContent, xlsxContent, accountId } = ctx.request.body;
     console.log('收到导入请求, xlsxContent:', xlsxContent ? '有内容' : '空', 'csvContent:', csvContent ? '有内容' : '空');
     const userId = new mongoose.Types.ObjectId(ctx.state.userId);
-    
+
     if (!csvContent && !xlsxContent) {
       ctx.status = 400;
       ctx.body = { message: '请提供CSV或XLSX文件内容' };
       return;
     }
 
-    // 判断文件类型并解析
     let data = [];
     if (xlsxContent) {
       console.log('开始解析xlsx...');
@@ -127,102 +160,111 @@ router.post('/wechat', requireAuth, async (ctx) => {
       data = parseFile(csvContent, 'wechat.csv');
       console.log('csv解析结果, data长度:', data.length);
     }
-    
+
     if (data.length === 0) {
       ctx.body = { message: '成功导入 0 笔交易', count: 0 };
       return;
     }
-    
+
+    // 微信xlsx：找到表头行 "交易时间"（行17），数据从下一行开始
+    let headerIndex = -1;
+    for (let i = 0; i < Math.min(data.length, 30); i++) {
+      const row = data[i];
+      if (row && row.some && row.some(cell => String(cell || '').includes('交易时间'))) {
+        headerIndex = i;
+        break;
+      }
+    }
+    const startIndex = headerIndex >= 0 ? headerIndex + 1 : 1;
+
+    // 根据表头确定各字段列位置
+    let colIndex = { date: 0, type: 1, counterparty: 2, note: 3, incomeExpense: 4, amount: 5 };
+    if (headerIndex >= 0) {
+      const headerRow = data[headerIndex];
+      headerRow.forEach((h, idx) => {
+        const hStr = String(h || '');
+        if (hStr.includes('交易时间')) colIndex.date = idx;
+        else if (hStr.includes('交易类型')) colIndex.type = idx;
+        else if (hStr.includes('交易对方')) colIndex.counterparty = idx;
+        else if (hStr.includes('商品')) colIndex.note = idx;
+        else if (hStr.includes('收/支')) colIndex.incomeExpense = idx;
+        else if (hStr.includes('金额')) colIndex.amount = idx;
+      });
+    }
+
     const transactions = [];
     let importedCount = 0;
-    
-    // 微信格式：时间,类型,对方,商品,金额,支付方式,状态,备注
-    console.log('微信账单解析，数据条数:', data.length);
-    for (let i = 1; i < data.length; i++) {
+
+    console.log('微信账单解析，数据条数:', data.length, '起始行:', startIndex);
+    for (let i = startIndex; i < data.length; i++) {
       const row = data[i];
-      if (!row || row.length < 5) {
-        console.log('跳过第', i, '行: row为空或长度不足');
-        continue;
-      }
-      
-      // 处理XLSX对象格式
+      if (!row || row.length < 5) continue;
+
       let fields = Array.isArray(row) ? row : Object.values(row);
-      fields = fields.map(f => String(f || '').trim());
-      
-      // 微信xlsx格式：时间,类型,对方,商品,金额(元),支付方式,状态,备注
-      // 尝试找到金额字段（通常是数字）
-      let dateStr = fields[0];
-      let type = fields[1];
-      let counterparty = fields[2];
-      let note = fields[3];
+      fields = fields.map(f => String(f ?? '').trim());
+
+      // 金额字段：优先用表头定位，否则找数字列
       let amountStr = '';
-      
-      // 金额可能在第4或第5列
-      for (let j = 4; j < fields.length; j++) {
-        const val = String(fields[j] || '').replace(/[^\d.-]/g, '');
-        if (val && !isNaN(parseFloat(val))) {
-          amountStr = val;
-          break;
+      if (colIndex.amount < fields.length) {
+        amountStr = String(fields[colIndex.amount] || '').replace(/[^\d.-]/g, '');
+      }
+      if (!amountStr || isNaN(parseFloat(amountStr))) {
+        for (let j = 4; j < Math.min(fields.length, 10); j++) {
+          const val = String(fields[j] || '').replace(/[^\d.-]/g, '');
+          if (val && !isNaN(parseFloat(val))) { amountStr = val; break; }
         }
       }
-      
-      // 如果第4列是数字，直接用
-      if (!amountStr && fields[4]) {
-        amountStr = String(fields[4]).replace(/[^\d.-]/g, '');
+
+      // 日期字段：可能是 Excel 序列号（数字）
+      let date;
+      const dateVal = fields[colIndex.date] || '';
+      if (!isNaN(parseFloat(dateVal))) {
+        date = excelDateToJSDate(parseFloat(dateVal));
+      } else {
+        try {
+          date = new Date(dateVal.replace(/\//g, '-'));
+          if (isNaN(date.getTime())) date = new Date();
+        } catch (e) {
+          date = new Date();
+        }
       }
-      
-      if (!dateStr || !amountStr) {
-        console.log('跳过第', i, '行: dateStr或amountStr为空', dateStr, amountStr);
-        continue;
-      }
-      
+
+      if (!amountStr) continue;
       const amount = Math.abs(parseFloat(amountStr) || 0);
-      if (amount === 0) {
-        console.log('跳过第', i, '行: amount为0');
-        continue;
-      }
-      
-      
-      
-      // 判断收入/支出
+      if (amount === 0) continue;
+
+      // 收/支判断
       let transactionType = 'expense';
-      // 微信xlsx第5列是"收/支"字段
-      const incomeExpense = fields[4] || '';
+      const incomeExpense = fields[colIndex.incomeExpense] || '';
       if (incomeExpense.includes('收入')) {
         transactionType = 'income';
       } else if (incomeExpense.includes('支出')) {
         transactionType = 'expense';
       }
-      // 检查note和counterparty是否包含二维码/收款
-      const fullNote = (note || '') + ' ' + (counterparty || '');
+      const fullNote = (fields[colIndex.note] || '') + ' ' + (fields[colIndex.counterparty] || '');
       if (fullNote.includes('二维码') || fullNote.includes('收款码') || fullNote.includes('收款')) {
         transactionType = 'expense';
       }
-      
-      // 解析日期
-      let date;
-      try {
-        date = new Date(dateStr.replace(/\//g, '-'));
-      } catch (e) {
-        date = new Date();
-      }
-      
+
       const transaction = new Transaction({
         userId,
         type: transactionType,
         amount,
-        category: getCategory(note, transactionType),
-        note: counterparty ? `${counterparty} - ${note}` : note,
+        category: await matchCategory(
+          [fields[colIndex.note], fields[colIndex.counterparty]].filter(Boolean).join(' '),
+          transactionType
+        ),
+        note: fields[colIndex.counterparty] ? `${fields[colIndex.counterparty]} - ${fields[colIndex.note]}` : fields[colIndex.note],
         date
       });
-      
+
       transactions.push(transaction);
       importedCount++;
     }
-    
+
     if (transactions.length > 0) {
       await Transaction.insertMany(transactions);
-      
+
       if (accountId) {
         const account = await Account.findOne({ _id: accountId, userId });
         if (account) {
@@ -233,8 +275,8 @@ router.post('/wechat', requireAuth, async (ctx) => {
         }
       }
     }
-    
-    ctx.body = { 
+
+    ctx.body = {
       message: `成功导入 ${importedCount} 笔交易`,
       count: importedCount
     };
@@ -312,16 +354,20 @@ router.post('/alipay', requireAuth, async (ctx) => {
       // 解析日期
       let date;
       try {
-        date = new Date((createTime || fields[4] || '').replace(/\//g, '-'));
+        date = new Date((dateStr || '').replace(/\//g, '-'));
+        if (isNaN(date.getTime())) date = new Date();
       } catch (e) {
         date = new Date();
       }
-      
+
       const transaction = new Transaction({
         userId,
         type: transactionType,
         amount,
-        category: getCategory(note, transactionType),
+        category: await matchCategory(
+          [fields[4], counterparty].filter(Boolean).join(' '),
+          transactionType
+        ),
         note: counterparty ? `${counterparty} - ${note}` : note,
         date
       });

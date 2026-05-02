@@ -295,6 +295,9 @@ const renderMiniChart = () => {
       { name: '支出', type: 'bar', data: data.map(d => d.expense), itemStyle: { color: '#EF4444', borderRadius: [3, 3, 0, 0] }, barWidth: '30%' }
     ]
   })
+  // 监听resize事件
+  window.addEventListener('resize', () => chart.resize())
+  window.addEventListener('orientationchange', () => chart.resize())
 }
 
 // 批量发送提醒
@@ -488,18 +491,18 @@ const adjustBudget = async (user) => {
 .page-indicator { font-size: 13px; color: var(--color-text-muted); white-space: nowrap; }
 
 /* 消费弹窗 */
-.popup-overlay { position: fixed; inset: 0; background: rgba(28,25,23,0.6); backdrop-filter: blur(8px); z-index: 200; display: flex; align-items: center; justify-content: center; }
-.consumption-popup { width: 560px; max-height: 85vh; background: var(--color-surface); border-radius: var(--radius-xl); border: 1px solid var(--color-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-xl); }
-.popup-header { padding: 20px 24px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; }
+.popup-overlay { position: fixed; inset: 0; background: rgba(28,25,23,0.6); backdrop-filter: blur(8px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.consumption-popup { width: 560px; max-width: 100%; max-height: 85vh; background: var(--color-surface); border-radius: var(--radius-xl); border: 1px solid var(--color-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-xl); }
+.popup-header { padding: 16px 20px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
 .popup-title { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; color: var(--color-text-primary); }
-.popup-close { width: 32px; height: 32px; border-radius: var(--radius-md); background: var(--color-surface-hover); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-text-secondary); transition: all var(--transition-fast); }
+.popup-close { width: 32px; height: 32px; border-radius: var(--radius-md); background: var(--color-surface-hover); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-text-secondary); transition: all var(--transition-fast); flex-shrink: 0; }
 .popup-close:hover { background: var(--color-surface-active); color: var(--color-text-primary); }
 
-.popup-range-row { padding: 12px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--color-border); }
+.popup-range-row { padding: 12px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
 .range-tabs { display: flex; gap: 4px; background: var(--color-surface-hover); border-radius: var(--radius-md); padding: 3px; }
 .range-tab { padding: 5px 12px; border: none; background: transparent; color: var(--color-text-secondary); border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; transition: all var(--transition-fast); }
 .range-tab.active { background: var(--color-primary); color: white; }
-.year-selector { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
+.year-selector { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 14px; font-weight: 600; color: var(--color-text-primary); flex-shrink: 0; }
 .selector-btn { width: 26px; height: 26px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-secondary); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all var(--transition-fast); }
 .selector-btn:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
 .selector-btn:disabled { opacity: 0.35; cursor: not-allowed; }
@@ -508,7 +511,7 @@ const adjustBudget = async (user) => {
 .loading-spinner { width: 32px; height: 32px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.popup-content { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+.popup-content { padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; flex: 1; }
 .popup-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .popup-stat { padding: 14px 16px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 6px; }
 .popup-stat.income { background: var(--color-income-bg); border-color: var(--color-income); }
@@ -535,7 +538,76 @@ const adjustBudget = async (user) => {
 @media (max-width: 768px) {
   .overview-row { grid-template-columns: 1fr; }
   .card-header { flex-direction: column; align-items: flex-start; }
-  .consumption-popup { width: 100%; border-radius: 0; max-height: 100vh; }
-  .popup-stats { grid-template-columns: 1fr; }
+
+  .popup-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .consumption-popup {
+    width: 100%;
+    max-height: 90vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+
+  .popup-stats {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .popup-stat {
+    padding: 12px 14px;
+  }
+
+  .popup-stat-value {
+    font-size: 16px;
+  }
+
+  .mini-chart-area {
+    height: 140px;
+  }
+
+  .popup-range-row {
+    padding: 10px 16px;
+  }
+
+  .popup-content {
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .popup-header {
+    padding: 12px 16px;
+  }
+
+  .popup-title {
+    font-size: 14px;
+    gap: 8px;
+  }
+
+  .popup-title span {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .range-tabs {
+    flex-shrink: 0;
+  }
+
+  .range-tab {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .year-selector {
+    font-size: 12px;
+  }
+
+  .budget-row {
+    font-size: 12px;
+  }
 }
 </style>
