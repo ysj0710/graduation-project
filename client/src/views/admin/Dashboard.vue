@@ -89,53 +89,63 @@
           </button>
         </div>
       </div>
-      <div class="table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th style="width: 40px"><input type="checkbox" @change="toggleAllSelection" :checked="isAllSelected" /></th>
-              <th>用户</th>
-              <th style="width: 120px">预算</th>
-              <th style="width: 120px">已用</th>
-              <th style="width: 140px">使用率</th>
-              <th style="width: 100px">风险等级</th>
-              <th style="width: 100px">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="user in riskUsers" :key="user.id">
-              <td><input type="checkbox" :checked="selectedIds.includes(user.id)" @change="toggleSelection(user)" /></td>
-              <td>
-                <div class="user-cell">
-                  <div class="avatar">{{ user.name.charAt(0) }}</div>
-                  <div class="user-info">
-                    <div class="user-name">{{ user.name }}</div>
-                    <div class="user-email">{{ user.email }}</div>
-                  </div>
-                </div>
-              </td>
-              <td class="num">¥{{ formatNumber(user.budget) }}</td>
-              <td class="num expense">¥{{ formatNumber(user.spent) }}</td>
-              <td>
-                <div class="progress-cell">
-                  <div class="progress-bar">
-                    <div class="progress-fill" :style="{ width: user.usageRate + '%' }" :class="getProgressClass(user.usageRate)"></div>
-                  </div>
-                  <span class="progress-text">{{ user.usageRate }}%</span>
-                </div>
-              </td>
-              <td><span class="risk-badge" :class="user.riskLevel">{{ user.riskLabel }}</span></td>
-              <td>
-                <button class="btn-small" @click="sendReminder(user)">提醒</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-if="riskUsers.length === 0" class="empty-state">
-          <div class="empty-icon"><CheckCircle2 :size="48" :stroke-width="1" /></div>
-          <p>暂无风险用户</p>
-        </div>
-      </div>
+      <el-table :data="riskUsers" stripe>
+        <el-table-column width="50">
+          <template #header>
+            <el-checkbox :model-value="isAllSelected" @change="toggleAllSelection" />
+          </template>
+          <template #default="{ row }">
+            <el-checkbox :model-value="selectedIds.includes(row.id)" @change="(checked) => toggleSelection(row, checked)" />
+          </template>
+        </el-table-column>
+        <el-table-column label="用户" min-width="180">
+          <template #default="{ row }">
+            <div class="user-cell">
+              <div class="avatar">{{ row.name.charAt(0) }}</div>
+              <div class="user-info">
+                <div class="user-name">{{ row.name }}</div>
+                <div class="user-email">{{ row.email }}</div>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="预算" width="120">
+          <template #default="{ row }">
+            <span class="num">¥{{ formatNumber(row.budget) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="已用" width="120">
+          <template #default="{ row }">
+            <span class="num expense">¥{{ formatNumber(row.spent) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="使用率" width="140">
+          <template #default="{ row }">
+            <div class="progress-cell">
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: row.usageRate + '%' }" :class="getProgressClass(row.usageRate)"></div>
+              </div>
+              <span class="progress-text">{{ row.usageRate }}%</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="风险等级" width="100">
+          <template #default="{ row }">
+            <span class="risk-badge" :class="row.riskLevel">{{ row.riskLabel }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100">
+          <template #default="{ row }">
+            <el-button size="small" @click="sendReminder(row)">提醒</el-button>
+          </template>
+        </el-table-column>
+        <template #empty>
+          <div class="empty-state">
+            <div class="empty-icon"><CheckCircle2 :size="48" :stroke-width="1" /></div>
+            <p>暂无风险用户</p>
+          </div>
+        </template>
+      </el-table>
     </div>
   </div>
 </template>
@@ -169,15 +179,21 @@ const getProgressClass = (rate) => {
   return 'safe'
 }
 
-const toggleSelection = (user) => {
-  const idx = selectedIds.value.indexOf(user.id)
-  if (idx > -1) selectedIds.value.splice(idx, 1)
-  else selectedIds.value.push(user.id)
+const toggleSelection = (user, checked) => {
+  if (checked) {
+    if (!selectedIds.value.includes(user.id)) selectedIds.value.push(user.id)
+  } else {
+    const idx = selectedIds.value.indexOf(user.id)
+    if (idx > -1) selectedIds.value.splice(idx, 1)
+  }
 }
 
-const toggleAllSelection = () => {
-  if (isAllSelected.value) selectedIds.value = []
-  else selectedIds.value = riskUsers.value.map(u => u.id)
+const toggleAllSelection = (checked) => {
+  if (checked) {
+    selectedIds.value = riskUsers.value.map(u => u.id)
+  } else {
+    selectedIds.value = []
+  }
 }
 
 // Fetch data

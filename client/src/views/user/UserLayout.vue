@@ -8,7 +8,7 @@
       </div>
       <button class="mobile-menu-btn" @click="toggleMobileMenu">
         <Menu v-if="!isMobileMenuOpen" :size="22" />
-        <X v-else :size="22" />
+        <XIcon v-else :size="22" />
       </button>
     </header>
 
@@ -96,8 +96,8 @@
     </main>
 
     <!-- 桌面端 FAB 记账按钮 -->
-    <button class="fab-button" @click="showAddSheet = true">
-      <Plus :size="24" :stroke-width="2.5" />
+    <button class="fab-button" @click="showAddSheet = true" data-tooltip="记一笔">
+      <PlusIcon :size="20" :stroke-width="2.5" />
     </button>
 
     <!-- 移动端底部导航 -->
@@ -113,7 +113,7 @@
       <!-- 中间记账按钮 -->
       <div class="mobile-add-wrapper">
         <button class="mobile-add-btn" @click="showAddSheet = true">
-          <Plus :size="24" :stroke-width="2.5" />
+          <PlusIcon :size="20" :stroke-width="2.5" />
         </button>
         <span class="mobile-add-label">记一笔</span>
       </div>
@@ -140,7 +140,7 @@
             <span>系统通知</span>
           </div>
           <button class="popup-close" @click="closePopup">
-            <X :size="18" />
+            <XIcon :size="18" />
           </button>
         </div>
         <div class="popup-body">
@@ -192,28 +192,27 @@
             <Receipt :size="18" :stroke-width="1.8" />
             <span>记一笔</span>
           </div>
-          <button class="close-btn" @click="showAddSheet = false">
-            <X :size="18" :stroke-width="2" />
-          </button>
+          <el-button link @click="showAddSheet = false">
+            <template #icon><el-icon><Close /></el-icon></template>
+          </el-button>
         </div>
 
         <!-- 主体：单列纵向布局 -->
         <div class="sheet-body">
           <!-- 顶部：日期 + 类型切换 -->
           <div class="sheet-top-row">
-            <input v-model="record.date" type="date" class="sheet-date-field" />
-            <div class="type-tabs">
-              <button
-                class="type-tab"
-                :class="{ active: record.type === 'expense' }"
-                @click="record.type = 'expense'"
-              >支出</button>
-              <button
-                class="type-tab"
-                :class="{ active: record.type === 'income', income: record.type === 'income' }"
-                @click="record.type = 'income'"
-              >收入</button>
-            </div>
+            <el-date-picker
+              v-model="record.date"
+              type="date"
+              size="small"
+              placeholder="选择日期"
+              value-format="YYYY-MM-DD"
+              style="flex: 1;"
+            />
+            <el-radio-group v-model="record.type" size="small">
+              <el-radio-button value="expense">支出</el-radio-button>
+              <el-radio-button value="income">收入</el-radio-button>
+            </el-radio-group>
           </div>
 
           <!-- 分类选择：横向滚动标签 -->
@@ -234,33 +233,33 @@
 
           <!-- 金额 + 添加按钮 横向排列 -->
           <div class="input-row">
-            <div class="input-group amount-group">
-              <span class="input-prefix">¥</span>
-              <input
-                v-model.number="newItem.amount"
-                type="number"
-                placeholder="0.00"
-                class="compact-field"
-                @keyup.enter="addItem"
-              />
-            </div>
-            <button
-              class="add-btn-compact"
+            <el-input
+              v-model.number="newItem.amount"
+              type="number"
+              placeholder="0.00"
+              size="small"
+              @keyup.enter="addItem"
+              style="flex: 1;"
+            >
+              <template #prefix>¥</template>
+            </el-input>
+            <el-button
+              type="primary"
+              size="small"
               :disabled="!newItem.category || !newItem.amount"
               @click="addItem"
             >
-              <Plus :size="16" :stroke-width="2.5" />
-              <span>添加</span>
-            </button>
+              <template #icon><el-icon><Plus /></el-icon></template>
+              添加
+            </el-button>
           </div>
 
           <!-- 备注单独一行 -->
           <div class="note-row">
-            <input
+            <el-input
               v-model="newItem.note"
-              type="text"
               placeholder="添加备注（可选）"
-              class="note-field-full"
+              size="small"
             />
           </div>
 
@@ -279,9 +278,9 @@
                 <span class="bill-item-amount" :class="item.type">
                   ¥{{ formatNumber(item.amount) }}
                 </span>
-                <button class="bill-item-delete" @click="removeItem(item.id)">
-                  <X :size="14" :stroke-width="2" />
-                </button>
+                <el-button type="danger" link size="small" @click="removeItem(item.id)">
+                  <template #icon><el-icon><Delete /></el-icon></template>
+                </el-button>
               </div>
             </div>
             <div v-if="currentBillItems.length === 0" class="bill-empty">
@@ -295,9 +294,9 @@
               <span>合计</span>
               <span class="total-amount" :class="record.type">¥{{ formatNumber(billTotal) }}</span>
             </div>
-            <button class="confirm-btn" @click="confirmAdd">
+            <el-button type="primary" @click="confirmAdd">
               确认记账 ({{ currentBillItems.length }}笔)
-            </button>
+            </el-button>
           </div>
         </div>
       </div>
@@ -316,9 +315,9 @@ import {
   TrendingUp,
   Palette,
   Bell,
-  Plus,
+  Plus as PlusIcon,
   Receipt,
-  X,
+  X as XIcon,
   AlertTriangle,
   CheckCircle2,
   Menu,
@@ -328,7 +327,7 @@ import { useUserStore } from "../../stores/user.js";
 import axios from "axios";
 import { ElMessage } from "element-plus";
 import CategoryIcon from "../../components/CategoryIcon.vue";
-import { THEME_PRESETS, PATTERNS } from "../../styles/themes.js";
+import { THEME_PRESETS } from "../../styles/themes.js";
 
 const route = useRoute();
 const router = useRouter();
@@ -426,19 +425,10 @@ const isActive = (path) => {
 
 const pageBgStyle = computed(() => {
   const theme = userStore.theme;
-  const patternKey = theme?.pattern || "dots";
-  const pattern = PATTERNS[patternKey] || PATTERNS.dots;
-  const bg =
-    pattern.svg && pattern.svg !== "none"
-      ? `${theme.background}, ${pattern.svg}`
-      : theme.background;
-  const bgSize =
-    pattern.svg && pattern.svg !== "none" && pattern.bgSize !== "0"
-      ? `cover, ${pattern.bgSize}`
-      : "cover";
   return {
-    background: bg,
-    backgroundSize: bgSize,
+    backgroundImage: theme.background,
+    backgroundSize: "cover",
+    backgroundRepeat: "no-repeat",
     backgroundPosition: "center",
   };
 });
@@ -894,16 +884,69 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
   cursor: pointer;
   transition:
     transform var(--transition-fast),
     box-shadow var(--transition-fast);
   z-index: 200;
+  animation: fabPulse 2.5s ease-in-out infinite;
 }
+
 .fab-button:hover {
-  transform: scale(1.08);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  transform: scale(1.1);
+  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.55);
+  animation: none;
+}
+
+.fab-button:active {
+  transform: scale(0.95);
+  animation: none;
+}
+
+/* Tooltip on hover */
+.fab-button[data-tooltip]::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  right: calc(100% + 14px);
+  top: 50%;
+  transform: translateY(-50%) translateX(6px);
+  padding: 8px 16px;
+  background: var(--color-primary);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fab-button[data-tooltip]::after {
+  content: '';
+  position: absolute;
+  right: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%) translateX(6px);
+  border: 6px solid transparent;
+  border-left-color: var(--color-primary);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fab-button:hover[data-tooltip]::before,
+.fab-button:hover[data-tooltip]::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+@keyframes fabPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4); }
+  50% { transform: scale(1.06); box-shadow: 0 6px 24px rgba(99, 102, 241, 0.55); }
 }
 
 .popup-overlay {

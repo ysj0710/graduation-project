@@ -74,36 +74,36 @@
         </div>
       </div>
       <div class="table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>分类</th>
-              <th style="width: 80px">笔数</th>
-              <th style="width: 120px">金额</th>
-              <th style="width: 150px">占比</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="cat in categories" :key="cat.name">
-              <td>
-                <div class="category-cell">
-                  <CategoryIcon :id="cat.iconId" :size="18" />
-                  <span class="cat-name">{{ cat.name }}</span>
+        <el-table :data="categories" stripe size="small">
+          <el-table-column label="分类" min-width="160">
+            <template #default="{ row }">
+              <div class="category-cell">
+                <CategoryIcon :id="row.iconId" :size="18" />
+                <span class="cat-name">{{ row.name }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="笔数" prop="count" width="80">
+            <template #default="{ row }">
+              <span class="num">{{ row.count }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="金额" width="120">
+            <template #default="{ row }">
+              <span class="num expense">¥{{ formatNumber(row.amount) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="占比" width="150">
+            <template #default="{ row }">
+              <div class="percent-cell">
+                <div class="percent-bar">
+                  <div class="percent-fill" :style="{ width: row.percent + '%', background: row.color }"></div>
                 </div>
-              </td>
-              <td class="num">{{ cat.count }}</td>
-              <td class="num expense">¥{{ formatNumber(cat.amount) }}</td>
-              <td>
-                <div class="percent-cell">
-                  <div class="percent-bar">
-                    <div class="percent-fill" :style="{ width: cat.percent + '%', background: cat.color }"></div>
-                  </div>
-                  <span class="percent-text">{{ cat.percent }}%</span>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                <span class="percent-text">{{ row.percent }}%</span>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
     </div>
   </div>

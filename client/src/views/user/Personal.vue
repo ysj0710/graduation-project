@@ -1,19 +1,36 @@
 <template>
   <div class="page-container">
-    <!-- 主题设置卡片 -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <Palette :size="18" :stroke-width="1.5" />
-          <span>主题设置</span>
+    <section class="theme-studio" :style="customStudioStyle">
+      <div class="studio-backdrop">
+        <div class="studio-grid"></div>
+        <div class="studio-glow studio-glow-a"></div>
+        <div class="studio-glow studio-glow-b"></div>
+      </div>
+
+      <div class="studio-header">
+        <div>
+          <div class="eyebrow">
+            <Sparkles :size="14" :stroke-width="1.8" />
+            <span>渐变主题</span>
+          </div>
+          <h1>换一套清新的渐变撞色</h1>
+          <p>从柔和奶油色到霓虹夜色，选择一套更干净、更耐看的页面氛围。</p>
+        </div>
+        <div class="studio-current">
+          <span>当前</span>
+          <strong>{{ currentThemeName }}</strong>
         </div>
       </div>
-      <div class="card-body">
 
-        <!-- 主题预设 -->
-        <div class="settings-section">
-          <div class="section-title">选择主题</div>
-          <div class="section-desc">多种风格任你挑选，切换主题后自动应用</div>
+      <div class="studio-layout">
+        <div class="studio-panel palette-panel">
+          <div class="panel-heading">
+            <div>
+              <div class="section-title">精选主题</div>
+              <div class="section-desc">更换后会立即同步到用户端背景和主色</div>
+            </div>
+            <Palette :size="18" :stroke-width="1.6" />
+          </div>
           <div class="theme-grid">
             <div
               v-for="theme in themePresets"
@@ -23,6 +40,15 @@
               @click="selectPreset(theme)"
             >
               <div class="theme-preview" :style="getThemePreviewStyle(theme)">
+                <div class="preview-lines">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                <div class="preview-dock">
+                  <i :style="{ background: theme.primaryColor }"></i>
+                  <i :style="{ background: theme.accentColor || theme.chartColors[1] }"></i>
+                </div>
                 <div class="theme-check" v-if="selectedPreset === theme.id">
                   <CheckCircle :size="16" :stroke-width="2" />
                 </div>
@@ -35,24 +61,48 @@
           </div>
         </div>
 
-        <!-- 自定义主题配色 -->
-        <div class="settings-section">
-          <div class="section-title">自定义主题配色</div>
-          <div class="section-desc">完全独立的配色方案，不影响上方已选主题</div>
+        <div class="studio-panel custom-panel">
+          <div class="panel-heading">
+            <div>
+              <div class="section-title">自定义主题</div>
+              <div class="section-desc">选择两种颜色，生成一套干净的撞色渐变</div>
+            </div>
+            <SlidersHorizontal :size="18" :stroke-width="1.6" />
+          </div>
+
           <div class="customizer-layout">
             <div class="customizer-left">
-              <div class="custom-color-label">选择主色调</div>
-              <ColorPicker v-model="customPrimaryColor" />
+              <div class="custom-color-group">
+                <div class="custom-block-title">主色</div>
+                <ColorPicker v-model="customPrimaryColor" />
+              </div>
+              <div class="custom-color-group">
+                <div class="custom-block-title">辅助色</div>
+                <ColorPicker v-model="customAccentColor" />
+              </div>
             </div>
             <div class="customizer-right">
               <div class="preview-box">
-                <div class="preview-label">效果预览</div>
+                <div class="preview-label">Live Preview</div>
                 <div class="preview-theme-card" :style="customPreviewStyle">
-                  <div class="preview-mood">
-                    <div class="mood-icon" :style="{ background: customPrimaryColor + '22', color: customPrimaryColor }">
-                      <Wallet :size="20" />
+                  <div class="preview-card-top">
+                    <div class="preview-mood">
+                      <div class="mood-icon" :style="{ background: customPrimaryColor + '22', color: customPrimaryColor }">
+                        <Wallet :size="20" />
+                      </div>
+                      <div>
+                        <div class="mood-text" :style="{ color: customPrimaryColor }">本月账单</div>
+                        <div class="mood-subtitle">May 2026</div>
+                      </div>
                     </div>
-                    <div class="mood-text" :style="{ color: customPrimaryColor }">记账</div>
+                    <div class="preview-pill" :style="{ color: customAccentColor, background: customAccentColor + '18' }">Gradient</div>
+                  </div>
+                  <div class="preview-chart">
+                    <span :style="{ height: '42%', background: customPrimaryColor + '66' }"></span>
+                    <span :style="{ height: '78%', background: customPrimaryColor }"></span>
+                    <span :style="{ height: '56%', background: customAccentColor + 'AA' }"></span>
+                    <span :style="{ height: '64%', background: '#10B981' }"></span>
+                    <span :style="{ height: '38%', background: '#F97316' }"></span>
                   </div>
                   <div class="mood-stats">
                     <div class="mood-stat">
@@ -67,15 +117,14 @@
                 </div>
                 <button class="btn primary small" @click="applyCustomColor" :disabled="themeLoading || !isCustomColorChanged">
                   <Palette :size="14" />
-                  {{ themeLoading ? '保存中...' : '应用自定义配色' }}
+                  {{ themeLoading ? '保存中...' : '应用自定义渐变' }}
                 </button>
               </div>
             </div>
           </div>
         </div>
-
       </div>
-    </div>
+    </section>
 
     <!-- 预算设置卡片 -->
     <div class="card">
@@ -119,7 +168,7 @@
 import { ref, computed, onMounted, reactive, watch } from 'vue'
 import { useUserStore } from '../../stores/user'
 import { ElMessage } from 'element-plus'
-import { Palette, CheckCircle, Wallet, Settings, Save } from 'lucide-vue-next'
+import { Palette, CheckCircle, Wallet, Settings, Save, Sparkles, SlidersHorizontal } from 'lucide-vue-next'
 import axios from 'axios'
 import { THEME_PRESETS } from '../../styles/themes.js'
 import ColorPicker from '../../components/ColorPicker.vue'
@@ -131,11 +180,14 @@ const budgetLoading = ref(false)
 const selectedPreset = ref('')  // 当前选中主题，空=自定义配色
 const savedPresetId = ref('')          // 已保存的主题ID
 const savedPrimaryColor = ref('')     // 已保存的主色调（用于判断自定义配色是否变化）
-const customPrimaryColor = ref('#667eea')
+const savedAccentColor = ref('')
+const customPrimaryColor = ref('#D85C8A')
+const customAccentColor = ref('#8ECDF8')
 
 // 自定义配色是否已变化（与上次保存的值不同）
 const isCustomColorChanged = computed(() => {
-  return customPrimaryColor.value !== savedPrimaryColor.value
+  return customPrimaryColor.value !== savedPrimaryColor.value ||
+    customAccentColor.value !== savedAccentColor.value
 })
 
 const budget = reactive({
@@ -146,41 +198,76 @@ const budget = reactive({
 
 const themePresets = THEME_PRESETS
 
+const currentThemeName = computed(() => {
+  if (!selectedPreset.value) return '自定义配色'
+  return themePresets.find(theme => theme.id === selectedPreset.value)?.name || '自定义配色'
+})
+
 const formatNumber = (num) => Number(num || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 
 // 自定义颜色预览
 const customPreviewStyle = computed(() => ({
-  background: `linear-gradient(135deg, ${customPrimaryColor.value}33, ${customPrimaryColor.value}11)`,
-  borderColor: `${customPrimaryColor.value}44`
+  background: `radial-gradient(circle at 14% 10%, ${customPrimaryColor.value}2E, transparent 32%), radial-gradient(circle at 86% 12%, ${customAccentColor.value}35, transparent 30%), linear-gradient(145deg, rgba(255,255,255,0.92), ${customPrimaryColor.value}12 46%, ${customAccentColor.value}18)`,
+  borderColor: `${customPrimaryColor.value}38`,
+  boxShadow: `0 18px 42px ${customPrimaryColor.value}20`
 }))
 
+const customStudioStyle = computed(() => ({
+  '--studio-color': customPrimaryColor.value,
+  '--studio-accent': customAccentColor.value
+}))
+
+function getCustomGradient(primary = customPrimaryColor.value, accent = customAccentColor.value) {
+  return `radial-gradient(circle at 16% 18%, ${primary}36, transparent 30%), radial-gradient(circle at 88% 12%, ${accent}4A, transparent 28%), linear-gradient(135deg, #FFFFFF 0%, ${primary}18 42%, ${accent}38 100%)`
+}
+
+function isHexColor(value) {
+  return /^#[0-9A-Fa-f]{6}$/.test(value || '')
+}
+
+function extractAccentFromGradient(background, primary) {
+  const colors = String(background || '').match(/#[0-9A-Fa-f]{6}/g) || []
+  return colors.find(color => color.toLowerCase() !== String(primary || '').toLowerCase()) || ''
+}
+
 function getThemePreviewStyle(theme) {
-  return { background: theme.gradient, backgroundSize: 'cover', backgroundPosition: 'center' }
+  return {
+    backgroundImage: theme.gradient,
+    backgroundSize: 'cover',
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'center'
+  }
 }
 
 function selectPreset(theme) {
   selectedPreset.value = theme.id
   customPrimaryColor.value = theme.primaryColor
+  customAccentColor.value = theme.accentColor || theme.chartColors?.[1] || theme.primaryColor
   // 切换主题时立即保存到服务端，确保持久化
   saveTheme({
     name: theme.name,
     id: theme.id,
     gradient: theme.gradient,
-    primaryColor: theme.primaryColor
+    primaryColor: theme.primaryColor,
+    accentColor: theme.accentColor || theme.chartColors?.[1],
+    pattern: theme.pattern
   })
 }
 
 function applyCustomColor() {
-  const gradient = `linear-gradient(135deg, ${customPrimaryColor.value} 0%, ${customPrimaryColor.value}99 100%)`
+  const gradient = getCustomGradient()
   // 清空主题选中状态（自定义配色与预设主题互斥）
   selectedPreset.value = ''
   savedPresetId.value = ''
   savedPrimaryColor.value = customPrimaryColor.value
+  savedAccentColor.value = customAccentColor.value
   saveTheme({
     name: '自定义配色',
     id: 'custom',
     gradient,
-    primaryColor: customPrimaryColor.value
+    primaryColor: customPrimaryColor.value,
+    accentColor: customAccentColor.value,
+    pattern: 'none'
   })
 }
 
@@ -191,20 +278,22 @@ async function saveTheme(theme) {
     await axios.put('/api/user/settings/theme', {
       background: theme.gradient,
       primaryColor: theme.primaryColor || customPrimaryColor.value,
-      pattern: 'dots',
+      pattern: 'none',
       presetId: theme.id,
-      customBgUrl: ''
+      customBgUrl: theme.accentColor || ''
     }, { headers: { Authorization: `Bearer ${token}` } })
 
     userStore.updateTheme({
       background: theme.gradient,
       primaryColor: theme.primaryColor || customPrimaryColor.value,
-      pattern: 'dots',
+      accentColor: theme.accentColor || customAccentColor.value,
+      pattern: 'none',
       presetId: theme.id,
-      customBgUrl: ''
+      customBgUrl: theme.accentColor || ''
     })
     savedPresetId.value = theme.id
     savedPrimaryColor.value = theme.primaryColor || customPrimaryColor.value
+    savedAccentColor.value = theme.accentColor || customAccentColor.value
     ElMessage.success('配色已保存')
   } catch (error) {
     ElMessage.error('主题切换失败')
@@ -230,16 +319,25 @@ async function fetchSettings() {
     if (theme.presetId && themePresets.find(t => t.id === theme.presetId)) {
       selectedPreset.value = theme.presetId
       savedPresetId.value = theme.presetId
+      const preset = themePresets.find(t => t.id === theme.presetId)
+      customAccentColor.value = preset?.accentColor || preset?.chartColors?.[1] || '#8ECDF8'
+      savedAccentColor.value = customAccentColor.value
     } else if (theme.presetId === 'custom' || theme.primaryColor) {
       // 自定义配色：presetId为custom或不在预设列表中
       selectedPreset.value = ''
       savedPresetId.value = ''
+      const accent = isHexColor(theme.customBgUrl)
+        ? theme.customBgUrl
+        : extractAccentFromGradient(theme.background, theme.primaryColor)
+      if (accent) {
+        customAccentColor.value = accent
+        savedAccentColor.value = accent
+      }
     }
     if (theme.primaryColor) {
       customPrimaryColor.value = theme.primaryColor
       savedPrimaryColor.value = theme.primaryColor
     }
-
     userStore.applyThemeSettings(settings)
   } catch (error) {
     budget.monthly = 5000
@@ -281,7 +379,135 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; gap: 24px; padding: 28px 32px; max-width: 1080px; margin: 0 auto; width: 100%; overflow-x: hidden; }
+.page-container { display: flex; flex-direction: column; gap: 24px; padding: 28px 32px; max-width: 1180px; margin: 0 auto; width: 100%; overflow-x: hidden; }
+
+.theme-studio {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: 24px;
+  padding: 26px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.92), rgba(255,255,255,0.72)),
+    radial-gradient(circle at 20% 16%, color-mix(in srgb, var(--studio-color) 24%, transparent), transparent 30%);
+  box-shadow: 0 24px 70px rgba(28, 25, 23, 0.12);
+  isolation: isolate;
+}
+
+.studio-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.studio-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(28, 25, 23, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(28, 25, 23, 0.055) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0.7), transparent 82%);
+}
+
+.studio-glow {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.5;
+}
+
+.studio-glow-a { top: -120px; right: 8%; background: color-mix(in srgb, var(--studio-color) 36%, white); }
+.studio-glow-b { bottom: -150px; left: -80px; background: rgba(20, 184, 166, 0.2); }
+
+.studio-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--studio-color) 24%, transparent);
+  border-radius: 999px;
+  color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin-bottom: 12px;
+}
+
+.studio-header h1 {
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 750;
+  letter-spacing: 0;
+  color: var(--color-text-primary);
+  margin: 0 0 8px;
+}
+
+.studio-header p {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  max-width: 520px;
+}
+
+.studio-current {
+  min-width: 150px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow-sm);
+}
+
+.studio-current span {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.studio-current strong {
+  color: var(--color-text-primary);
+  font-size: 16px;
+}
+
+.studio-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(340px, 0.7fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.studio-panel {
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 12px 36px rgba(28, 25, 23, 0.08);
+  backdrop-filter: blur(16px);
+  padding: 18px;
+}
+
+.panel-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+  color: var(--color-primary);
+}
+
+.panel-heading .section-desc { margin-bottom: 0; }
 
 /* 通用卡片 */
 .card {
@@ -308,33 +534,80 @@ onMounted(async () => {
 /* 主题网格 */
 .theme-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 
 .theme-card {
   cursor: pointer;
-  border-radius: var(--radius-lg);
+  border-radius: 14px;
   overflow: hidden;
-  border: 2px solid var(--color-border);
-  transition: all 0.2s ease;
+  border: 1px solid rgba(214, 211, 209, 0.75);
+  background: rgba(255,255,255,0.84);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.theme-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--color-text-muted); }
-.theme-card.active { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-soft); }
+.theme-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(28, 25, 23, 0.12); border-color: color-mix(in srgb, var(--color-primary) 42%, var(--color-border)); }
+.theme-card.active { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-soft), 0 14px 34px rgba(28, 25, 23, 0.1); }
 
 .theme-preview {
-  height: 72px;
+  height: 96px;
   position: relative;
   overflow: hidden;
+  padding: 12px;
+}
+
+.theme-preview::after {
+  content: "";
+  position: absolute;
+  inset: auto 12px 12px 12px;
+  height: 30px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(12px);
+}
+
+.preview-lines {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 6px;
+  width: 50%;
+}
+
+.preview-lines span {
+  display: block;
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.preview-lines span:nth-child(2) { width: 74%; }
+.preview-lines span:nth-child(3) { width: 46%; }
+
+.preview-dock {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2;
+  display: flex;
+  gap: 5px;
+}
+
+.preview-dock i {
+  width: 10px;
+  height: 18px;
+  border-radius: 99px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.4);
 }
 
 .theme-check {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 20px;
-  height: 20px;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
   background: var(--color-primary);
   border-radius: 50%;
   display: flex;
@@ -343,19 +616,37 @@ onMounted(async () => {
   color: white;
 }
 
-.theme-info { padding: 10px 12px; background: var(--color-surface-hover); }
+.theme-info { padding: 11px 12px 12px; background: rgba(255,255,255,0.82); }
 .theme-name { font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
 .theme-desc { font-size: 11px; color: var(--color-text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* 自定义颜色布局 */
 .customizer-layout {
-  display: grid;
-  grid-template-columns: 1fr 260px;
-  gap: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
   align-items: start;
 }
 
-.customizer-left { flex: 1; }
+.customizer-left { width: 100%; }
+
+.custom-color-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.custom-color-group + .custom-color-group {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(214, 211, 209, 0.62);
+}
+
+.custom-block-title {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
 
 .customizer-right {
   display: flex;
@@ -364,9 +655,10 @@ onMounted(async () => {
 }
 
 .preview-box {
-  background: var(--color-surface-hover);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  width: 100%;
+  background: rgba(255,255,255,0.58);
+  border: 1px solid rgba(255,255,255,0.7);
+  border-radius: 16px;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -378,21 +670,28 @@ onMounted(async () => {
   font-weight: 600;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
 }
 
 .preview-theme-card {
-  border-radius: var(--radius-md);
-  padding: 14px;
+  border-radius: 18px;
+  padding: 16px;
   border: 1px solid transparent;
   transition: all 0.3s ease;
+}
+
+.preview-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
 .preview-mood {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 12px;
 }
 
 .mood-icon {
@@ -404,10 +703,32 @@ onMounted(async () => {
   justify-content: center;
 }
 
-.mood-text { font-size: 16px; font-weight: 700; transition: color 0.3s ease; }
+.mood-text { font-size: 16px; font-weight: 750; transition: color 0.3s ease; }
+.mood-subtitle { margin-top: 2px; color: var(--color-text-muted); font-size: 11px; }
+
+.preview-pill {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.preview-chart {
+  display: flex;
+  align-items: end;
+  gap: 7px;
+  height: 70px;
+  padding: 10px 0 6px;
+}
+
+.preview-chart span {
+  flex: 1;
+  min-width: 0;
+  border-radius: 999px 999px 4px 4px;
+}
 
 .mood-stats { display: flex; gap: 12px; }
-.mood-stat { flex: 1; background: rgba(255,255,255,0.5); border-radius: var(--radius-sm); padding: 8px 10px; }
+.mood-stat { flex: 1; background: rgba(255,255,255,0.68); border: 1px solid rgba(255,255,255,0.72); border-radius: 12px; padding: 8px 10px; }
 .mood-label { font-size: 11px; color: rgba(0,0,0,0.5); margin-bottom: 2px; }
 .mood-value { font-size: 14px; font-weight: 700; }
 .mood-value.income { color: #059669; }
@@ -459,9 +780,15 @@ onMounted(async () => {
 .btn.primary.small { padding: 8px 14px; font-size: 13px; }
 
 @media (max-width: 768px) {
-  .theme-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .customizer-layout { grid-template-columns: 1fr; }
-  .customizer-right { order: -1; }
+  .theme-studio { padding: 16px; border-radius: 18px; }
+  .studio-header { flex-direction: column; gap: 14px; margin-bottom: 16px; }
+  .studio-header h1 { font-size: 22px; }
+  .studio-header p { font-size: 13px; }
+  .studio-current { width: 100%; }
+  .studio-layout { grid-template-columns: 1fr; gap: 12px; }
+  .studio-panel { padding: 12px; border-radius: 14px; }
+  .panel-heading { margin-bottom: 12px; }
+  .theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .page-container { padding: 12px; gap: 12px; }
   .card-body { padding: 12px; }
   .customizer-left { width: 100%; overflow: hidden; }
@@ -473,7 +800,10 @@ onMounted(async () => {
   .budget-form { max-width: 100%; }
   .section-title { font-size: 14px; }
   .section-desc { font-size: 11px; }
-  .theme-preview { height: 48px; }
+  .theme-preview { height: 74px; padding: 10px; }
+  .theme-preview::after { inset: auto 10px 10px 10px; height: 24px; }
+  .preview-dock { right: 14px; bottom: 14px; gap: 4px; }
+  .preview-dock i { width: 8px; height: 14px; }
   .theme-info { padding: 6px 8px; }
   .theme-name { font-size: 11px; }
   .theme-desc { font-size: 9px; }

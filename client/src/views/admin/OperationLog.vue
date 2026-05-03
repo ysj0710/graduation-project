@@ -8,19 +8,18 @@
         </div>
       </div>
       <div class="card-body">
-        <div class="log-list">
-          <div class="log-item" v-for="log in logs" :key="log.id">
-            <div class="log-time">{{ log.time }}</div>
-            <div class="log-user">{{ log.user }}</div>
-            <div class="log-action">{{ log.action }}</div>
-            <div class="log-details" v-if="log.details">{{ log.details }}</div>
-          </div>
-
-          <div v-if="logs.length === 0 && !loading" class="empty-state">
-            <div class="empty-icon"><ScrollText :size="48" :stroke-width="1" /></div>
-            <p>暂无操作日志</p>
-          </div>
-        </div>
+        <el-table :data="logs" stripe size="small">
+          <el-table-column label="时间" prop="time" width="180" />
+          <el-table-column label="用户" prop="user" width="120" />
+          <el-table-column label="操作" prop="action" />
+          <el-table-column label="详情" prop="details" />
+          <template #empty>
+            <div v-if="!loading" class="empty-state">
+              <div class="empty-icon"><ScrollText :size="48" :stroke-width="1" /></div>
+              <p>暂无操作日志</p>
+            </div>
+          </template>
+        </el-table>
       </div>
       <div v-if="total > pageSize" class="pagination-wrap">
         <span class="page-indicator">第 {{ currentPage }} / {{ Math.ceil(total / pageSize) }} 页</span>

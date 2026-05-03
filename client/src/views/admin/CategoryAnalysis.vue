@@ -96,42 +96,45 @@
               <span>分类明细</span>
             </div>
           </div>
-          <div class="category-table">
-            <div class="table-header">
-              <span>排名</span>
-              <span>分类</span>
-              <span>金额</span>
-              <span>占比</span>
-              <span>趋势</span>
-            </div>
-            <div
-              v-for="(cat, idx) in currentPieData"
-              :key="cat.name"
-              class="table-row"
-            >
-              <span class="rank-cell">
-                <span class="rank-badge" :class="getRankClass(idx)">{{ idx + 1 }}</span>
-              </span>
-              <span class="name-cell">
-                <span class="cat-dot" :style="{ background: cat.color }"></span>
-                {{ cat.name }}
-              </span>
-              <span class="amount-cell" :class="activeType">
-                ¥{{ formatNumber(cat.value) }}
-              </span>
-              <span class="percent-cell">
-                <div class="percent-bar-wrap">
-                  <div class="percent-bar" :style="{ width: cat.percent + '%', background: cat.color }"></div>
+          <el-table :data="currentPieData" stripe size="small">
+            <el-table-column label="排名" width="70">
+              <template #default="{ $index }">
+                <span class="rank-badge" :class="getRankClass($index)">{{ $index + 1 }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="分类" min-width="140">
+              <template #default="{ row }">
+                <span class="name-cell">
+                  <span class="cat-dot" :style="{ background: row.color }"></span>
+                  {{ row.name }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="金额" width="120">
+              <template #default="{ row }">
+                <span class="amount-cell" :class="activeType">
+                  ¥{{ formatNumber(row.value) }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="占比" width="160">
+              <template #default="{ row }">
+                <div class="percent-cell">
+                  <div class="percent-bar-wrap">
+                    <div class="percent-bar" :style="{ width: row.percent + '%', background: row.color }"></div>
+                  </div>
+                  <span class="percent-text">{{ row.percent }}%</span>
                 </div>
-                <span class="percent-text">{{ cat.percent }}%</span>
-              </span>
-              <span class="trend-cell">
-                <span v-if="cat.trend > 0" class="trend up">↑ {{ cat.trend }}%</span>
-                <span v-else-if="cat.trend < 0" class="trend down">↓ {{ Math.abs(cat.trend) }}%</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="趋势" width="80">
+              <template #default="{ row }">
+                <span v-if="row.trend > 0" class="trend up">{{ row.trend }}%</span>
+                <span v-else-if="row.trend < 0" class="trend down">{{ Math.abs(row.trend) }}%</span>
                 <span v-else class="trend flat">—</span>
-              </span>
-            </div>
-          </div>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
       </div>
     </template>

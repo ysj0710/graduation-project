@@ -8,9 +8,9 @@
           <div class="overview-count">{{ riskCounts.high }}</div>
           <div class="overview-label">高风险用户</div>
         </div>
-        <button v-if="riskCounts.high > 0 && filterLevel !== 'high'" class="batch-btn" @click.stop="openBatchSend('high')">
-          <Bell :size="12" />批量提醒
-        </button>
+        <el-button v-if="riskCounts.high > 0 && filterLevel !== 'high'" class="batch-btn" size="small" @click.stop="openBatchSend('high')">
+          <BellIcon :size="12" />批量提醒
+        </el-button>
       </div>
       <div class="overview-card warning" @click="filterLevel = 'medium'">
         <div class="overview-icon"><AlertTriangle :size="20" /></div>
@@ -18,9 +18,9 @@
           <div class="overview-count">{{ riskCounts.medium }}</div>
           <div class="overview-label">中风险用户</div>
         </div>
-        <button v-if="riskCounts.medium > 0 && filterLevel !== 'medium'" class="batch-btn" @click.stop="openBatchSend('medium')">
-          <Bell :size="12" />批量提醒
-        </button>
+        <el-button v-if="riskCounts.medium > 0 && filterLevel !== 'medium'" class="batch-btn" size="small" @click.stop="openBatchSend('medium')">
+          <BellIcon :size="12" />批量提醒
+        </el-button>
       </div>
       <div class="overview-card safe" @click="filterLevel = 'low'">
         <div class="overview-icon"><CheckCircle2 :size="20" /></div>
@@ -40,21 +40,22 @@
           <span class="total-hint">共 {{ total }} 人</span>
         </div>
         <div class="filter-tabs">
-          <button class="filter-tab" :class="{ active: filterLevel === 'all' }" @click="filterLevel = 'all'">全部</button>
-          <button class="filter-tab danger" :class="{ active: filterLevel === 'high' }" @click="filterLevel = 'high'">
+          <el-button class="filter-tab" :class="{ active: filterLevel === 'all' }" size="small" @click="filterLevel = 'all'">全部</el-button>
+          <el-button class="filter-tab danger" :class="{ active: filterLevel === 'high' }" size="small" @click="filterLevel = 'high'">
             高风险<span v-if="riskCounts.high > 0" class="tab-count">{{ riskCounts.high }}</span>
-          </button>
-          <button class="filter-tab warning" :class="{ active: filterLevel === 'medium' }" @click="filterLevel = 'medium'">
+          </el-button>
+          <el-button class="filter-tab warning" :class="{ active: filterLevel === 'medium' }" size="small" @click="filterLevel = 'medium'">
             中风险<span v-if="riskCounts.medium > 0" class="tab-count">{{ riskCounts.medium }}</span>
-          </button>
-          <button class="filter-tab" :class="{ active: filterLevel === 'low' }" @click="filterLevel = 'low'">低风险</button>
-          <button
+          </el-button>
+          <el-button class="filter-tab" :class="{ active: filterLevel === 'low' }" size="small" @click="filterLevel = 'low'">低风险</el-button>
+          <el-button
             v-if="filterLevel !== 'all' && filterLevel !== 'low' && (filterLevel === 'high' ? riskCounts.high : riskCounts.medium) > 0"
             class="filter-tab batch-action"
+            size="small"
             @click="openBatchSend(filterLevel)"
           >
-            <Bell :size="13" />批量发送提醒
-          </button>
+            <BellIcon :size="13" />批量发送提醒
+          </el-button>
         </div>
       </div>
 
@@ -89,15 +90,15 @@
           </div>
 
           <div class="risk-actions">
-            <button v-if="user.riskLevel === 'high' || user.riskLevel === 'medium'" class="btn-small warning-btn" @click="sendReminder(user)">
-              <Bell :size="14" :stroke-width="1.5" />发送提醒
-            </button>
-            <button class="btn-small" @click="openConsumptionPopup(user)">
+            <el-button v-if="user.riskLevel === 'high' || user.riskLevel === 'medium'" class="btn-small warning-btn" size="small" @click="sendReminder(user)">
+              <BellIcon :size="14" :stroke-width="1.5" />发送提醒
+            </el-button>
+            <el-button class="btn-small" size="small" @click="openConsumptionPopup(user)">
               <Eye :size="14" :stroke-width="1.5" />查看消费
-            </button>
-            <button class="btn-small primary" @click="adjustBudget(user)">
-              <Settings :size="14" :stroke-width="1.5" />调整预算
-            </button>
+            </el-button>
+            <el-button class="btn-small primary" size="small" type="primary" @click="adjustBudget(user)">
+              <SettingsIcon :size="14" :stroke-width="1.5" />调整预算
+            </el-button>
           </div>
         </div>
 
@@ -127,20 +128,20 @@
             <Eye :size="18" :stroke-width="1.5" />
             <span>{{ consumptionPopup.user?.name }} — 消费总览</span>
           </div>
-          <button class="popup-close" @click="consumptionPopup.visible = false"><X :size="18" /></button>
+          <el-button class="popup-close" size="small" @click="consumptionPopup.visible = false"><CloseIcon :size="18" /></el-button>
         </div>
 
         <!-- 时间范围选择 -->
         <div class="popup-range-row">
           <div class="range-tabs">
-            <button class="range-tab" :class="{ active: consumptionRange === 'month' }" @click="consumptionRange = 'month'; fetchUserConsumption()">月</button>
-            <button class="range-tab" :class="{ active: consumptionRange === 'quarter' }" @click="consumptionRange = 'quarter'; fetchUserConsumption()">季</button>
-            <button class="range-tab" :class="{ active: consumptionRange === 'year' }" @click="consumptionRange = 'year'; fetchUserConsumption()">年</button>
+            <el-button class="range-tab" :class="{ active: consumptionRange === 'month' }" size="small" @click="consumptionRange = 'month'; fetchUserConsumption()">月</el-button>
+            <el-button class="range-tab" :class="{ active: consumptionRange === 'quarter' }" size="small" @click="consumptionRange = 'quarter'; fetchUserConsumption()">季</el-button>
+            <el-button class="range-tab" :class="{ active: consumptionRange === 'year' }" size="small" @click="consumptionRange = 'year'; fetchUserConsumption()">年</el-button>
           </div>
           <div class="year-selector">
-            <button class="selector-btn" @click="consumptionYear--"><ChevronLeft :size="14" /></button>
+            <el-button class="selector-btn" size="small" @click="consumptionYear--"><ChevronLeft :size="14" /></el-button>
             <span>{{ consumptionYear }}年</span>
-            <button class="selector-btn" @click="consumptionYear++" :disabled="consumptionYear >= currentYear"><ChevronRight :size="14" /></button>
+            <el-button class="selector-btn" size="small" @click="consumptionYear++" :disabled="consumptionYear >= currentYear"><ChevronRight :size="14" /></el-button>
           </div>
         </div>
 
@@ -206,7 +207,7 @@
 import { ref, reactive, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { AlertTriangle, Bell, Eye, Settings, CheckCircle2, X, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { AlertTriangle, Bell as BellIcon, Eye, Settings as SettingsIcon, CheckCircle2, X as CloseIcon, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import axios from 'axios'
 import * as echarts from 'echarts'
 

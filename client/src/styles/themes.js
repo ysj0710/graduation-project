@@ -1,234 +1,180 @@
-// 主题预设库 - 每个主题包含渐变背景、强调色、图表配色方案
 export const THEME_PRESETS = [
   {
     id: 'aurora',
-    name: '极光',
-    description: '紫蓝极光，如梦似幻',
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-    primaryColor: '#8B5CF6',
-    primarySoft: 'rgba(139, 92, 246, 0.15)',
+    name: '奶油樱粉',
+    description: '奶油粉与杏黄撞色，柔和清新',
+    gradient: 'radial-gradient(circle at 18% 16%, rgba(255, 214, 226, 0.82), transparent 28%), radial-gradient(circle at 88% 12%, rgba(255, 244, 199, 0.75), transparent 26%), linear-gradient(135deg, #FFF9F3 0%, #FFE8EF 48%, #F7D7E3 100%)',
+    primaryColor: '#D85C8A',
+    accentColor: '#F8C471',
+    primarySoft: 'rgba(216, 92, 138, 0.15)',
     incomeColor: '#10B981',
     expenseColor: '#F87171',
-    chartColors: ['#8B5CF6', '#EC4899', '#F97316', '#10B981', '#06B6D4', '#6366F1'],
+    chartColors: ['#D85C8A', '#FFB7C8', '#F8C471', '#8FD6B3', '#8ECDF8', '#C4A7E7'],
     accentWarm: true,
-    pattern: 'dots'
+    pattern: 'none'
   },
   {
     id: 'sunset',
-    name: '落日晚霞',
-    description: '橘红晚霞，温暖如你',
-    gradient: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 40%, #feada6 100%)',
-    primaryColor: '#FF6B6B',
-    primarySoft: 'rgba(255, 107, 107, 0.15)',
-    incomeColor: '#51CF66',
-    expenseColor: '#FF6B6B',
-    chartColors: ['#FF6B6B', '#FFA07A', '#FFD700', '#FF69B4', '#FF4500', '#FF6347'],
+    name: '焦糖拿铁',
+    description: '焦糖橙与奶油白撞色，温暖干净',
+    gradient: 'radial-gradient(circle at 16% 18%, rgba(255, 204, 128, 0.75), transparent 28%), radial-gradient(circle at 86% 10%, rgba(255, 245, 210, 0.9), transparent 24%), linear-gradient(135deg, #FFF6E9 0%, #F6D6A8 48%, #D99B62 100%)',
+    primaryColor: '#B96B35',
+    accentColor: '#F0A35E',
+    primarySoft: 'rgba(185, 107, 53, 0.15)',
+    incomeColor: '#15803D',
+    expenseColor: '#DC2626',
+    chartColors: ['#B96B35', '#F0A35E', '#F7D08A', '#7DBE8A', '#66A7C8', '#D989A2'],
     accentWarm: true,
-    pattern: 'waves'
+    pattern: 'none'
   },
   {
     id: 'forest',
-    name: '森林秘境',
-    description: '绿野仙踪，自然清新',
-    gradient: 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)',
-    primaryColor: '#2D6A4F',
-    primarySoft: 'rgba(45, 106, 79, 0.15)',
+    name: '薄荷莓果',
+    description: '薄荷绿与淡粉撞色，轻甜通透',
+    gradient: 'radial-gradient(circle at 18% 16%, rgba(196, 244, 235, 0.86), transparent 30%), radial-gradient(circle at 86% 12%, rgba(255, 207, 230, 0.68), transparent 26%), linear-gradient(135deg, #F8FFFC 0%, #DFF7F2 46%, #F8D8E8 100%)',
+    primaryColor: '#47A99B',
+    accentColor: '#F4A6C8',
+    primarySoft: 'rgba(71, 169, 155, 0.15)',
     incomeColor: '#52B788',
     expenseColor: '#E76F51',
-    chartColors: ['#2D6A4F', '#40916C', '#52B788', '#95D5B2', '#74C69D', '#52B788'],
+    chartColors: ['#47A99B', '#94DCD0', '#F4A6C8', '#F6C96F', '#89BDF5', '#B8A7F5'],
     accentWarm: false,
-    pattern: 'leaves'
+    pattern: 'none'
   },
   {
     id: 'ocean',
-    name: '深海之梦',
-    description: '蔚蓝深海，宁静治愈',
-    gradient: 'linear-gradient(135deg, #1a2980 0%, #26d0ce 100%)',
-    primaryColor: '#0077B6',
-    primarySoft: 'rgba(0, 119, 182, 0.15)',
+    name: '海盐汽水',
+    description: '水蓝与薄荷青撞色，清爽明亮',
+    gradient: 'radial-gradient(circle at 18% 18%, rgba(125, 211, 252, 0.58), transparent 30%), radial-gradient(circle at 86% 10%, rgba(153, 246, 228, 0.48), transparent 28%), linear-gradient(135deg, #F0FDFF 0%, #D7F3FF 48%, #9FD6F0 100%)',
+    primaryColor: '#1686B8',
+    accentColor: '#8FE6D4',
+    primarySoft: 'rgba(22, 134, 184, 0.15)',
     incomeColor: '#48CAE4',
     expenseColor: '#FF6B6B',
-    chartColors: ['#0077B6', '#00B4D8', '#48CAE4', '#90E0EF', '#CAF0F8', '#0096C7'],
+    chartColors: ['#1686B8', '#55C6E8', '#8FE6D4', '#F7C873', '#FF9CA8', '#A9A7F5'],
     accentWarm: false,
-    pattern: 'waves'
+    pattern: 'none'
   },
   {
     id: 'sunrise',
-    name: '日出晨曦',
-    description: '金色阳光，充满希望',
-    gradient: 'linear-gradient(135deg, #f12711 0%, #f5af19 100%)',
-    primaryColor: '#F59E0B',
+    name: '蜂蜜晨光',
+    description: '蜂蜜黄与浅米色撞色，温柔治愈',
+    gradient: 'radial-gradient(circle at 16% 16%, rgba(254, 215, 102, 0.72), transparent 28%), radial-gradient(circle at 86% 12%, rgba(255, 244, 194, 0.8), transparent 26%), linear-gradient(135deg, #FFFBEA 0%, #FFE8A6 48%, #DBB36A 100%)',
+    primaryColor: '#B7831C',
+    accentColor: '#F5B84B',
     primarySoft: 'rgba(245, 158, 11, 0.15)',
     incomeColor: '#10B981',
     expenseColor: '#EF4444',
-    chartColors: ['#F59E0B', '#F97316', '#EF4444', '#EC4899', '#8B5CF6', '#06B6D4'],
+    chartColors: ['#B7831C', '#F5B84B', '#8A5A2B', '#72B785', '#65A7D8', '#D98AA8'],
     accentWarm: true,
-    pattern: 'rays'
+    pattern: 'none'
   },
   {
     id: 'neon',
-    name: '霓虹都市',
-    description: '赛博朋克，炫酷潮流',
-    gradient: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
-    primaryColor: '#00D9FF',
-    primarySoft: 'rgba(0, 217, 255, 0.15)',
-    incomeColor: '#39FF14',
-    expenseColor: '#FF1493',
-    chartColors: ['#00D9FF', '#FF1493', '#39FF14', '#FFD700', '#FF6EC7', '#00FFFF'],
+    name: '霓虹夜幕',
+    description: '深蓝紫与霓虹粉蓝撞色，酷感更强',
+    gradient: 'radial-gradient(circle at 18% 16%, rgba(236, 72, 153, 0.3), transparent 26%), radial-gradient(circle at 86% 12%, rgba(34, 211, 238, 0.26), transparent 28%), linear-gradient(135deg, #11101D 0%, #201735 48%, #0A1626 100%)',
+    primaryColor: '#FF5FB7',
+    accentColor: '#22D3EE',
+    primarySoft: 'rgba(255, 95, 183, 0.15)',
+    incomeColor: '#34D399',
+    expenseColor: '#FB7185',
+    chartColors: ['#FF5FB7', '#22D3EE', '#A78BFA', '#34D399', '#FBBF24', '#FB7185'],
     accentWarm: false,
-    pattern: 'grid'
+    pattern: 'none'
   },
   {
     id: 'sakura',
-    name: '樱花物语',
-    description: '粉嫩樱花，甜美浪漫',
-    gradient: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
-    primaryColor: '#FF85A2',
-    primarySoft: 'rgba(255, 133, 162, 0.15)',
+    name: '樱粉晴空',
+    description: '樱花粉与奶油黄撞色，轻盈甜感',
+    gradient: 'radial-gradient(circle at 16% 18%, rgba(255, 182, 193, 0.7), transparent 30%), radial-gradient(circle at 88% 8%, rgba(255, 244, 190, 0.65), transparent 24%), linear-gradient(135deg, #FFF7FB 0%, #FFE1EC 52%, #F9B8D0 100%)',
+    primaryColor: '#D94F86',
+    accentColor: '#F7C86E',
+    primarySoft: 'rgba(217, 79, 134, 0.15)',
     incomeColor: '#51CF66',
     expenseColor: '#FF6B6B',
-    chartColors: ['#FF85A2', '#FFB3C1', '#FFC0CB', '#FF69B4', '#FFA07A', '#FFDAB9'],
+    chartColors: ['#D94F86', '#FF9EC3', '#FFC2D7', '#F7C86E', '#8AC7F6', '#B9A3F4'],
     accentWarm: true,
-    pattern: 'petals'
+    pattern: 'none'
   },
   {
     id: 'aurora-green',
-    name: '极光绿',
-    description: '青翠欲滴，春意盎然',
-    gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-    primaryColor: '#2ECC71',
-    primarySoft: 'rgba(46, 204, 113, 0.15)',
+    name: '冰川薄荷',
+    description: '冰蓝与薄荷绿撞色，干净清透',
+    gradient: 'radial-gradient(circle at 14% 16%, rgba(103, 232, 249, 0.52), transparent 28%), radial-gradient(circle at 88% 14%, rgba(167, 243, 208, 0.46), transparent 26%), linear-gradient(135deg, #F2FFFC 0%, #D9F7F2 48%, #C7E4F8 100%)',
+    primaryColor: '#0E8F8F',
+    accentColor: '#76D7EA',
+    primarySoft: 'rgba(14, 143, 143, 0.15)',
     incomeColor: '#27AE60',
     expenseColor: '#E74C3C',
-    chartColors: ['#2ECC71', '#1ABC9C', '#16A085', '#3498DB', '#9B59B6', '#E91E63'],
+    chartColors: ['#0E8F8F', '#45C4B0', '#76D7EA', '#5BA6E6', '#F5C95B', '#F08CAB'],
     accentWarm: false,
-    pattern: 'dots'
+    pattern: 'none'
   },
   {
     id: 'midnight',
-    name: '午夜星空',
-    description: '星河璀璨，探索未知',
-    gradient: 'linear-gradient(135deg, #0f0c29 0%, #1a1a4e 50%, #302b63 100%)',
-    primaryColor: '#A78BFA',
+    name: '午夜蓝紫',
+    description: '午夜蓝与淡紫撞色，安静高级',
+    gradient: 'radial-gradient(circle at 15% 18%, rgba(147, 197, 253, 0.24), transparent 30%), radial-gradient(circle at 86% 12%, rgba(232, 121, 249, 0.2), transparent 26%), linear-gradient(135deg, #111827 0%, #232345 50%, #31234B 100%)',
+    primaryColor: '#A7B7FF',
+    accentColor: '#E879F9',
     primarySoft: 'rgba(167, 139, 250, 0.15)',
     incomeColor: '#34D399',
     expenseColor: '#F87171',
     chartColors: ['#A78BFA', '#818CF8', '#C4B5FD', '#FDE68A', '#6EE7B7', '#93C5FD'],
     accentWarm: false,
-    pattern: 'stars'
+    pattern: 'none'
   },
   {
     id: 'mooncake',
-    name: '古韵金秋',
-    description: '金桂飘香，古典雅致',
-    gradient: 'linear-gradient(135deg, #c9a96e 0%, #f8e1a6 50%, #e8c87a 100%)',
-    primaryColor: '#B8860B',
-    primarySoft: 'rgba(184, 134, 11, 0.15)',
+    name: '竹影米白',
+    description: '竹叶绿与米白撞色，清雅自然',
+    gradient: 'radial-gradient(circle at 15% 14%, rgba(187, 247, 208, 0.42), transparent 28%), radial-gradient(circle at 86% 12%, rgba(255, 255, 255, 0.75), transparent 24%), linear-gradient(135deg, #F7FFF4 0%, #DDEED5 52%, #AFC79F 100%)',
+    primaryColor: '#4D7C3F',
+    accentColor: '#DDEED5',
+    primarySoft: 'rgba(77, 124, 63, 0.15)',
     incomeColor: '#228B22',
     expenseColor: '#CD5C5C',
-    chartColors: ['#B8860B', '#DAA520', '#CD853F', '#8B4513', '#A0522D', '#D2691E'],
+    chartColors: ['#4D7C3F', '#84A96B', '#2F3F32', '#E1C16E', '#73A4D6', '#D88484'],
     accentWarm: true,
-    pattern: 'cloud'
+    pattern: 'none'
   },
   {
     id: 'cyber',
-    name: '赛博幻境',
-    description: '电子脉冲，数字未来',
-    gradient: 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)',
-    primaryColor: '#00D4FF',
-    primarySoft: 'rgba(0, 212, 255, 0.15)',
+    name: '幻彩蓝紫',
+    description: '蓝紫粉渐变撞色，明亮梦幻',
+    gradient: 'radial-gradient(circle at 18% 16%, rgba(96, 165, 250, 0.45), transparent 26%), radial-gradient(circle at 86% 10%, rgba(244, 114, 182, 0.42), transparent 28%), linear-gradient(135deg, #F6F3FF 0%, #D8E6FF 45%, #EFD6FF 100%)',
+    primaryColor: '#7C5CFF',
+    accentColor: '#F472B6',
+    primarySoft: 'rgba(124, 92, 255, 0.15)',
     incomeColor: '#00FFA3',
     expenseColor: '#FF4757',
     chartColors: ['#00D4FF', '#0072FF', '#00FFA3', '#FF00FF', '#FFFF00', '#00FFFF'],
     accentWarm: false,
-    pattern: 'circuit'
+    pattern: 'none'
   },
   {
     id: 'retro',
-    name: '复古胶片',
-    description: '暖黄怀旧，岁月静好',
-    gradient: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 50%, #ee9b00 100%)',
+    name: '柠檬薄荷',
+    description: '柠檬黄与薄荷绿撞色，活泼清爽',
+    gradient: 'radial-gradient(circle at 16% 18%, rgba(250, 204, 21, 0.36), transparent 28%), radial-gradient(circle at 88% 12%, rgba(45, 212, 191, 0.25), transparent 24%), linear-gradient(135deg, #FFFCEF 0%, #FFE4B8 50%, #BCEBD9 100%)',
     primaryColor: '#E76D2B',
+    accentColor: '#2DD4BF',
     primarySoft: 'rgba(231, 109, 43, 0.15)',
     incomeColor: '#4CAF50',
     expenseColor: '#D32F2F',
     chartColors: ['#E76D2B', '#F4A460', '#CD853F', '#8B4513', '#D2691E', '#A0522D'],
     accentWarm: true,
-    pattern: 'grid'
+    pattern: 'none'
   }
 ]
 
-// 背景图案 SVG 数据
-export const PATTERNS = {
-  dots: {
-    name: '圆点',
-    svg: `radial-gradient(circle, rgba(255,255,255,0.25) 1px, transparent 1px)`,
-    bgSize: '24px 24px'
-  },
-  waves: {
-    name: '波浪',
-    svg: `url("data:image/svg+xml,%3Csvg width='100' height='20' viewBox='0 0 100 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M21.184 20c.357-.13.72-.264 1.091-.404l1.384-.433C24.005 19.022 24.948 19 25.998 19c.357 0 .704.044 1.039.129a2.25 2.25 0 0 1 1.387 1.016c.217.36.323.77.303 1.193-.038.853-.323 1.634-.818 2.228-.48.57-1.12.958-1.835 1.114-.357.078-.718.117-1.078.117-.357 0-.711-.038-1.057-.117-.717-.156-1.355-.544-1.835-1.114-.495-.594-.78-1.375-.818-2.228a2.25 2.25 0 0 1 .303-1.193 2.25 2.25 0 0 1 1.387-1.016c.334-.085.682-.129 1.039-.129z' fill='rgba(255,255,255,0.08)'/%3E%3C/svg%3E")`
-  },
-  stars: {
-    name: '星星',
-    svg: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.2'%3E%3Cpath d='M30 30l-3.09-6.26L21 21l6.26-3.09L30 11.64l2.74 6.27L39 21l-5.91 2.74L30 30zM15.5 42l2.47-5.01 5.51 2.74-2.47 5.01L15.5 42zm14.5 0l-2.47-5.01 5.51-2.74-2.47 5.01L30 42z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-  },
-  grid: {
-    name: '网格',
-    svg: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-    bgSize: '30px 30px'
-  },
-  rays: {
-    name: '光芒',
-    svg: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 0 L60 40 L100 50 L60 60 L50 100 L40 60 L0 50 L40 40 Z' fill='rgba(255,255,255,0.05)'/%3E%3C/svg%3E")`,
-    bgSize: '100px 100px'
-  },
-  circuit: {
-    name: '电路',
-    svg: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 50 H40 V20 H60 V50 H90 M50 50 V80' stroke='rgba(0,217,255,0.12)' stroke-width='2' fill='none'/%3E%3Ccircle cx='50' cy='50' r='4' fill='rgba(0,217,255,0.3)'/%3E%3Ccircle cx='10' cy='50' r='3' fill='rgba(0,217,255,0.2)'/%3E%3Ccircle cx='90' cy='50' r='3' fill='rgba(0,217,255,0.2)'/%3E%3Ccircle cx='50' cy='20' r='3' fill='rgba(0,217,255,0.2)'/%3E%3Ccircle cx='50' cy='80' r='3' fill='rgba(0,217,255,0.2)'/%3E%3C/svg%3E")`,
-    bgSize: '100px 100px'
-  },
-  petals: {
-    name: '花瓣',
-    svg: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cellipse cx='40' cy='40' rx='15' ry='25' fill='rgba(255,182,193,0.15)' transform='rotate(0 40 40)'/%3E%3Cellipse cx='40' cy='40' rx='15' ry='25' fill='rgba(255,182,193,0.1)' transform='rotate(60 40 40)'/%3E%3Cellipse cx='40' cy='40' rx='15' ry='25' fill='rgba(255,182,193,0.08)' transform='rotate(120 40 40)'/%3E%3Cellipse cx='40' cy='40' rx='15' ry='25' fill='rgba(255,182,193,0.06)' transform='rotate(180 40 40)'/%3E%3Cellipse cx='40' cy='40' rx='15' ry='25' fill='rgba(255,182,193,0.04)' transform='rotate(240 40 40)'/%3E%3Cellipse cx='40' cy='40' rx='15' ry='25' fill='rgba(255,182,193,0.03)' transform='rotate(300 40 40)'/%3E%3Ccircle cx='40' cy='40' r='6' fill='rgba(255,105,180,0.2)'/%3E%3C/svg%3E")`,
-    bgSize: '80px 80px'
-  },
-  cloud: {
-    name: '祥云',
-    svg: `url("data:image/svg+xml,%3Csvg width='120' height='80' viewBox='0 0 120 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cellipse cx='60' cy='50' rx='50' ry='25' fill='rgba(255,255,255,0.08)'/%3E%3Cellipse cx='40' cy='40' rx='30' ry='20' fill='rgba(255,255,255,0.06)'/%3E%3Cellipse cx='80' cy='38' rx='28' ry='18' fill='rgba(255,255,255,0.06)'/%3E%3Cellipse cx='60' cy='32' rx='35' ry='20' fill='rgba(255,255,255,0.04)'/%3E%3C/svg%3E")`,
-    bgSize: '120px 80px'
-  },
-  leaves: {
-    name: '叶片',
-    svg: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5 Q35 15 30 25 Q25 15 30 5' fill='rgba(255,255,255,0.12)'/%3E%3Cpath d='M30 35 Q35 45 30 55 Q25 45 30 35' fill='rgba(255,255,255,0.08)'/%3E%3Cpath d='M10 20 Q20 25 15 35 Q5 30 10 20' fill='rgba(255,255,255,0.06)'/%3E%3Cpath d='M50 25 Q55 30 50 40 Q45 35 50 25' fill='rgba(255,255,255,0.06)'/%3E%3C/svg%3E")`,
-    bgSize: '60px 60px'
-  },
-  none: {
-    name: '无图案',
-    svg: 'none',
-    bgSize: '0'
-  }
-}
-
 export function getThemeStyle(theme) {
-  const pattern = PATTERNS[theme.pattern] || PATTERNS.none
-  const bg = pattern.svg === 'none' ? theme.gradient : `${theme.gradient}, ${pattern.svg}`
-  const bgSize = pattern.bgSize === '0' ? 'auto' : pattern.bgSize === '24px 24px'
-    ? `cover, 24px 24px`
-    : pattern.bgSize === '30px 30px'
-    ? `cover, 30px 30px`
-    : pattern.bgSize
-
-  if (pattern.svg === 'none') {
-    return {
-      background: theme.gradient,
-      backgroundSize: 'cover'
-    }
-  }
-
   return {
-    background: bg,
-    backgroundSize: pattern.bgSize === '0' ? 'cover' : `cover, ${pattern.bgSize}`
+    backgroundImage: theme.gradient,
+    backgroundSize: 'cover',
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'center'
   }
 }
 

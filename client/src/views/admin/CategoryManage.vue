@@ -7,10 +7,10 @@
           <TrendingDown :size="18" :stroke-width="1.5" />
           <span>支出分类</span>
         </div>
-        <button class="btn btn-primary" @click="openAddModal('expense')">
-          <Plus :size="16" :stroke-width="2" />
+        <el-button class="btn btn-primary" type="primary" @click="openAddModal('expense')">
+          <PlusIcon :size="16" :stroke-width="2" />
           新增分类
-        </button>
+        </el-button>
       </div>
       <div class="card-body">
         <div class="category-list">
@@ -23,14 +23,14 @@
             <div class="cat-type-tag expense">支出</div>
             <div class="cat-color" :style="{ background: cat.color }"></div>
             <div class="cat-actions">
-              <button class="btn-small" @click="openEditModal(cat)">
-                <Edit3 :size="14" :stroke-width="1.5" />
+              <el-button type="primary" link size="small" @click="openEditModal(cat)">
+                <EditIcon :size="14" :stroke-width="1.5" />
                 编辑
-              </button>
-              <button class="btn-small danger" @click="deleteCategory(cat)">
-                <Trash2 :size="14" :stroke-width="1.5" />
+              </el-button>
+              <el-button type="danger" link size="small" @click="deleteCategory(cat)">
+                <TrashIcon :size="14" :stroke-width="1.5" />
                 删除
-              </button>
+              </el-button>
             </div>
           </div>
           <div v-if="expenseCategories.length === 0 && !loading" class="empty-hint">
@@ -47,10 +47,10 @@
           <TrendingUp :size="18" :stroke-width="1.5" />
           <span>收入分类</span>
         </div>
-        <button class="btn btn-primary" @click="openAddModal('income')">
-          <Plus :size="16" :stroke-width="2" />
+        <el-button class="btn btn-primary" type="primary" @click="openAddModal('income')">
+          <PlusIcon :size="16" :stroke-width="2" />
           新增分类
-        </button>
+        </el-button>
       </div>
       <div class="card-body">
         <div class="category-list">
@@ -63,14 +63,14 @@
             <div class="cat-type-tag income">收入</div>
             <div class="cat-color" :style="{ background: cat.color }"></div>
             <div class="cat-actions">
-              <button class="btn-small" @click="openEditModal(cat)">
-                <Edit3 :size="14" :stroke-width="1.5" />
+              <el-button type="primary" link size="small" @click="openEditModal(cat)">
+                <EditIcon :size="14" :stroke-width="1.5" />
                 编辑
-              </button>
-              <button class="btn-small danger" @click="deleteCategory(cat)">
-                <Trash2 :size="14" :stroke-width="1.5" />
+              </el-button>
+              <el-button type="danger" link size="small" @click="deleteCategory(cat)">
+                <TrashIcon :size="14" :stroke-width="1.5" />
                 删除
-              </button>
+              </el-button>
             </div>
           </div>
           <div v-if="incomeCategories.length === 0 && !loading" class="empty-hint">
@@ -85,36 +85,38 @@
       <div class="modal modal-lg">
         <div class="modal-header">
           <h3>{{ editingCategory ? '编辑分类' : '新增分类' }}</h3>
-          <button class="modal-close" @click="closeModal"><X :size="18" /></button>
+          <el-button class="modal-close" size="small" @click="closeModal"><CloseIcon :size="18" /></el-button>
         </div>
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label">分类名称</label>
-            <input v-model="form.name" type="text" class="form-input" placeholder="如：餐饮" required />
+            <el-input v-model="form.name" class="form-input" placeholder="如：餐饮" required />
           </div>
           <div class="form-group">
             <label class="form-label">分类类型</label>
             <div class="type-tabs">
-              <button
+              <el-button
                 type="button"
                 class="type-tab"
                 :class="{ active: form.type === 'expense' }"
+                size="small"
                 @click="form.type = 'expense'"
                 :disabled="!!editingCategory"
               >
                 <TrendingDown :size="16" />
                 支出
-              </button>
-              <button
+              </el-button>
+              <el-button
                 type="button"
                 class="type-tab"
                 :class="{ active: form.type === 'income' }"
+                size="small"
                 @click="form.type = 'income'"
                 :disabled="!!editingCategory"
               >
                 <TrendingUp :size="16" />
                 收入
-              </button>
+              </el-button>
             </div>
           </div>
 
@@ -153,10 +155,10 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn secondary" @click="closeModal">取消</button>
-          <button type="button" class="btn primary" :disabled="saving || !form.name.trim()" @click="saveCategory">
+          <el-button type="button" class="btn secondary" @click="closeModal">取消</el-button>
+          <el-button type="primary" class="btn primary" :disabled="saving || !form.name.trim()" @click="saveCategory">
             {{ saving ? '保存中...' : '保存' }}
-          </button>
+          </el-button>
         </div>
       </div>
     </div>
@@ -167,7 +169,7 @@
 import { ref, computed, onMounted } from 'vue'
 import CategoryIcon from '../../components/CategoryIcon.vue'
 import IconPicker from '../../components/IconPicker.vue'
-import { Tags, Edit3, Trash2, Plus, X, TrendingUp, TrendingDown } from 'lucide-vue-next'
+import { Tags, Edit3 as EditIcon, Trash2 as TrashIcon, Plus as PlusIcon, X as CloseIcon, TrendingUp, TrendingDown } from 'lucide-vue-next'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 

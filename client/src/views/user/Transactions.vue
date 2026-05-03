@@ -7,14 +7,14 @@
           <span>交易记录</span>
         </div>
         <div class="header-actions">
-          <button v-if="selectedIds.length > 0" class="btn danger" @click="batchDelete">
-            <Trash2 :size="16" :stroke-width="2" />
+          <el-button v-if="selectedIds.length > 0" type="danger" size="small" @click="batchDelete">
+            <template #icon><el-icon><Delete /></el-icon></template>
             批量删除 ({{ selectedIds.length }})
-          </button>
-          <button class="btn primary" @click="showImportDialog = true">
-            <Download :size="16" :stroke-width="2" />
+          </el-button>
+          <el-button type="primary" size="small" @click="showImportDialog = true">
+            <template #icon><el-icon><Download /></el-icon></template>
             导入账单
-          </button>
+          </el-button>
         </div>
       </div>
 
@@ -30,9 +30,75 @@
             <span>全选</span>
           </div>
           <div class="btn-group">
-            <button class="btn small" :class="{ active: filterType === 'all' }" @click="filterType = 'all'; currentPage = 1; fetchRecords()">全部</button>
-            <button class="btn small" :class="{ active: filterType === 'expense' }" @click="filterType = 'expense'; currentPage = 1; fetchRecords()">支出</button>
-            <button class="btn small" :class="{ active: filterType === 'income' }" @click="filterType = 'income'; currentPage = 1; fetchRecords()">收入</button>
+            <el-button size="small" :type="filterType === 'all' ? 'primary' : 'default'" @click="filterType = 'all'; currentPage = 1; fetchRecords()">全部</el-button>
+            <el-button size="small" :type="filterType === 'expense' ? 'primary' : 'default'" @click="filterType = 'expense'; currentPage = 1; fetchRecords()">支出</el-button>
+            <el-button size="small" :type="filterType === 'income' ? 'primary' : 'default'" @click="filterType = 'income'; currentPage = 1; fetchRecords()">收入</el-button>
+          </div>
+          <el-button size="small" :type="showFilters || hasActiveFilters ? 'primary' : 'default'" @click="showFilters = !showFilters" class="filter-toggle">
+            <template #icon><el-icon><Operation /></el-icon></template>
+            筛选
+            <span v-if="hasActiveFilters" class="filter-badge"></span>
+          </el-button>
+        </div>
+
+        <!-- 高级筛选面板 -->
+        <div v-if="showFilters" class="filter-panel">
+          <div class="filter-row">
+            <div class="filter-field">
+              <label class="filter-label">
+                <el-icon :size="14"><Search /></el-icon>
+                关键词
+              </label>
+              <el-input
+                v-model="searchKeyword"
+                size="small"
+                placeholder="搜索备注内容..."
+                clearable
+                @keyup.enter="currentPage = 1; fetchRecords()"
+              >
+                <template #prefix><el-icon><Search /></el-icon></template>
+              </el-input>
+            </div>
+            <div class="filter-field">
+              <label class="filter-label">分类</label>
+              <el-select v-model="filterCategory" size="small" placeholder="全部分类" clearable @change="currentPage = 1; fetchRecords()">
+                <el-option v-for="cat in allCategories" :key="cat" :label="cat" :value="cat" />
+              </el-select>
+            </div>
+          </div>
+          <div class="filter-row">
+            <div class="filter-field">
+              <label class="filter-label">开始日期</label>
+              <el-date-picker
+                v-model="startDate"
+                type="date"
+                size="small"
+                placeholder="选择开始日期"
+                value-format="YYYY-MM-DD"
+                @change="currentPage = 1; fetchRecords()"
+              />
+            </div>
+            <div class="filter-field">
+              <label class="filter-label">结束日期</label>
+              <el-date-picker
+                v-model="endDate"
+                type="date"
+                size="small"
+                placeholder="选择结束日期"
+                value-format="YYYY-MM-DD"
+                @change="currentPage = 1; fetchRecords()"
+              />
+            </div>
+            <div class="filter-field filter-actions-field">
+              <el-button type="primary" size="small" @click="currentPage = 1; fetchRecords()">
+                <template #icon><el-icon><Search /></el-icon></template>
+                搜索
+              </el-button>
+              <el-button v-if="hasActiveFilters" size="small" @click="resetFilters()">
+                <template #icon><el-icon><RefreshRight /></el-icon></template>
+                重置
+              </el-button>
+            </div>
           </div>
         </div>
 
@@ -62,8 +128,14 @@
                 {{ record.type === 'income' ? '+' : '-' }}¥{{ formatNumber(record.amount) }}
               </div>
               <div class="transaction-actions">
-                <button class="btn-text" @click="openEditDialog(record)">编辑</button>
-                <button class="btn-text danger" @click="deleteRecord(record._id)">删除</button>
+                <el-button type="primary" link size="small" @click="openEditDialog(record)">
+                  <template #icon><el-icon><Edit /></el-icon></template>
+                  编辑
+                </el-button>
+                <el-button type="danger" link size="small" @click="deleteRecord(record._id)">
+                  <template #icon><el-icon><Delete /></el-icon></template>
+                  删除
+                </el-button>
               </div>
             </div>
           </div>
@@ -108,7 +180,7 @@
       <div class="dialog-container" @click.stop>
         <div class="dialog-header">
           <div class="dialog-title">
-            <Download :size="20" :stroke-width="1.8" />
+            <DownloadIcon :size="20" :stroke-width="1.8" />
             <span>导入账单</span>
           </div>
           <button class="close-btn" @click="showImportDialog = false"><X :size="20" :stroke-width="2" /></button>
@@ -160,9 +232,9 @@
             </div>
 
             <div class="dialog-footer">
-              <button class="btn primary" :disabled="!importPlatform" @click="importStep = 1">
+              <el-button type="primary" :disabled="!importPlatform" @click="importStep = 1">
                 下一步
-              </button>
+              </el-button>
             </div>
           </div>
 
@@ -180,7 +252,7 @@
 
             <div class="upload-area" @click="triggerUpload" @dragover.prevent @drop.prevent="handleDrop">
               <input ref="uploadRef" type="file" accept=".csv,.xlsx,.xls" @change="handleFileChange" hidden />
-              <Upload :size="48" :stroke-width="1" />
+              <UploadIcon :size="48" :stroke-width="1" />
               <p>拖拽文件到此处或点击上传</p>
               <span class="upload-tip">支持 CSV、XLSX 格式文件</span>
             </div>
@@ -190,10 +262,10 @@
             </div>
 
             <div class="dialog-footer">
-              <button class="btn secondary" @click="importStep = 0">上一步</button>
-              <button class="btn primary" :disabled="!fileReady" :class="{ loading: importing }" @click="doImport">
+              <el-button @click="importStep = 0">上一步</el-button>
+              <el-button type="primary" :disabled="!fileReady" :loading="importing" @click="doImport">
                 开始导入
-              </button>
+              </el-button>
             </div>
           </div>
         </div>
@@ -211,38 +283,44 @@
         <div class="dialog-body">
           <div class="form-group">
             <label class="form-label">类型</label>
-            <select v-model="editForm.type" class="form-select">
-              <option value="expense">支出</option>
-              <option value="income">收入</option>
-            </select>
+            <el-select v-model="editForm.type" style="width: 100%;">
+              <el-option label="支出" value="expense" />
+              <el-option label="收入" value="income" />
+            </el-select>
           </div>
 
           <div class="form-group">
             <label class="form-label">金额</label>
-            <input v-model.number="editForm.amount" type="number" step="0.01" class="form-input" />
+            <el-input-number v-model="editForm.amount" :min="0" :precision="2" :step="0.01" style="width: 100%;" />
           </div>
 
           <div class="form-group">
             <label class="form-label">分类</label>
-            <select v-model="editForm.category" class="form-select">
-              <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-            </select>
+            <el-select v-model="editForm.category" style="width: 100%;">
+              <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
+            </el-select>
           </div>
 
           <div class="form-group">
             <label class="form-label">备注</label>
-            <textarea v-model="editForm.note" rows="2" class="form-textarea"></textarea>
+            <el-input v-model="editForm.note" type="textarea" :rows="2" />
           </div>
 
           <div class="form-group">
             <label class="form-label">日期</label>
-            <input v-model="editForm.date" type="datetime-local" class="form-input" />
+            <el-date-picker
+              v-model="editForm.date"
+              type="datetime"
+              placeholder="选择日期时间"
+              value-format="YYYY-MM-DDTHH:mm:ss"
+              style="width: 100%;"
+            />
           </div>
         </div>
 
         <div class="dialog-footer">
-          <button class="btn secondary" @click="showEditDialog = false">取消</button>
-          <button class="btn primary" :class="{ loading: saving }" @click="saveEdit">保存</button>
+          <el-button @click="showEditDialog = false">取消</el-button>
+          <el-button type="primary" :loading="saving" @click="saveEdit">保存</el-button>
         </div>
       </div>
     </div>
@@ -253,11 +331,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  ListOrdered, Download, MessageSquare, Smartphone, Trash2,
-  Upload, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+  ListOrdered, Download as DownloadIcon, MessageSquare, Smartphone, Trash2,
+  Upload as UploadIcon, X, ChevronLeft, ChevronRight
 } from 'lucide-vue-next'
 import CategoryIcon from '../../components/CategoryIcon.vue'
+import { useUserStore } from '../../stores/user'
 import axios from 'axios'
+
+const userStore = useUserStore()
 
 const records = ref([])
 const filterType = ref('all')
@@ -267,6 +348,13 @@ const isIndeterminate = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+
+// 查询筛选
+const searchKeyword = ref('')
+const filterCategory = ref('')
+const startDate = ref('')
+const endDate = ref('')
+const showFilters = ref(false)
 
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
@@ -321,6 +409,27 @@ const saving = ref(false)
 
 const categories = ['餐饮', '交通', '购物', '娱乐', '住房', '医疗', '教育', '充值', '生活缴费', '保险', '工资', '奖金', '理财', '兼职', '收入', '其他']
 
+const allCategories = computed(() => {
+  const expense = (userStore.categories?.expense || []).map(c => c.name)
+  const income = (userStore.categories?.income || []).map(c => c.name)
+  const merged = [...new Set([...expense, ...income])]
+  return merged.length > 0 ? merged : categories
+})
+
+const resetFilters = () => {
+  searchKeyword.value = ''
+  filterCategory.value = ''
+  startDate.value = ''
+  endDate.value = ''
+  filterType.value = 'all'
+  currentPage.value = 1
+  fetchRecords()
+}
+
+const hasActiveFilters = computed(() => {
+  return searchKeyword.value || filterCategory.value || startDate.value || endDate.value
+})
+
 const filteredRecords = computed(() => {
   if (filterType.value === 'all') return records.value
   return records.value.filter(r => r.type === filterType.value)
@@ -338,6 +447,10 @@ const fetchRecords = async () => {
     const token = localStorage.getItem('token')
     const params = { page: currentPage.value, pageSize: pageSize.value }
     if (filterType.value !== 'all') params.type = filterType.value
+    if (filterCategory.value) params.category = filterCategory.value
+    if (startDate.value) params.startDate = startDate.value
+    if (endDate.value) params.endDate = endDate.value
+    if (searchKeyword.value.trim()) params.keyword = searchKeyword.value.trim()
     const res = await axios.get('/api/transactions', {
       params,
       headers: { Authorization: `Bearer ${token}` }
@@ -585,54 +698,6 @@ onMounted(() => {
 
 .card-body { padding: 24px; }
 
-.btn {
-  padding: 10px 20px;
-  border-radius: var(--radius-md);
-  font-size: 14px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn.primary { background: var(--color-primary); color: white; }
-.btn.primary:hover:not(:disabled) { background: #4F46E5; transform: translateY(-1px); }
-.btn.primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn.secondary { background: var(--color-surface-hover); color: var(--color-text-secondary); }
-.btn.secondary:hover { background: var(--color-surface-active); }
-.btn.danger { background: var(--color-expense); color: white; }
-.btn.danger:hover { background: #DC2626; transform: translateY(-1px); }
-
-.btn.small {
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  font-weight: 500;
-  background: var(--color-surface-hover);
-  border: none;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn.small.active { background: var(--color-primary-soft); color: var(--color-primary); }
-
-.btn-text {
-  padding: 6px 12px;
-  background: transparent;
-  border: none;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-  transition: color var(--transition-fast);
-}
-
-.btn-text:hover { color: var(--color-primary); }
-.btn-text.danger:hover { color: var(--color-expense); }
-
 .filter-bar {
   display: flex;
   align-items: center;
@@ -647,6 +712,79 @@ onMounted(() => {
 .select-all input { width: 16px; height: 16px; cursor: pointer; }
 
 .btn-group { display: flex; gap: 4px; }
+
+.filter-toggle {
+  margin-left: auto;
+  position: relative;
+}
+
+.filter-badge {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  margin-left: 2px;
+  vertical-align: middle;
+}
+
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.filter-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-field .el-input,
+.filter-field .el-select,
+.filter-field .el-date-editor {
+  width: 100%;
+}
+
+.filter-field .el-date-editor.el-input {
+  width: 100%;
+}
+
+.filter-actions-field {
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 8px;
+  padding-bottom: 1px;
+}
+
+.filter-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
 
 .transactions-list { display: flex; flex-direction: column; gap: 12px; }
 
@@ -951,8 +1089,6 @@ onMounted(() => {
 .result-box.success { background: var(--color-income-bg); color: var(--color-income); }
 .result-box.warning { background: var(--color-warning-soft); color: var(--color-warning); }
 
-.btn.loading { opacity: 0.6; pointer-events: none; }
-
 @media (max-width: 640px) {
   .dialog-container { width: 100%; max-height: 100vh; border-radius: 0; }
   .pagination { flex-direction: column; gap: 12px; }
@@ -963,7 +1099,13 @@ onMounted(() => {
   .card-header { flex-direction: column; gap: 12px; align-items: flex-start; padding: 14px 16px; }
   .header-actions { width: 100%; flex-wrap: wrap; }
   .filter-bar { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+  .filter-toggle { margin-left: 0; }
   .card-body { padding: 12px; }
+
+  .filter-panel { padding: 12px; }
+  .filter-row { flex-direction: column; gap: 10px; }
+  .filter-actions-field { flex-direction: row; justify-content: flex-end; }
+  .filter-field { width: 100%; }
 
   .transaction-item { padding: 10px 12px; gap: 6px; }
   .transaction-top { gap: 10px; }

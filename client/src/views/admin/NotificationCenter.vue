@@ -3,13 +3,13 @@
     <div class="card">
       <div class="card-header">
         <div class="card-title">
-          <Bell :size="18" :stroke-width="1.5" />
+          <BellIcon :size="18" :stroke-width="1.5" />
           <span>消息中心</span>
         </div>
         <div class="header-actions">
-          <button class="btn-small" @click="markAllRead" v-if="unreadCount > 0">
+          <el-button size="small" @click="markAllRead" v-if="unreadCount > 0">
             全部标记已读
-          </button>
+          </el-button>
         </div>
       </div>
       <div class="card-body">
@@ -28,31 +28,29 @@
               {{ notif.read ? '已读' : '未读' }}
             </span>
             <div class="notif-actions">
-              <button v-if="!notif.read" class="btn-icon" @click="markRead(notif)">
+              <el-button v-if="!notif.read" class="btn-icon" size="small" @click="markRead(notif)">
                 <Check :size="16" :stroke-width="1.5" />
-              </button>
-              <button class="btn-icon" @click="deleteNotif(notif)">
-                <Trash2 :size="16" :stroke-width="1.5" />
-              </button>
+              </el-button>
+              <el-button class="btn-icon" size="small" type="danger" @click="deleteNotif(notif)">
+                <TrashIcon :size="16" :stroke-width="1.5" />
+              </el-button>
             </div>
           </div>
 
           <div v-if="notifications.length === 0 && !loading" class="empty-state">
-            <div class="empty-icon"><Bell :size="48" :stroke-width="1" /></div>
+            <div class="empty-icon"><BellIcon :size="48" :stroke-width="1" /></div>
             <p>暂无消息</p>
           </div>
         </div>
         <div v-if="total > pageSize" class="pagination-wrap">
           <span class="page-indicator">第 {{ currentPage }} / {{ Math.ceil(total / pageSize) }} 页</span>
-          <div class="page-buttons">
-            <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--; fetchNotifications()">
-              <ChevronLeft :size="16" />
-            </button>
-            <span class="page-current">{{ currentPage }}</span>
-            <button class="page-btn" :disabled="currentPage >= Math.ceil(total / pageSize)" @click="currentPage++; fetchNotifications()">
-              <ChevronRight :size="16" />
-            </button>
-          </div>
+          <el-pagination
+            v-model:current-page="currentPage"
+            :page-size="pageSize"
+            :total="total"
+            layout="prev, pager, next"
+            background
+          />
         </div>
       </div>
     </div>
@@ -60,9 +58,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Bell, AlertTriangle, User, CheckCircle2, Check, Trash2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Bell as BellIcon, AlertTriangle, User, CheckCircle2, Check, Trash2 as TrashIcon } from 'lucide-vue-next'
 import axios from 'axios'
 
 const notifications = ref([])
@@ -168,6 +166,10 @@ const deleteNotif = async (notif) => {
     ElMessage.error(error.response?.data?.message || '删除失败')
   }
 }
+
+watch(currentPage, () => {
+  fetchNotifications()
+})
 
 onMounted(() => {
   fetchNotifications()

@@ -1,6 +1,21 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { THEME_PRESETS } from '../styles/themes.js'
+
+const DEFAULT_THEME_PRESET = THEME_PRESETS[0]
+
+function mergePresetTheme(theme) {
+  const preset = THEME_PRESETS.find(item => item.id === theme?.presetId)
+  if (!preset || theme?.presetId === 'custom') return theme
+  return {
+    ...theme,
+    background: preset.gradient,
+    primaryColor: preset.primaryColor,
+    accentColor: preset.accentColor,
+    pattern: 'none'
+  }
+}
 
 const api = axios.create({
   baseURL: 'https://ysj0710.xyz/api'
@@ -38,11 +53,12 @@ export const useUserStore = defineStore('user', {
   state: () => {
     // 从本地读取主题设置
     let savedTheme = {
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-      primaryColor: '#667eea',
+      background: DEFAULT_THEME_PRESET.gradient,
+      primaryColor: DEFAULT_THEME_PRESET.primaryColor,
+      accentColor: DEFAULT_THEME_PRESET.accentColor,
       glassBlur: 20,
-      pattern: 'dots',
-      presetId: 'aurora',
+      pattern: 'none',
+      presetId: DEFAULT_THEME_PRESET.id,
       customBgUrl: ''
     }
 
@@ -50,6 +66,7 @@ export const useUserStore = defineStore('user', {
       const localTheme = localStorage.getItem('user_theme')
       if (localTheme) {
         savedTheme = { ...savedTheme, ...JSON.parse(localTheme) }
+        savedTheme = mergePresetTheme(savedTheme)
       }
     } catch (e) {
       console.error('Parse theme error:', e)
@@ -221,14 +238,16 @@ export const useUserStore = defineStore('user', {
     // 从API加载主题设置
     applyThemeSettings(settings) {
       const theme = settings.theme || {}
-      const fullTheme = {
-        background: theme.background || 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-        primaryColor: theme.primaryColor || '#667eea',
+      const preset = THEME_PRESETS.find(item => item.id === theme.presetId) || DEFAULT_THEME_PRESET
+      const fullTheme = mergePresetTheme({
+        background: theme.background || preset.gradient,
+        primaryColor: theme.primaryColor || preset.primaryColor,
+        accentColor: theme.customBgUrl || preset.accentColor,
         glassBlur: theme.glassBlur || 20,
-        pattern: theme.pattern || 'dots',
-        presetId: theme.presetId || 'aurora',
+        pattern: 'none',
+        presetId: theme.presetId || preset.id,
         customBgUrl: theme.customBgUrl || ''
-      }
+      })
       this.theme = fullTheme
       localStorage.setItem('user_theme', JSON.stringify(fullTheme))
     },

@@ -2,72 +2,75 @@
   <div class="page-container">
     <!-- Action Bar -->
     <div class="action-bar">
-      <div class="search-box">
-        <Search :size="18" :stroke-width="1.5" class="search-icon" />
-        <input
-          v-model="searchKeyword"
-          type="text"
-          placeholder="搜索用户名或邮箱..."
-          class="search-input"
-        />
-      </div>
-      <button class="btn btn-primary" @click="$router.push('/admin/users-add')">
-        <Plus :size="16" :stroke-width="2" />
+      <el-input
+        v-model="searchKeyword"
+        size="small"
+        placeholder="搜索用户名或邮箱..."
+        style="max-width: 400px; flex: 1;"
+      >
+        <template #prefix>
+          <SearchIcon :size="16" :stroke-width="1.5" />
+        </template>
+      </el-input>
+      <el-button type="primary" size="small" @click="$router.push('/admin/users-add')">
+        <PlusIcon :size="14" :stroke-width="2" />
         新增用户
-      </button>
+      </el-button>
     </div>
 
     <!-- Table Card -->
     <div class="card">
-      <div class="table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>用户</th>
-              <th style="width: 110px">月预算</th>
-              <th style="width: 110px">年预算</th>
-              <th style="width: 120px">本月消费</th>
-              <th style="width: 100px">风险等级</th>
-              <th style="width: 140px">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="user in users" :key="user.id">
-              <td>
-                <div class="user-cell">
-                  <div class="avatar" :style="{ background: user.avatarColor }">
-                    {{ user.name.charAt(0) }}
-                  </div>
-                  <div class="user-info">
-                    <div class="user-name">{{ user.name }}</div>
-                    <div class="user-email">{{ user.email }}</div>
-                  </div>
-                </div>
-              </td>
-              <td class="num">¥{{ formatNumber(user.budget) }}</td>
-              <td class="num">¥{{ formatNumber(user.yearlyBudget) }}</td>
-              <td class="num" :class="{ expense: user.spent > user.budget * 0.8 }">
-                ¥{{ formatNumber(user.spent) }}
-              </td>
-              <td>
-                <span class="risk-badge" :class="user.riskLevel">{{ user.riskLabel }}</span>
-              </td>
-              <td>
-                <div class="action-btns">
-                  <button class="btn-small danger" @click="deleteUser(user)">
-                    <Trash2 :size="14" :stroke-width="1.5" />
-                    删除
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-if="users.length === 0 && !loading" class="empty-state">
-          <div class="empty-icon"><Users :size="48" :stroke-width="1" /></div>
-          <p>暂无用户数据</p>
-        </div>
-      </div>
+      <el-table :data="users" stripe>
+        <el-table-column label="用户" min-width="200">
+          <template #default="{ row }">
+            <div class="user-cell">
+              <div class="avatar" :style="{ background: row.avatarColor }">
+                {{ row.name.charAt(0) }}
+              </div>
+              <div class="user-info">
+                <div class="user-name">{{ row.name }}</div>
+                <div class="user-email">{{ row.email }}</div>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="月预算" width="110">
+          <template #default="{ row }">
+            <span class="num">¥{{ formatNumber(row.budget) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="年预算" width="110">
+          <template #default="{ row }">
+            <span class="num">¥{{ formatNumber(row.yearlyBudget) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="本月消费" width="120">
+          <template #default="{ row }">
+            <span class="num" :class="{ expense: row.spent > row.budget * 0.8 }">
+              ¥{{ formatNumber(row.spent) }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="风险等级" width="100">
+          <template #default="{ row }">
+            <span class="risk-badge" :class="row.riskLevel">{{ row.riskLabel }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="140">
+          <template #default="{ row }">
+            <el-button type="danger" link @click="deleteUser(row)">
+              <TrashIcon :size="14" :stroke-width="1.5" />
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+        <template #empty>
+          <div v-if="!loading" class="empty-state">
+            <div class="empty-icon"><Users :size="48" :stroke-width="1" /></div>
+            <p>暂无用户数据</p>
+          </div>
+        </template>
+      </el-table>
     </div>
 
     <!-- Pagination -->
@@ -88,7 +91,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Plus, Trash2, Users } from 'lucide-vue-next'
+import { Search as SearchIcon, Plus as PlusIcon, Trash2 as TrashIcon, Users } from 'lucide-vue-next'
 import axios from 'axios'
 
 const router = useRouter()

@@ -3,7 +3,7 @@
     <div class="card">
       <div class="card-header">
         <div class="card-title">
-          <Send :size="18" :stroke-width="1.5" />
+          <SendIcon :size="18" :stroke-width="1.5" />
           <span>发送系统通知</span>
         </div>
       </div>
@@ -16,7 +16,7 @@
               <label class="scope-option" :class="{ active: sendScope === 'all' }">
                 <input type="radio" v-model="sendScope" value="all" />
                 <div class="scope-content">
-                  <Users :size="16" :stroke-width="1.5" />
+                  <UsersIcon :size="16" :stroke-width="1.5" />
                   <div>
                     <div class="scope-title">全部用户</div>
                     <div class="scope-desc">发送给所有注册用户</div>
@@ -41,8 +41,8 @@
             <label class="form-label">选择用户</label>
             <div class="user-select-area">
               <div class="user-select-header">
-                <input v-model="searchKeyword" type="text" class="search-input" placeholder="搜索用户名..." />
-                <button type="button" class="btn btn-small" @click="fetchUsers">刷新</button>
+                <el-input v-model="searchKeyword" class="search-input" size="small" placeholder="搜索用户名..." />
+                <el-button type="button" class="btn btn-small" size="small" @click="fetchUsers">刷新</el-button>
               </div>
               <div class="user-list">
                 <div
@@ -65,7 +65,7 @@
               </div>
               <div class="user-select-footer">
                 已选择 {{ selectedUserIds.length }} 位用户
-                <button v-if="selectedUserIds.length > 0" type="button" class="link-btn" @click="selectedUserIds = []">清空</button>
+                <el-button v-if="selectedUserIds.length > 0" type="primary" link size="small" @click="selectedUserIds = []">清空</el-button>
               </div>
             </div>
           </div>
@@ -73,20 +73,20 @@
           <!-- 消息内容 -->
           <div class="form-group">
             <label class="form-label">通知标题</label>
-            <input v-model="form.title" type="text" class="form-input" placeholder="例如：系统升级通知" required />
+            <el-input v-model="form.title" class="form-input" placeholder="例如：系统升级通知" required />
           </div>
 
           <div class="form-group">
             <label class="form-label">通知内容</label>
-            <textarea v-model="form.content" rows="4" class="form-textarea" placeholder="输入通知内容..." required></textarea>
+            <el-input v-model="form.content" type="textarea" :rows="4" class="form-textarea" placeholder="输入通知内容..." required />
           </div>
 
           <!-- 发送按钮 -->
           <div class="form-actions">
-            <button type="submit" class="btn btn-primary" :disabled="sending || !canSend">
-              <Send :size="16" :stroke-width="2" />
+            <el-button type="primary" class="btn btn-primary" :disabled="sending || !canSend" @click="sendNotification">
+              <SendIcon :size="16" :stroke-width="2" />
               {{ sending ? '发送中...' : '发送通知' }}
-            </button>
+            </el-button>
           </div>
         </form>
       </div>
@@ -101,28 +101,22 @@
         </div>
       </div>
       <div class="table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>标题</th>
-              <th>内容</th>
-              <th style="width: 80px">发送范围</th>
-              <th style="width: 150px">发送时间</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="log in sentLogs" :key="log._id || log.createdAt">
-              <td class="title-cell">{{ log.title }}</td>
-              <td class="content-cell">{{ log.content }}</td>
-              <td>
-                <span class="scope-tag" :class="log.scope">
-                  {{ log.scope === 'all' ? '全部用户' : `${log.sentCount} 位用户` }}
-                </span>
-              </td>
-              <td class="time-cell">{{ formatTime(log.createdAt) }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <el-table :data="sentLogs" stripe size="small" style="width: 100%;">
+          <el-table-column prop="title" label="标题" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="content" label="内容" min-width="200" show-overflow-tooltip />
+          <el-table-column label="发送范围" width="100">
+            <template #default="{ row }">
+              <span class="scope-tag" :class="row.scope">
+                {{ row.scope === 'all' ? '全部用户' : `${row.sentCount} 位用户` }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="发送时间" width="160">
+            <template #default="{ row }">
+              <span class="time-cell">{{ formatTime(row.createdAt) }}</span>
+            </template>
+          </el-table-column>
+        </el-table>
         <div v-if="sentLogs.length === 0 && !loadingLogs" class="empty-state">
           <History :size="40" :stroke-width="1" />
           <p>暂无发送记录</p>
@@ -145,7 +139,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Send, Users, UserCheck, Check, History } from 'lucide-vue-next'
+import { Send as SendIcon, Users as UsersIcon, UserCheck, Check, History } from 'lucide-vue-next'
 import axios from 'axios'
 
 const sendScope = ref('all')
@@ -475,12 +469,7 @@ onMounted(() => {
 .form-actions { margin-top: 4px; }
 
 /* Table */
-.table-wrap { padding: 0 24px 24px; }
-.table { width: 100%; border-collapse: collapse; }
-.table th { text-align: left; padding: 12px 8px; font-size: 12px; font-weight: 600; color: var(--color-text-muted); background: var(--color-surface-hover); }
-.table td { padding: 14px 8px; border-bottom: 1px solid var(--color-border); }
-.table tbody tr:last-child td { border-bottom: none; }
-.title-cell { font-weight: 600; color: var(--color-text-primary); }
+.table-wrap { padding: 0 24px 24px; overflow: hidden; }
 .content-cell { font-size: 13px; color: var(--color-text-secondary); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .time-cell { font-size: 12px; color: var(--color-text-muted); white-space: nowrap; }
 .scope-tag {
